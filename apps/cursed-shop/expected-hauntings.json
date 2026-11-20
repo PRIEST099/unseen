@@ -1,0 +1,412 @@
+{
+  "$meta": {
+    "countUnit": "element",
+    "selectorRule": "each selector matches exactly 1 element",
+    "walkNote": "checkout Tab walk starts inside the newsletter trap and stops when the trap is declared (requirements 11.6)"
+  },
+  "index.html": {
+    "hauntings": {
+      "NamelessSpirit": {
+        "count": 9,
+        "selectors": [
+          "header .nav-icons .icon-btn:nth-child(1)",
+          "header .nav-icons .icon-btn:nth-child(2)",
+          ".product-grid .product-card:nth-child(1) .add-to-cart-btn",
+          ".product-grid .product-card:nth-child(2) .add-to-cart-btn",
+          ".product-grid .product-card:nth-child(3) .add-to-cart-btn",
+          ".product-grid .product-card:nth-child(4) .add-to-cart-btn",
+          ".product-grid .product-card:nth-child(5) .add-to-cart-btn",
+          ".product-grid .product-card:nth-child(6) .add-to-cart-btn",
+          ".social-links .social-link:nth-child(1)"
+        ]
+      },
+      "HollowPortrait": {
+        "count": 4,
+        "selectors": [
+          ".product-grid .product-card:nth-child(1) .product-image.no-alt",
+          ".product-grid .product-card:nth-child(2) .product-image.no-alt",
+          ".product-grid .product-card:nth-child(4) .product-image.no-alt",
+          ".product-grid .product-card:nth-child(6) .product-image.no-alt"
+        ]
+      },
+      "TheFog": {
+        "count": 7,
+        "selectors": [
+          ".product-grid .product-card:nth-child(1) .product-note",
+          ".product-grid .product-card:nth-child(2) .product-note",
+          ".product-grid .product-card:nth-child(3) .product-note",
+          ".product-grid .product-card:nth-child(4) .product-note",
+          ".product-grid .product-card:nth-child(5) .product-note",
+          ".product-grid .product-card:nth-child(6) .product-note",
+          ".footer-bottom p"
+        ]
+      },
+      "LostSoul": {
+        "count": 8,
+        "selectors": [
+          ".product-grid .product-card:nth-child(1) .card-link",
+          ".product-grid .product-card:nth-child(1) .quick-view",
+          ".product-grid .product-card:nth-child(2) .card-link",
+          ".product-grid .product-card:nth-child(2) .quick-view",
+          ".product-grid .product-card:nth-child(4) .card-link",
+          ".product-grid .product-card:nth-child(4) .quick-view",
+          ".product-grid .product-card:nth-child(6) .card-link",
+          ".product-grid .product-card:nth-child(6) .quick-view"
+        ]
+      },
+      "CursedLoop": {
+        "count": 0,
+        "selectors": []
+      },
+      "InvisibleWanderer": {
+        "count": 21,
+        "selectors": [
+          ".nav .nav-link:nth-child(1)",
+          ".nav .nav-link:nth-child(2)",
+          ".nav .nav-link:nth-child(3)",
+          ".nav .nav-link:nth-child(4)",
+          ".nav-icons .icon-btn:nth-child(1)",
+          ".nav-icons .icon-btn:nth-child(2)",
+          ".social-links .social-link:nth-child(1)",
+          ".social-links .social-link:nth-child(2)",
+          ".social-links .social-link:nth-child(3)",
+          ".footer-content > .footer-col:nth-child(2) li:nth-child(1) a",
+          ".footer-content > .footer-col:nth-child(2) li:nth-child(2) a",
+          ".footer-content > .footer-col:nth-child(2) li:nth-child(3) a",
+          ".footer-content > .footer-col:nth-child(2) li:nth-child(4) a",
+          ".footer-content > .footer-col:nth-child(3) li:nth-child(1) a",
+          ".footer-content > .footer-col:nth-child(3) li:nth-child(2) a",
+          ".footer-content > .footer-col:nth-child(3) li:nth-child(3) a",
+          ".footer-content > .footer-col:nth-child(3) li:nth-child(4) a",
+          ".footer-content > .footer-col:nth-child(4) li:nth-child(1) a",
+          ".footer-content > .footer-col:nth-child(4) li:nth-child(2) a",
+          ".footer-content > .footer-col:nth-child(4) li:nth-child(3) a",
+          ".footer-content > .footer-col:nth-child(4) li:nth-child(4) a"
+        ]
+      },
+      "WhisperingField": {
+        "count": 0,
+        "selectors": []
+      },
+      "SilentTongue": {
+        "count": 0,
+        "selectors": []
+      },
+      "ShatteredOrder": {
+        "count": 0,
+        "selectors": []
+      },
+      "TheVeiled": {
+        "count": 1,
+        "selectors": [
+          ".promo-strip"
+        ]
+      }
+    },
+    "controls": {
+      "cookieBanner": {
+        "description": "role=dialog cookie banner that cycles focus and closes on Escape; must NOT be a Cursed Loop",
+        "selectors": [
+          "#cookieBanner",
+          "#cookieBanner .btn-close"
+        ]
+      },
+      "decorativeImages": {
+        "description": "Cards 3 and 5 have alt=\"\" decorative images",
+        "selectors": [
+          ".product-grid .product-card:nth-child(3) .product-image",
+          ".product-grid .product-card:nth-child(5) .product-image"
+        ]
+      },
+      "accessibleCardLinks": {
+        "description": "Cards 3 and 5 have a.card-link with visible focus",
+        "selectors": [
+          ".product-grid .product-card:nth-child(3) .card-link",
+          ".product-grid .product-card:nth-child(5) .card-link"
+        ]
+      },
+      "namedQuickView": {
+        "description": "Cards 3 and 5 have button.quick-view with accessible names",
+        "selectors": [
+          ".product-grid .product-card:nth-child(3) .quick-view",
+          ".product-grid .product-card:nth-child(5) .quick-view"
+        ]
+      },
+      "visibleFocus": {
+        "description": "Logo, hero button, promo strip link, card 1 add-to-cart-btn have visible focus",
+        "selectors": [
+          ".logo",
+          ".hero .btn",
+          ".promo-strip-link",
+          ".product-grid .product-card:nth-child(1) .add-to-cart-btn"
+        ]
+      },
+      "decorativeIcons": {
+        "description": "Feature icons use role=presentation focusable=false correctly",
+        "selectors": [
+          ".feature-icon"
+        ]
+      },
+      "namedSocialLinks": {
+        "description": "Social links 2 and 3 have aria-label names",
+        "selectors": [
+          ".social-links .social-link:nth-child(2)",
+          ".social-links .social-link:nth-child(3)"
+        ]
+      },
+      "hasMain": {
+        "description": "Page has main landmark",
+        "selectors": [
+          "main"
+        ]
+      },
+      "hasH1": {
+        "description": "Page has h1 heading",
+        "selectors": [
+          ".hero h1"
+        ]
+      },
+      "hasLang": {
+        "description": "Page has lang attribute",
+        "selectors": [
+          "html[lang=\"en\"]"
+        ]
+      }
+    }
+  },
+  "product.html": {
+    "hauntings": {
+      "NamelessSpirit": {
+        "count": 3,
+        "selectors": [
+          "header .nav-icons .icon-btn:nth-child(1)",
+          "header .nav-icons .icon-btn:nth-child(2)",
+          ".social-links .social-link:nth-child(1)"
+        ]
+      },
+      "HollowPortrait": {
+        "count": 4,
+        "selectors": [
+          ".product-grid-related .product-card-related:nth-child(1) .product-image-related",
+          ".product-grid-related .product-card-related:nth-child(2) .product-image-related",
+          ".product-grid-related .product-card-related:nth-child(3) .product-image-related",
+          ".product-grid-related .product-card-related:nth-child(4) .product-image-related"
+        ]
+      },
+      "TheFog": {
+        "count": 4,
+        "selectors": [
+          ".reviews-grid .review:nth-child(1) .review-date",
+          ".reviews-grid .review:nth-child(2) .review-date",
+          ".reviews-grid .review:nth-child(3) .review-date",
+          ".footer-bottom p"
+        ]
+      },
+      "LostSoul": {
+        "count": 10,
+        "selectors": [
+          ".product-thumbnails .product-thumb:nth-child(1)",
+          ".product-thumbnails .product-thumb:nth-child(2)",
+          ".product-thumbnails .product-thumb:nth-child(3)",
+          ".variant-options .variant-option:nth-child(1)",
+          ".variant-options .variant-option:nth-child(2)",
+          ".variant-options .variant-option:nth-child(3)",
+          ".product-grid-related .product-card-related:nth-child(1)",
+          ".product-grid-related .product-card-related:nth-child(2)",
+          ".product-grid-related .product-card-related:nth-child(3)",
+          ".product-grid-related .product-card-related:nth-child(4)"
+        ]
+      },
+      "CursedLoop": {
+        "count": 0,
+        "selectors": []
+      },
+      "InvisibleWanderer": {
+        "count": 9,
+        "selectors": [
+          ".nav .nav-link:nth-child(1)",
+          ".nav .nav-link:nth-child(2)",
+          ".nav .nav-link:nth-child(3)",
+          ".nav .nav-link:nth-child(4)",
+          ".nav-icons .icon-btn:nth-child(1)",
+          ".nav-icons .icon-btn:nth-child(2)",
+          ".social-links .social-link:nth-child(1)",
+          ".social-links .social-link:nth-child(2)",
+          ".social-links .social-link:nth-child(3)"
+        ]
+      },
+      "WhisperingField": {
+        "count": 0,
+        "selectors": []
+      },
+      "SilentTongue": {
+        "count": 0,
+        "selectors": []
+      },
+      "ShatteredOrder": {
+        "count": 1,
+        "selectors": [
+          ".product-info h4.details-heading"
+        ]
+      },
+      "TheVeiled": {
+        "count": 0,
+        "selectors": []
+      }
+    },
+    "controls": {
+      "hasMain": {
+        "description": "Page has main landmark",
+        "selectors": [
+          "main"
+        ]
+      },
+      "hasH1": {
+        "description": "Page has h1 heading",
+        "selectors": [
+          ".product-title"
+        ]
+      },
+      "hasLang": {
+        "description": "Page has lang attribute",
+        "selectors": [
+          "html[lang=\"en\"]"
+        ]
+      },
+      "decorativeAltNotHollow": {
+        "description": "3 thumbs have alt=\"\" (decorative)",
+        "selectors": [
+          ".product-thumb"
+        ]
+      },
+      "visibleFocus": {
+        "description": "Quantity select, Add to Cart button, wishlist button have visible focus",
+        "selectors": [
+          ".quantity-select",
+          ".btn",
+          ".wishlist-btn"
+        ]
+      },
+      "namedField": {
+        "description": "Quantity select has aria-label",
+        "selectors": [
+          ".quantity-select"
+        ]
+      }
+    }
+  },
+  "checkout.html": {
+    "hauntings": {
+      "NamelessSpirit": {
+        "count": 3,
+        "selectors": [
+          "header .nav-icons .icon-btn:nth-child(1)",
+          "header .nav-icons .icon-btn:nth-child(2)",
+          ".social-links .social-link:nth-child(1)"
+        ]
+      },
+      "HollowPortrait": {
+        "count": 2,
+        "selectors": [
+          ".cart-item[data-sku=\"HV-MW-08\"] .cart-item-image",
+          ".cart-item[data-sku=\"HV-LH-08\"] .cart-item-image"
+        ]
+      },
+      "TheFog": {
+        "count": 2,
+        "selectors": [
+          ".footer-bottom p.fog-text:nth-child(1)",
+          ".footer-bottom p.fog-text:nth-child(2)"
+        ]
+      },
+      "LostSoul": {
+        "count": 0,
+        "selectors": []
+      },
+      "CursedLoop": {
+        "count": 1,
+        "selectors": [
+          "#newsletterModal"
+        ]
+      },
+      "InvisibleWanderer": {
+        "count": 0,
+        "selectors": [],
+        "notes": "9 outline-less header/footer links are unreachable by Tab (walk starts inside trap)"
+      },
+      "WhisperingField": {
+        "count": 2,
+        "selectors": [
+          "#email",
+          "#cardNumber"
+        ]
+      },
+      "SilentTongue": {
+        "count": 1,
+        "selectors": [
+          "html"
+        ]
+      },
+      "ShatteredOrder": {
+        "count": 1,
+        "selectors": [
+          ".footer-content > .footer-col:nth-child(1) h4"
+        ],
+        "notes": "h2 → h4 skip in footer"
+      },
+      "TheVeiled": {
+        "count": 2,
+        "selectors": [
+          ".promo-banner",
+          ".badge-free"
+        ]
+      }
+    },
+    "controls": {
+      "hasH1": {
+        "description": "Page has h1 heading",
+        "selectors": [
+          ".checkout-page h1.section-title"
+        ]
+      },
+      "properLabels": {
+        "description": "Page has properly labeled fields (10 total)",
+        "selectors": [
+          "#firstName",
+          "#lastName",
+          "#phone",
+          "#address",
+          "#zip",
+          "#city",
+          "#state",
+          "#cardName",
+          "#cvv",
+          "#expiry"
+        ]
+      },
+      "namedByPlaceholder": {
+        "description": "Newsletter form input named by placeholder",
+        "selectors": [
+          ".modal-form input"
+        ]
+      },
+      "visibleFocusInTrap": {
+        "description": "Newsletter input and Subscribe button have visible focus",
+        "selectors": [
+          ".modal-form input",
+          ".modal-actions .btn"
+        ]
+      },
+      "mouseOnlyNativeExits": {
+        "description": "Modal exits are mouse-only; modal-close and #closeModalBtn are native buttons, not Lost Souls",
+        "selectors": [
+          "#newsletterModal .modal-close",
+          "#closeModalBtn"
+        ]
+      },
+      "noMainUndetectable": {
+        "description": "checkout.html uses div.checkout-page instead of main; the missing main landmark is not detectable under current rules"
+      }
+    }
+  }
+}

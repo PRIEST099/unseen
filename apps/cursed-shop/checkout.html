@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hollow & Vine — Checkout</title>
+  <meta name="description" content="Secure checkout for Hollow & Vine hand-poured candles.">
+  <style>
+    :root {
+      --color-primary: #6d4c41;
+      --color-secondary: #8d6e63;
+      --color-accent: #d7ccc8;
+      --color-text: #2c1e1a;
+      --color-bg: #f5f0eb;
+      --color-white: #ffffff;
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      line-height: 1.6;
+    }
+
+    /* === Header === */
+    header {
+      background-color: var(--color-white);
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+    }
+
+    .logo {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .nav-link {
+      color: var(--color-text);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .nav-link:hover {
+      color: var(--color-primary);
+    }
+
+    .nav-icons {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Nameless Spirit: Icon-only button with empty accessible name */
+    .icon-btn {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .icon-btn:hover {
+      background-color: var(--color-accent);
+    }
+
+    .icon-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--color-primary);
+    }
+
+    /* === Checkout Container === */
+    .checkout-page {
+      padding: 60px 0;
+    }
+
+    .checkout-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+    }
+
+    .checkout-section {
+      background-color: var(--color-white);
+      padding: 32px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+    }
+
+    .order-summary {
+      position: sticky;
+      top: 96px;
+    }
+
+    h2.section-title {
+      font-size: 1.5rem;
+      margin-bottom: 24px;
+      color: var(--color-primary);
+      border-bottom: 2px solid var(--color-accent);
+      padding-bottom: 12px;
+    }
+
+    /* Cart Summary */
+    .cart-item {
+      display: flex;
+      gap: 16px;
+      padding: 20px 0;
+      border-bottom: 1px solid #d7ccc8;
+    }
+
+    .cart-item-image {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      background-color: var(--color-accent);
+      padding: 16px 0;
+    }
+
+    .cart-item-info {
+      flex: 1;
+    }
+
+    .cart-item-title {
+      font-weight: 600;
+      color: var(--color-primary);
+      margin-bottom: 8px;
+    }
+
+    .cart-item-options {
+      font-size: 0.85rem;
+      color: #5c4d46;
+      margin-bottom: 8px;
+    }
+
+    .cart-item-price {
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .cart-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: var(--color-secondary);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 4px;
+    }
+
+    .remove-btn:hover {
+      text-decoration-color: var(--color-primary);
+    }
+
+    .cart-totals {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 2px solid #d7ccc8;
+    }
+
+    .cart-total-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 1rem;
+    }
+
+    .cart-total-row.total {
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--color-primary);
+      border-top: 1px solid #d7ccc8;
+      padding-top: 12px;
+    }
+
+    .checkout-btn {
+      display: block;
+      width: 100%;
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      padding: 16px;
+      border-radius: var(--radius);
+      border: none;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 24px;
+      transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .checkout-btn:hover {
+      background-color: var(--color-secondary);
+    }
+
+    .checkout-btn svg {
+      width: 20px;
+      height: 20px;
+      vertical-align: middle;
+      margin-right: 8px;
+      fill: currentColor;
+    }
+
+    /* Shipping Form */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    /* Whispering Field: Inputs with only placeholder, no label */
+    .form-group input.placeholder-only {
+      padding: 12px;
+      border: 1px solid #d7ccc8;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    .form-group input.placeholder-only::placeholder {
+      opacity: 0.6;
+    }
+
+    .form-group input.placeholder-only:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    /* Control: Properly labeled field */
+    .form-group input.proper-label {
+      padding: 12px;
+      border: 1px solid #d7ccc8;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    .form-group input.proper-label:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    .form-group input:disabled {
+      background-color: #f5f0eb;
+      cursor: not-allowed;
+    }
+
+    .form-hint {
+      font-size: 0.85rem;
+      color: #7a6e68;
+      margin-top: 4px;
+    }
+
+    .form-group select {
+      padding: 12px;
+      border: 1px solid #d7ccc8;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 1rem;
+      width: 100%;
+      background-color: var(--color-white);
+    }
+
+    .form-group select:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    .field-caption {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    /* === Checkout Container Styles === */
+    .checkout-container {
+      align-items: start;
+    }
+
+    .checkout-container h2 {
+      margin-top: 32px;
+      margin-bottom: 24px;
+    }
+
+    /* Promo Link - visible focus */
+    .promo-link {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .promo-link:hover {
+      color: var(--color-secondary);
+    }
+
+    .promo-link:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    /* === Newsletter Modal (Cursed Loop: focus trap that doesn't close on Escape) === */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background-color: var(--color-white);
+      padding: 32px;
+      border-radius: var(--radius);
+      max-width: 450px;
+      width: 90%;
+      position: relative;
+      animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      margin-bottom: 24px;
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+      color: var(--color-primary);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--color-text);
+      padding: 4px;
+      transition: color 0.25s ease;
+    }
+
+    .modal-close:hover {
+      color: var(--color-primary);
+    }
+
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-form input {
+      padding: 12px;
+      border: 1px solid #d7ccc8;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 1rem;
+    }
+
+    .modal-form input:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .modal-actions .btn {
+      padding: 10px 24px;
+      border-radius: var(--radius);
+      transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .modal-actions .btn-secondary {
+      background-color: var(--color-white);
+      color: var(--color-primary);
+      border: 2px solid var(--color-primary);
+    }
+
+    .modal-actions .btn-secondary:hover {
+      background-color: #f5f0eb;
+    }
+
+    /* === Promo Banner (The Veiled: hidden from AX tree but visible) === */
+    .promo-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: var(--color-white);
+      border-top: 1px solid #d7ccc8;
+      color: var(--color-primary);
+      padding: 12px 20px;
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+
+    .promo-text {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .badge-free {
+      display: inline-block;
+      padding: 2px 8px;
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      font-size: 0.7rem;
+      border-radius: 4px;
+    }
+
+    /* === Footer === */
+    footer {
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      padding: 48px 0 24px;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+      margin-bottom: 32px;
+    }
+
+    .footer-col h4 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: var(--color-accent);
+    }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col li {
+      margin-bottom: 8px;
+    }
+
+    .footer-col a {
+      color: var(--color-white);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .footer-col a:hover {
+      color: var(--color-accent);
+    }
+
+    .social-links {
+      display: flex;
+      gap: 16px;
+    }
+
+    .social-link {
+      color: var(--color-white);
+      text-decoration: none;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .social-link:hover {
+      background-color: var(--color-accent);
+      color: var(--color-primary);
+    }
+
+    .social-link svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.15);
+      padding-top: 24px;
+      text-align: center;
+    }
+
+    .footer-bottom p {
+      font-size: 0.75rem;
+      color: #a89b95;
+      margin-bottom: 8px;
+    }
+
+    /* The Fog: Footer text with low contrast */
+    .footer-bottom p.fog-text {
+      color: #7a6e68;
+      font-size: 0.75rem;
+    }
+
+    /* Focus styles */
+    .checkout-btn:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    .remove-btn:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    /* Invisible Wanderer: Links without visible focus style */
+    .social-link:focus,
+    .nav-link:focus,
+    .icon-btn:focus {
+      outline: none;
+      outline-offset: 0;
+    }
+
+    /* === Mobile === */
+    @media (max-width: 768px) {
+      .checkout-container {
+        grid-template-columns: 1fr;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .checkout-container {
+        align-items: start;
+      }
+
+      .order-summary {
+        position: static;
+      }
+
+      .header-inner {
+        flex-wrap: wrap;
+        gap: 8px 16px;
+      }
+
+      .logo {
+        font-size: 1.35rem;
+        white-space: nowrap;
+      }
+
+      .nav {
+        order: 3;
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px 12px;
+      }
+
+      .nav-link {
+        font-size: 0.9rem;
+      }
+
+      .nav-icons {
+        gap: 4px;
+        margin-left: auto;
+      }
+
+      html {
+        overflow-x: clip;
+      }
+
+      body {
+        padding-bottom: 96px;
+      }
+
+      .promo-banner {
+        padding: 12px 20px;
+      }
+
+      .promo-text {
+        font-size: 1rem;
+      }
+    }
+
+    body {
+      padding-bottom: 140px;
+    }
+
+    html {
+      scroll-padding-bottom: 110px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="header-inner">
+        <a href="index.html" class="logo">Hollow & Vine</a>
+        
+        <nav class="nav">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="product.html" class="nav-link">Shop</a>
+          <a href="#" class="nav-link">About</a>
+          <a href="#" class="nav-link">Contact</a>
+        </nav>
+
+        <div class="nav-icons">
+          <!-- Nameless Spirit: Icon-only search button (no aria-label) -->
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24" role="none" focusable="false">
+              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+          </button>
+          <!-- Nameless Spirit: Icon-only cart button (no aria-label) -->
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24" role="none" focusable="false">
+              <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Checkout -->
+  <div class="checkout-page">
+    <div class="container">
+      <h1 class="section-title">Secure Checkout</h1>
+      
+      <div class="checkout-container">
+        <!-- Cart Summary -->
+        <div class="checkout-section order-summary">
+          <h2>Order Summary</h2>
+          
+          <div class="cart-item" data-sku="HV-MW-08">
+            <img src="img/candle-midnight.svg" alt="Midnight Wood candle" class="cart-item-image">
+            <div class="cart-item-info">
+              <div class="cart-item-title">Midnight Wood</div>
+              <div class="cart-item-options">8oz Soy Candle • Amber Glass</div>
+              <div class="cart-item-price">$32.00</div>
+            </div>
+            <button class="remove-btn">Remove</button>
+          </div>
+
+          <div class="cart-item" data-sku="HV-LH-08">
+            <img src="img/candle-lavender.svg" alt="Lavender Haven candle" class="cart-item-image">
+            <div class="cart-item-info">
+              <div class="cart-item-title">Lavender Haven</div>
+              <div class="cart-item-options">8oz Soy Candle • Clear Glass</div>
+              <div class="cart-item-price">$28.00</div>
+            </div>
+            <button class="remove-btn">Remove</button>
+          </div>
+
+          <div class="cart-totals">
+            <div class="cart-total-row">
+              <span>Subtotal</span>
+              <span>$60.00</span>
+            </div>
+            <div class="cart-total-row">
+              <span>Shipping</span>
+              <span>Free</span>
+            </div>
+            <div class="cart-total-row">
+              <span>Tax</span>
+              <span>$4.50</span>
+            </div>
+            <div class="cart-total-row total">
+              <span>Total</span>
+              <span>$64.50</span>
+            </div>
+            <div style="margin-top: 8px;">
+              <span class="badge-free" aria-hidden="true">Free shipping</span>
+            </div>
+          </div>
+
+          <button class="checkout-btn">
+            <svg viewBox="0 0 24 24" role="none" focusable="false">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            Checkout with Secure Payment
+          </button>
+
+          <p class="form-hint" style="margin-top: 16px; text-align: center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#4caf50" style="vertical-align: middle; margin-right: 4px;">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+            </svg>
+            SSL Encrypted • 30-Day Money Back Guarantee
+          </p>
+        </div>
+
+        <!-- Shipping Form -->
+        <div class="checkout-section">
+          <h2>Shipping Information</h2>
+          
+          <form id="checkoutForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" name="firstName" required class="proper-label" placeholder="John">
+              </div>
+              <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" name="lastName" required class="proper-label" placeholder="Doe">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="field-caption">Email Address</div>
+              <!-- Whispering Field: Only placeholder, no visible label -->
+              <input type="email" id="email" name="email" class="placeholder-only" placeholder="john@example.com" required>
+              <div class="form-hint">We'll send your order confirmation here.</div>
+            </div>
+
+            <div class="form-group">
+              <label for="phone">Phone</label>
+              <input type="tel" id="phone" name="phone" class="proper-label" placeholder="(555) 123-4567">
+            </div>
+
+            <div class="form-group">
+              <label for="address">Street Address</label>
+              <input type="text" id="address" name="address" required class="proper-label" placeholder="123 Main St">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="apartment">Apartment, suite, etc.</label>
+                <input type="text" id="apartment" name="apartment" class="proper-label" placeholder="(optional)">
+              </div>
+              <div class="form-group">
+                <label for="zip">ZIP Code</label>
+                <input type="text" id="zip" name="zip" required class="proper-label" placeholder="12345">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" name="city" required class="proper-label" placeholder="Seattle">
+              </div>
+              <div class="form-group">
+                <label for="state">State</label>
+                <select id="state" name="state" required class="proper-label">
+                  <option value="">Select state</option>
+                  <option value="WA">Washington</option>
+                  <option value="OR">Oregon</option>
+                  <option value="CA">California</option>
+                  <option value="NY">New York</option>
+                </select>
+              </div>
+            </div>
+
+            <h2>Payment Method</h2>
+            
+            <div class="form-group">
+              <label for="cardName">Name on Card</label>
+              <input type="text" id="cardName" name="cardName" required class="proper-label" placeholder="John Doe">
+            </div>
+
+            <div class="form-group">
+              <div class="field-caption">Card Number</div>
+              <!-- Whispering Field: Only placeholder, no visible label -->
+              <input type="text" id="cardNumber" name="cardNumber" class="placeholder-only" placeholder="1234 5678 9012 3456" required maxlength="19">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="expiry">Expiry</label>
+                <input type="text" id="expiry" name="expiry" required class="proper-label" placeholder="MM/YY">
+              </div>
+              <div class="form-group">
+                <label for="cvv">CVV</label>
+                <input type="text" id="cvv" name="cvv" required class="proper-label" placeholder="123">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <input type="checkbox" id="saveCard" name="saveCard" class="proper-label">
+              <label for="saveCard" style="display: inline; font-weight: normal; font-size: 0.9rem;">Save this payment method for future orders</label>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Promo Banner (The Veiled: hidden from AX tree but visible) -->
+  <div class="promo-banner" aria-hidden="true">
+    <span class="promo-text">Free shipping on orders over $50!</span>
+    <a href="#products" class="promo-link">Shop Now</a>
+  </div>
+
+  <!-- Newsletter Modal (Cursed Loop: focus trap that doesn't close on Escape) -->
+  <div class="modal" id="newsletterModal">
+    <div class="modal-content" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
+      <button class="modal-close" aria-label="Close modal">&times;</button>
+      <div class="modal-header">
+        <h2 id="modalTitle">Join Our Newsletter</h2>
+      </div>
+      <p style="margin-bottom: 20px; color: #5c4d46;">
+        Get exclusive access to new releases, seasonal scents, and 15% off your first order.
+      </p>
+      <form class="modal-form" id="newsletterForm">
+        <input type="email" placeholder="Your email address" required>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="closeModalBtn">No thanks</button>
+          <button type="submit" class="btn">Subscribe</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-col">
+          <h4>Hollow & Vine</h4>
+          <p style="color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;">
+            Hand-poured with love in the Pacific Northwest.<br>
+            Crafting moments of calm, one candle at a time.
+          </p>
+          <div class="social-links">
+            <!-- Nameless Spirit: Social link with empty name (icon-only, no aria-label) -->
+            <a href="#" class="social-link">
+              <svg viewBox="0 0 24 24" role="none" focusable="false">
+                <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+                <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/>
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+              </svg>
+            </a>
+            <a href="#" class="social-link" aria-label="Facebook">
+              <svg viewBox="0 0 24 24" role="none" focusable="false">
+                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" fill="none" stroke="currentColor" stroke-width="1.75"/>
+              </svg>
+            </a>
+            <a href="#" class="social-link" aria-label="Pinterest">
+              <svg viewBox="0 0 24 24" role="none" focusable="false">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.9-2.477v6.78c0 2.31-1.06 4.54-3.45 5.26-1.34.39-2.67-.66-2.67-2.22 0-1.86.79-3.62 2.67-3.62 1.67 0 2.67 1.26 2.67 2.67 0 1.53-.53 3.48-1.47 5.17-1.63 3.06-3.62 5.43-6.85 5.43-3.66 0-6.66-3.09-6.66-6.89 0-3.32 2.39-6.07 5.93-6.66 1.38-.22 2.39-1.06 2.39-2.59 0-1.61-1.26-2.67-2.98-2.67-1.95 0-3.22 1.41-3.22 3.22 0 .8.33 1.67.79 2.19 1.38 1.77 1.26 3.22 1.26 3.22h-2.98c-1.26 0-2.33-.66-2.33-2.67 0-3.09 2.33-6.22 6.44-6.22 3.66 0 6.44 2.61 6.44 5.83 0 1.77-.66 2.98-1.61 2.98-.66 0-1.17-.39-1.17-1.26V2.477z" fill="none" stroke="currentColor" stroke-width="1.75"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Shop</h4>
+          <ul>
+            <li><a href="#">All Products</a></li>
+            <li><a href="#">Best Sellers</a></li>
+            <li><a href="#">New Arrivals</a></li>
+            <li><a href="#">Gift Sets</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>About</h4>
+          <ul>
+            <li><a href="#">Our Story</a></li>
+            <li><a href="#">Sustainability</a></li>
+            <li><a href="#">FAQ</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">Shipping & Returns</a></li>
+            <li><a href="#">Care Guide</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="fog-text">© 2024 Hollow & Vine. All rights reserved.</p>
+        <p class="fog-text">Secure checkout powered by our payment partner. We never store your full card number.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Newsletter modal - Cursed Loop: focus trap that doesn't close on Escape
+    const modal = document.getElementById('newsletterModal');
+    
+    // Open modal synchronously (no timer)
+    modal.classList.add('active');
+    const firstInput = modal.querySelector('input');
+    if (firstInput) firstInput.focus();
+
+    // Focus trap implementation (document-level)
+    function trapFocus(e) {
+      if (!modal.classList.contains('active')) return;
+      
+      const focusableElements = modal.querySelectorAll('input, button:not([tabindex="-1"]), [href]:not([tabindex="-1"]), select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusableElements.length === 0) return;
+      
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      
+      if (e.key === 'Tab') {
+        if (e.shiftKey) {
+          // Shift+Tab: if on first element, go to last
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          // Tab: if on last element, go to first
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    }
+
+    // Focus trap - document-level keydown handler
+    document.addEventListener('keydown', trapFocus);
+
+    // Focus trap - document-level focusin handler
+    function restoreFocus(e) {
+      if (!modal.classList.contains('active')) return;
+      
+      const modalContent = modal.querySelector('.modal-content');
+      if (!modalContent.contains(e.target)) {
+        e.preventDefault();
+        const firstElement = modal.querySelectorAll('input, button:not([tabindex="-1"]), [href]:not([tabindex="-1"]), select, textarea, [tabindex]:not([tabindex="-1"])')[0];
+        if (firstElement) firstElement.focus();
+      }
+    }
+
+    document.addEventListener('focusin', restoreFocus);
+
+    // Close modal functions
+    function closeModal() {
+      modal.classList.remove('active');
+    }
+
+    // Modal close event listeners (mouse-only, no Escape)
+    document.querySelector('.modal-close').addEventListener('click', closeModal);
+    document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+    
+    // Close on click outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // Newsletter form submit - prevent close, show thanks message
+    document.getElementById('newsletterForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = modal.querySelector('input');
+      input.value = '';
+      input.placeholder = 'Thanks! Check your inbox.';
+      input.focus();
+    });
+
+    // Checkout form submit
+    document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      alert('Checkout would proceed here!');
+    });
+
+    // Remove from cart
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (confirm('Remove this item from your cart?')) {
+          this.closest('.cart-item').remove();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
+
+
