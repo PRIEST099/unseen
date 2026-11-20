@@ -1,0 +1,22 @@
+{
+  "name": "cursed-shop",
+  "version": "1.0.0",
+  "description": "A deliberately haunted demo storefront for THE UNSEEN accessibility auditor",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve -p 4173",
+    "serve": "npx serve -p 4173"
+  },
+  "keywords": [
+    "accessibility",
+    "wcag",
+    "demo",
+    "cursed"
+  ],
+  "author": "THE UNSEEN",
+  "license": "MIT",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "serve": "^14.2.3"
+  }
+}
