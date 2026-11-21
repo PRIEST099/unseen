@@ -136,3 +136,29 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-21 · Run 09 · started (teammate irumvag, own Kiro account)
 - Claimed by the teammate's Claude Code session (macOS, Kiro CLI 3.5.0). Baseline probes before the run match the "Not done" list of run 08: checkout trap exits escape, no cookie banner, 4 index Lost Souls not fired, product/checkout Hollow Portraits not fired, Invisible Wanderer index 22/21 and product 21/9, checkout Whispering Field 3/2 and Shattered Order 2/1.
+
+## 2026-11-21 · Run 09: Cursed Shop finish (teammate irumvag, own Kiro account)
+- **Instruction:** `docs/brief/prompts/09-cursed-shop-finish.md`
+- **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_write,execute_bash --model auto < docs/brief/prompts/09-cursed-shop-finish.md` (Kiro CLI 3.5.0, macOS)
+- **Model:** `auto`. **Credits:** not readable headless; the teammate adds the `/usage` delta. Honesty notes: a first send of the same prompt exited with no output and no file changes (its log was lost), and one stray `/usage` sent as a headless prompt cost a tiny amount. Both count against this run's credits.
+- **Kiro produced:** all 12 steps, touching only `apps/cursed-shop/`:
+  - the checkout true trap (`tabindex="-1"` on both exits)
+  - the escapable `#cookieBanner`
+  - 4 `div.card-link` listeners plus the display:none quick-view panel
+  - `alt` removed from the 4 related and 2 cart images
+  - footer and hero `:focus-visible` rules
+  - `?product=` lookup
+  - static promo strip
+  - styling, date and icon items
+  - golden-file updates: WhisperingField 3, ShatteredOrder 2 with `kinds`, `cursedLoopMatch`
+  - README rewrite (Req 11.8, WCAG table)
+  - `verify.mjs` rewrite (`AxeBuilder`, channel env, `file://`, exit codes)
+  - `npm run verify` script
+- **Claude Code verification (independent, not Kiro's summary):**
+  - `npm run verify` → VERIFY PASSED, exit 0
+  - Perturbing a copy of the golden file (index NamelessSpirit 9 → 10) → VERIFY FAILED, exit 1, so the verifier really checks
+  - `imgcheck.mjs`: all images load
+  - `trap.mjs`: Tab and Shift+Tab cycle input ↔ Subscribe only; Enter, Space, Escape and Escape+Shift+Tab all keep the modal open with focus inside; the cookie banner exists; the CTA hit-test returns `checkout-btn`; View Cart goes to checkout on all 3 pages; the hero and footer focus ring is `#FFF3E0`; scrollWidth is 390 on all pages
+  - `audit.mjs`: all 30 page × haunting counts match the golden file, with no EXTRA or bad selectors. The 3 NOTFIRED notes (checkout CursedLoop, SilentTongue, ShatteredOrder no-main) are page-level hauntings that the probe's per-node selector match cannot pair; their counts match.
+  - `packages/core`: untouched, 47/47 tests still pass.
+- **Outcome:** passed. The golden file and the shop README are no longer stale. Next: run 10.

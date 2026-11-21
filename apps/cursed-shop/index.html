@@ -230,6 +230,13 @@
       padding: 4px;
     }
 
+    /* Visible focus on the cookie-banner controls (cream on brown ≈ 7:1) */
+    .cookie-banner .btn-close:focus,
+    .cookie-banner .btn:focus {
+      outline: 2px solid #FFF3E0;
+      outline-offset: 2px;
+    }
+
     /* === Product Grid === */
     .products {
       padding: 60px 0;
@@ -292,13 +299,87 @@
       background-color: var(--color-white);
       color: var(--color-primary);
       font-size: 0.7rem;
+      font-weight: 600;
+      border: none;
       border-radius: 12px;
       cursor: pointer;
+      text-decoration: none;
+      box-shadow: var(--shadow-sm);
       transition: color 0.25s ease, background-color 0.25s ease;
     }
 
     .quick-view:hover {
       background-color: var(--color-accent);
+    }
+
+    /* Quick view panel (control: display:none until opened by .quick-view) */
+    .qv-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 400;
+    }
+
+    .qv-panel.open {
+      display: flex;
+    }
+
+    .qv-content {
+      background-color: var(--color-white);
+      padding: 32px;
+      border-radius: var(--radius);
+      max-width: 500px;
+      width: 90%;
+      position: relative;
+    }
+
+    .qv-content h2 {
+      color: var(--color-primary);
+      margin-bottom: 16px;
+    }
+
+    .qv-content p {
+      color: #5c4d46;
+      margin-bottom: 16px;
+    }
+
+    .qv-close {
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      border: none;
+      padding: 10px 24px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1rem;
+    }
+
+    .qv-close:hover {
+      background-color: var(--color-secondary);
+    }
+
+    .qv-link {
+      display: block;
+      margin-top: 12px;
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .qv-link:hover {
+      text-decoration: underline;
+    }
+
+    .qv-close:focus,
+    .qv-link:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
     }
 
     .product-image {
@@ -426,6 +507,13 @@
       margin-right: 12px;
       font-size: 0.85rem;
       color: var(--color-primary);
+    }
+
+    .promo-strip-link {
+      color: var(--color-primary);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
     }
 
     /* === Footer === */
@@ -620,6 +708,12 @@
       outline-offset: 2px;
     }
 
+    /* Control: hero button visible focus (cream on dark hero ≈ 10:1) */
+    .hero .btn:focus-visible {
+      outline: 2px solid #FFF3E0;
+      outline-offset: 3px;
+    }
+
     @media (max-width: 768px) {
       .hero h1 {
         font-size: 2rem;
@@ -689,7 +783,7 @@
           <!-- Nameless Spirit: Icon-only cart button (no aria-label) -->
           <button class="icon-btn">
             <svg viewBox="0 0 24 24" role="none" focusable="false">
-              <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+              <path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2z"/>
             </svg>
           </button>
         </div>
@@ -770,7 +864,7 @@
             <p class="product-note">Wild lavender, honeycomb, and fresh grass. A bright, uplifting scent.</p>
           </div>
         </a>
-        <button type="button" class="quick-view">Quick view</button>
+        <button type="button" class="quick-view" data-slug="meadow">Quick view</button>
         <div class="product-info--bottom">
           <div class="product-actions">
             <button class="add-to-cart-btn">
@@ -814,7 +908,7 @@
             <p class="product-note">Sea salt, driftwood, and white tea. Crisp and refreshing.</p>
           </div>
         </a>
-        <button type="button" class="quick-view">Quick view</button>
+        <button type="button" class="quick-view" data-slug="sea">Quick view</button>
         <div class="product-info--bottom">
           <div class="product-actions">
             <button class="add-to-cart-btn">
@@ -882,6 +976,15 @@
     </div>
   </main>
 
+  <!-- Cookie Banner (Control: role=dialog, cycles × ↔ Accept, closes on Escape — NOT a Cursed Loop) -->
+  <div class="cookie-banner" id="cookieBanner" role="dialog" aria-modal="true" aria-labelledby="cookieText">
+    <div class="cookie-content">
+      <p id="cookieText">We use cookies to improve your experience. By continuing, you accept our use of cookies.</p>
+      <button class="btn-close" aria-label="Close cookie banner" type="button">&times;</button>
+      <button class="btn" type="button">Accept</button>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer>
     <div class="container">
@@ -947,39 +1050,102 @@
     </div>
   </footer>
 
+  <!-- Quick view panel (control: display:none; opened by .quick-view; named close button + View full details link) -->
+  <div class="qv-panel" id="quickViewPanel" role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+    <div class="qv-content">
+      <h2 id="qvTitle">Quick view</h2>
+      <p id="qvBody">This would show product details in a modal.</p>
+      <button class="qv-close" type="button">Close quick view</button>
+      <a class="qv-link" id="qvLink" href="product.html">View full details &rarr;</a>
+    </div>
+  </div>
+
   <script>
-    // Quick view button functionality - opens a hidden panel instead of alert
-    document.querySelectorAll('.quick-view').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        // Create a simple hidden quick-view panel
-        let panel = document.getElementById('quickViewPanel');
-        if (!panel) {
-          panel = document.createElement('div');
-          panel.id = 'quickViewPanel';
-          panel.style.position = 'fixed';
-          panel.style.top = '0';
-          panel.style.left = '0';
-          panel.style.right = '0';
-          panel.style.bottom = '0';
-          panel.style.backgroundColor = 'rgba(0,0,0,0.6)';
-          panel.style.display = 'none';
-          panel.style.alignItems = 'center';
-          panel.style.justifyContent = 'center';
-          panel.style.zIndex = '400';
-          panel.innerHTML = `
-            <div style="background:white;padding:32px;border-radius:8px;max-width:500px;width:90%;position:relative">
-              <h2 style="color:#6d4c41">Quick View</h2>
-              <p style="margin:16px 0">This would show product details in a modal.</p>
-              <button onclick="document.getElementById('quickViewPanel').style.display='none';document.querySelector('.quick-view').focus()" style="background:#6d4c41;color:white;border:none;padding:10px 24px;border-radius:8px;cursor:pointer">
-                Close
-              </button>
-              <a href="${this.getAttribute('href')}" style="display:block;margin-top:12px;color:#6d4c41;text-decoration:none">View full details &rarr;</a>
-            </div>
-          `;
-          document.body.appendChild(panel);
+    // Cookie banner control — escapable dialog (× ↔ Accept cycle), NOT a Cursed Loop
+    (function () {
+      const banner = document.getElementById('cookieBanner');
+      if (!banner) return;
+      let returnTarget = null;
+
+      // Best-effort persistence (file:// may throw; banner then just re-shows)
+      try {
+        if (sessionStorage.getItem('hv_cookie_seen') === '1') {
+          banner.classList.add('hidden');
+          banner.setAttribute('inert', '');
         }
-        panel.style.display = 'flex';
+      } catch (e) { /* sessionStorage unavailable; banner stays visible */ }
+
+      banner.addEventListener('focusin', function (e) {
+        if (e.relatedTarget && e.relatedTarget.focus) returnTarget = e.relatedTarget;
+      });
+
+      function closeCookieBanner() {
+        banner.classList.add('hidden');
+        banner.setAttribute('inert', '');
+        try { sessionStorage.setItem('hv_cookie_seen', '1'); } catch (e) {}
+        const target = returnTarget || document.querySelector('.hero .btn');
+        if (target) target.focus();
+      }
+
+      banner.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeCookieBanner();
+          return;
+        }
+        if (e.key === 'Tab') {
+          const focusables = banner.querySelectorAll('button');
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey) {
+            if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+          } else {
+            if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+          }
+        }
+      });
+
+      banner.querySelector('.btn-close').addEventListener('click', closeCookieBanner);
+      banner.querySelector('.btn').addEventListener('click', closeCookieBanner);
+    })();
+
+    // Quick view: open the display:none panel (named close button + View full details link)
+    (function () {
+      const qvPanel = document.getElementById('quickViewPanel');
+      const qvLink = document.getElementById('qvLink');
+      if (!qvPanel) return;
+
+      function openQuickView(slug, fromBtn) {
+        if (qvLink) qvLink.setAttribute('href', 'product.html?product=' + slug);
+        qvPanel.classList.add('open');
+        const closeBtn = qvPanel.querySelector('.qv-close');
+        if (closeBtn) closeBtn.focus();
+        if (fromBtn) qvPanel.dataset.from = fromBtn.dataset.vid || '';
+      }
+      function closeQuickView(returnEl) {
+        qvPanel.classList.remove('open');
+        if (returnEl) returnEl.focus();
+      }
+
+      document.querySelectorAll('.quick-view').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          openQuickView(this.getAttribute('data-slug'), this);
+        });
+      });
+
+      qvPanel.querySelector('.qv-close').addEventListener('click', function() {
+        closeQuickView(document.querySelector('.quick-view'));
+      });
+      qvPanel.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeQuickView(document.querySelector('.quick-view'));
+      });
+    })();
+
+    // Lost Soul: clickable card-link divs (cards 1, 2, 4, 6) navigate to the product page
+    document.querySelectorAll('.card-link[data-slug]').forEach(link => {
+      link.addEventListener('click', function() {
+        location.href = 'product.html?product=' + this.getAttribute('data-slug');
       });
     });
 
