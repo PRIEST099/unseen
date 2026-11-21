@@ -281,7 +281,7 @@
     }
 
     /* Control: Properly labeled field */
-    .form-group input.proper-label {
+    .form-group input.proper-label:not([type=checkbox]) {
       padding: 12px;
       border: 1px solid #d7ccc8;
       border-radius: var(--radius);
@@ -293,6 +293,26 @@
     .form-group input.proper-label:focus {
       outline: 2px solid var(--color-primary);
       outline-offset: 2px;
+    }
+
+    /* Checkbox + label on one inline row */
+    .form-group.checkbox-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group.checkbox-row input[type=checkbox] {
+      width: auto;
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .form-group.checkbox-row label {
+      font-weight: normal;
+      font-size: 0.9rem;
+      margin-bottom: 0;
     }
 
     .form-group input:disabled {
@@ -446,6 +466,17 @@
       transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
     }
 
+    .modal-actions .btn:not(.btn-secondary) {
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      border: 2px solid var(--color-primary);
+    }
+
+    .modal-actions .btn:not(.btn-secondary):hover {
+      background-color: var(--color-secondary);
+      border-color: var(--color-secondary);
+    }
+
     .modal-actions .btn-secondary {
       background-color: var(--color-white);
       color: var(--color-primary);
@@ -458,15 +489,12 @@
 
     /* === Promo Banner (The Veiled: hidden from AX tree but visible) === */
     .promo-banner {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      position: static;
       background-color: var(--color-white);
       border-top: 1px solid #d7ccc8;
+      border-bottom: 1px solid #d7ccc8;
       color: var(--color-primary);
       padding: 12px 20px;
-      z-index: 150;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -589,6 +617,12 @@
       outline-offset: 0;
     }
 
+    /* Control: footer list links get a visible focus ring (cream on brown ≈ 7:1) */
+    .footer-col li a:focus-visible {
+      outline: 2px solid #FFF3E0;
+      outline-offset: 2px;
+    }
+
     /* === Mobile === */
     @media (max-width: 768px) {
       .checkout-container {
@@ -640,7 +674,7 @@
       }
 
       body {
-        padding-bottom: 96px;
+        padding-bottom: 140px;
       }
 
       .promo-banner {
@@ -653,7 +687,7 @@
     }
 
     body {
-      padding-bottom: 140px;
+      padding-bottom: 96px;
     }
 
     html {
@@ -685,7 +719,7 @@
           <!-- Nameless Spirit: Icon-only cart button (no aria-label) -->
           <button class="icon-btn">
             <svg viewBox="0 0 24 24" role="none" focusable="false">
-              <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+              <path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2z"/>
             </svg>
           </button>
         </div>
@@ -704,7 +738,7 @@
           <h2>Order Summary</h2>
           
           <div class="cart-item" data-sku="HV-MW-08">
-            <img src="img/candle-midnight.svg" alt="Midnight Wood candle" class="cart-item-image">
+            <img src="img/candle-midnight.svg" class="cart-item-image">
             <div class="cart-item-info">
               <div class="cart-item-title">Midnight Wood</div>
               <div class="cart-item-options">8oz Soy Candle • Amber Glass</div>
@@ -714,7 +748,7 @@
           </div>
 
           <div class="cart-item" data-sku="HV-LH-08">
-            <img src="img/candle-lavender.svg" alt="Lavender Haven candle" class="cart-item-image">
+            <img src="img/candle-lavender.svg" class="cart-item-image">
             <div class="cart-item-info">
               <div class="cart-item-title">Lavender Haven</div>
               <div class="cart-item-options">8oz Soy Candle • Clear Glass</div>
@@ -747,13 +781,13 @@
 
           <button class="checkout-btn">
             <svg viewBox="0 0 24 24" role="none" focusable="false">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
             </svg>
             Checkout with Secure Payment
           </button>
 
           <p class="form-hint" style="margin-top: 16px; text-align: center;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#4caf50" style="vertical-align: middle; margin-right: 4px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#4caf50" role="none" focusable="false" style="vertical-align: middle; margin-right: 4px;">
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
             </svg>
             SSL Encrypted • 30-Day Money Back Guarantee
@@ -845,9 +879,9 @@
               </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group checkbox-row">
               <input type="checkbox" id="saveCard" name="saveCard" class="proper-label">
-              <label for="saveCard" style="display: inline; font-weight: normal; font-size: 0.9rem;">Save this payment method for future orders</label>
+              <label for="saveCard">Save this payment method for future orders</label>
             </div>
           </form>
         </div>
@@ -864,7 +898,7 @@
   <!-- Newsletter Modal (Cursed Loop: focus trap that doesn't close on Escape) -->
   <div class="modal" id="newsletterModal">
     <div class="modal-content" role="dialog" aria-labelledby="modalTitle" aria-modal="true">
-      <button class="modal-close" aria-label="Close modal">&times;</button>
+      <button class="modal-close" aria-label="Close modal" tabindex="-1">&times;</button>
       <div class="modal-header">
         <h2 id="modalTitle">Join Our Newsletter</h2>
       </div>
@@ -874,7 +908,7 @@
       <form class="modal-form" id="newsletterForm">
         <input type="email" placeholder="Your email address" required>
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="closeModalBtn">No thanks</button>
+          <button type="button" class="btn btn-secondary" id="closeModalBtn" tabindex="-1">No thanks</button>
           <button type="submit" class="btn">Subscribe</button>
         </div>
       </form>
@@ -941,7 +975,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p class="fog-text">© 2024 Hollow & Vine. All rights reserved.</p>
+        <p class="fog-text">© 2026 Hollow & Vine. All rights reserved.</p>
         <p class="fog-text">Secure checkout powered by our payment partner. We never store your full card number.</p>
       </div>
     </div>
@@ -1039,6 +1073,14 @@
         }
       });
     });
+
+    // Cart button navigation - goes to checkout (kept nameless; no role/tabindex added)
+    const cartBtn = document.querySelector('.nav-icons .icon-btn:nth-child(2)');
+    if (cartBtn) {
+      cartBtn.addEventListener('click', function() {
+        location.href = 'checkout.html';
+      });
+    }
   </script>
 </body>
 </html>
