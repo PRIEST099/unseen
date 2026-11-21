@@ -133,3 +133,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Kiro-owned drift was queued, not hand-edited:**
   - run 10 "Step 0": `structure.md` and `security.md` drift, the conflicting limits, `design-system.md` fonts, the Req 15.3 typo, and the `packages/core` and Cursed Shop config
   - run 09: the `verify.mjs` rewrite, Req 11.8 references and the WCAG levels in the shop README
+
+## 2026-11-21 · Run 09 · started (teammate irumvag, own Kiro account)
+- Claimed by the teammate's Claude Code session (macOS, Kiro CLI 3.5.0). Baseline probes before the run match the "Not done" list of run 08: checkout trap exits escape, no cookie banner, 4 index Lost Souls not fired, product/checkout Hollow Portraits not fired, Invisible Wanderer index 22/21 and product 21/9, checkout Whispering Field 3/2 and Shattered Order 2/1.
