@@ -46,8 +46,9 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
 
 - [ ] 5. Implement `BrowserPool` in `packages/core/src/runner/browser.ts`
   - Create `packages/core/src/runner/browser.ts` containing the `BrowserPool` singleton class and its supporting types
-  - `BrowserPool` constructor accepts `BrowserPoolOptions` with `maxConcurrency: number` (1–20, default 5)
-  - `acquire(): Promise<Browser>` — if a slot is available, launches or returns a browser immediately; if at capacity, enqueues the request with a 30-second timeout; throws immediately if queue depth reaches 50
+  - Export a single `buildLaunchArgs(opts?)` function returning `{ channel: string | undefined; args: string[]; headless: boolean }`, so launch flags live in one place the `safe-fetch` spec can later extend (e.g. a per-audit `--host-resolver-rules` pin). The channel resolves as `opts.channel ?? process.env.UNSEEN_CHROMIUM_CHANNEL ?? 'chromium'`; an empty string is treated as "no channel" (`undefined`) so the Docker image can use the bundled build. The args always include `--disable-features=WebRtcHideLocalIpsWithMdns` and `--force-webrtc-ip-handling-policy=disable_non_proxied_udp` to block WebRTC leaks. `headless` defaults to `true`.
+  - `BrowserPool` constructor accepts `BrowserPoolOptions` with `maxConcurrency: number` (1–20 inclusive, default **2**); a non-integer or out-of-range value throws `RangeError`
+  - `acquire(): Promise<Browser>` — if a slot is available, launches or returns a browser immediately; if at capacity, enqueues the request with a 30-second timeout; throws immediately if queue depth reaches **20**
   - `release(browser: Browser): Promise<void>` — increments session counter; runs `browser.isConnected()` health check; if unhealthy OR session counter ≥ 50, closes and replaces the browser before dispatching to next queued caller; dispatches to next queued caller if queue is non-empty
   - Export `getPool(options?: BrowserPoolOptions): BrowserPool` as the module-level singleton accessor
   - Acceptance: Vitest unit tests (using mocked `chromium.launch`): (a) queue depth 51 throws immediately, (b) 30s timeout rejects with error after expiry, (c) `release` decrements busy count so next `acquire` resolves, (d) session counter ≥ 50 triggers browser replacement
@@ -187,8 +188,8 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
 - Tasks marked with `*` are optional and can be skipped for faster MVP (none in this plan — all tests are required by the spec's testing strategy)
 - Each task references specific requirements for traceability
 - Tasks 4, 5, 6 build the foundation layers; tasks 7–13 add collectors in parallel-safe order; task 14 wires everything together
-- The classifier boundary (`classifier/` must never import from `runner/`) is enforced by the `tsconfig.json` path alias restriction established in task 1 — no task here touches `classifier/`
-- The cursed-shop fixtures (`apps/cursed-shop/index.html`, `apps/cursed-shop/checkout.html`) must exist before integration tests (tasks 7–15) can pass; create them separately or as part of the cursed-shop spec
+- The classifier boundary (`classifier/` must never import from `runner/`) is NOT enforced by a TypeScript path alias (the `@runner/*` alias was removed; there is no CI yet). It will be enforced by ESLint `no-restricted-imports` plus a test in the haunting-classifier spec that asserts no classifier file imports from `runner/`. No task here touches `classifier/`.
+- The cursed-shop fixtures already exist in `apps/cursed-shop` (`index.html`, `product.html`, `checkout.html`, `img/`, `expected-hauntings.json`, `verify.mjs`) — they were vibe-coded with no spec. Integration tests (tasks 7–15) load them via the shared `packages/core/tests/fixtures/shop-server.ts` file server.
 - Property tests (tasks 4 and 6) use `fast-check` and must each run a minimum of 100 iterations as required by the testing strategy in the design document
 
 ## Task Dependency Graph
