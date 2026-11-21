@@ -270,9 +270,11 @@ export class PageLoader {
     context: BrowserContext,
     url: string,
     policy: SafeFetchPolicy,
-    options: AuditOptions = {}
+    options: AuditOptions = {},
+    onPageCreated?: (page: Page) => void
   ): Promise<LoadedPage> {
     const page = await context.newPage()
+    onPageCreated?.(page)
     const started = Date.now()
     let onCrash: () => void = () => undefined
     const crashed = new Promise<never>((_, reject) => {
@@ -354,3 +356,13 @@ export async function collectBoundingBoxes(page: Page): Promise<BoundingBox[]> {
     await session?.detach().catch(() => undefined)
   }
 }
+
+// Collectors for tasks 9–12 live in ./collectors.ts and are re-exported here,
+// so `browser.ts` stays the documented entry point named in tasks.md.
+export {
+  collectTextNodeStyles,
+  collectEventListeners,
+  collectPageMetadata,
+  buildDomAxMapping,
+  isLargeText,
+} from './collectors.js'

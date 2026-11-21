@@ -209,3 +209,43 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `apps/cursed-shop` `npm run verify`: VERIFY PASSED
 - **Credits:** 0 Kiro credits.
 - **Next:** run 11 (tasks 9–16), ideally through Kiro once credits exist.
+
+## 2026-11-21 · Run 11 · started (teammate irumvag), written by Claude Code, not Kiro
+- The teammate asked Claude Code to do run 11 "the same way" as the run 10 completion: by hand, because there are no Kiro credits. Same deviation from `CLAUDE.md` and the built-with-Kiro rule. Branched from `kiro/run-10-impl-audit-engine-5-8` (PR #2).
+
+## 2026-11-21 · Run 11: audit engine tasks 9–16, written by Claude Code, not Kiro (teammate irumvag's decision)
+- **Instruction followed:** `docs/brief/prompts/11-impl-audit-engine-9-16.md`, with all six product-lead amendments. **0 Kiro credits**: there were no credits, so the teammate asked for the same by-hand approach as the run 10 completion. This deviates from `CLAUDE.md` and the built-with-Kiro rule. The owner can keep it, or have Kiro redo it from prompt 11.
+- **Written:**
+  - `src/runner/collectors.ts`, re-exported from `browser.ts`:
+    - task 9 text styles, with `backgroundUncertain` (image, gradient or translucent layer) and `isLargeText`; batches of 100 with a 10 s timeout; cursor styles
+    - task 10 `DOMDebugger.getEventListeners` (up to 5,000 nodes)
+    - task 11 metadata, with `hasMainLandmark` and `imgAltAttributes`
+    - task 12 DOM-to-AX mapping, with `hasVisibleText` and `containsFocusable`; only visible nodes that intersect the scrollable area
+  - `src/runner/cdp.ts`: helpers that map elements to backendNodeIds.
+  - Task 13 in `tab-walker.ts`:
+    - a pure `runWalk(driver)` core plus a real-keyboard page driver
+    - the no-transition style injected first, and `walkStartedAtMs`
+    - per-step before/after focus styles plus the adjacent opaque background
+    - escape test (Escape, then Shift+Tab); escapable cycles reset detection and the walk continues
+    - a cycle that covers every focusable is not a trap
+  - Task 14 `src/audit.ts`:
+    - `auditUrl`: URL/scheme validation, pre-launch SSRF check, policy selection, resource tracking, 60 s overall timeout
+    - `auditHtml` on 127.0.0.1 with the origin-scoped allow wrapper (`OriginScopedPolicy`)
+  - Task 15 determinism test.
+  - New `RawAudit` fields in `types.ts`.
+  - Spec deviations recorded in the `tasks.md` Notes.
+- **Bug found in earlier Kiro code:** `safe-fetch.ts` called `route.abort('blocked')`. That is not a valid Playwright error code, so every blocked request threw "Route is already handled". Changed to `'blockedbyclient'`, and the fallback abort can no longer throw. Found by the new `auditHtml` restrictive-policy test.
+- **Determinism investigation:**
+  - The first failures came from Chromium-allocated ids differing per renderer, including ids nested in CDP `relatedNodes`, not from engine output. The test now canonicalises ids by first-seen order. Engine output is unchanged.
+  - The screenshot SHA differed in some runs (font rasterisation). Per amendment 6 it is recorded as an annotation, not a failure.
+  - 12/12 consecutive determinism runs pass.
+- **Task 16 checkpoint:**
+  - `npm run typecheck` (src + tests) is clean
+  - `vitest --run`: **62/62** (including 2 new walk properties at 100 runs each)
+  - `playwright test`: **20/20**. A full `--repeat-each 2` run passed 40/40, one more had 1 determinism failure, and that was fixed by the nested-id normalisation.
+  - Shop `npm run verify`: VERIFY PASSED
+- **Integration evidence:**
+  - checkout `trapDetected === true`, and every trap node is inside `#newsletterModal`
+  - index: the cookie banner cycle is `escapable`, `trapDetected === false`, and the walk reaches more than 5 footer links
+  - `auditHtml` under the restrictive policy succeeds, while `http://127.0.0.1:1/x.png` lands in `blockedRequests`
+- **Next:** run 12 (haunting-classifier spec), owner side.
