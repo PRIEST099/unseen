@@ -556,6 +556,12 @@
       outline-offset: 0;
     }
 
+    /* Control: footer list links get a visible focus ring (cream on brown ≈ 7:1) */
+    .footer-col li a:focus-visible {
+      outline: 2px solid #FFF3E0;
+      outline-offset: 2px;
+    }
+
     @media (max-width: 768px) {
       .product-grid {
         grid-template-columns: 1fr;
@@ -636,7 +642,7 @@
           <!-- Nameless Spirit: Icon-only cart button (no aria-label) -->
           <button class="icon-btn">
             <svg viewBox="0 0 24 24" role="none" focusable="false">
-              <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+              <path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2z"/>
             </svg>
           </button>
         </div>
@@ -648,7 +654,7 @@
   <main class="product-page">
     <div class="container">
       <div class="product-breadcrumb">
-        <a href="index.html">Home</a> &rsaquo; <a href="product.html">Shop</a> &rsaquo; Midnight Wood
+        <a href="index.html">Home</a> &rsaquo; <a href="product.html">Shop</a> &rsaquo; <span id="bcName">Midnight Wood</span>
       </div>
 
       <div class="product-grid">
@@ -774,28 +780,28 @@
       <h2>Complete the Collection</h2>
       <div class="product-grid-related">
         <div class="product-card-related" onclick="window.location.href='product.html?product=lavender-haven'">
-          <img src="img/candle-lavender.svg" alt="" class="product-image-related">
+          <img src="img/candle-lavender.svg" class="product-image-related">
           <div class="product-info-related">
             <h3 class="product-title-related">Lavender Haven</h3>
             <p class="product-price-related">$28.00</p>
           </div>
         </div>
         <div class="product-card-related" onclick="window.location.href='product.html?product=cedar-forest'">
-          <img src="img/candle-cedar.svg" alt="" class="product-image-related">
+          <img src="img/candle-cedar.svg" class="product-image-related">
           <div class="product-info-related">
             <h3 class="product-title-related">Cedar Forest</h3>
             <p class="product-price-related">$34.00</p>
           </div>
         </div>
         <div class="product-card-related" onclick="window.location.href='product.html?product=meadow'">
-          <img src="img/candle-meadow.svg" alt="" class="product-image-related">
+          <img src="img/candle-meadow.svg" class="product-image-related">
           <div class="product-info-related">
             <h3 class="product-title-related">Wildflower Meadow</h3>
             <p class="product-price-related">$30.00</p>
           </div>
         </div>
         <div class="product-card-related" onclick="window.location.href='product.html?product=sea'">
-          <img src="img/candle-sea.svg" alt="" class="product-image-related">
+          <img src="img/candle-sea.svg" class="product-image-related">
           <div class="product-info-related">
             <h3 class="product-title-related">Ocean Breeze</h3>
             <p class="product-price-related">$29.00</p>
@@ -871,6 +877,37 @@
   </footer>
 
   <script>
+    // Product catalogue keyed by slug (matches index.html and related-card links)
+    const PRODUCTS = {
+      'midnight-wood': { name: 'Midnight Wood', price: '$32.00', image: 'img/candle-midnight.svg', alt: 'Midnight Wood soy candle in amber glass', desc: ['Experience the warmth and depth of Midnight Wood, our signature scent that captures the essence of a quiet evening by the fire. This hand-poured soy candle features a rich blend of black coffee, aged oak, and tobacco leaf, creating an aroma that speaks of cozy evenings and quiet contemplation.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'lavender-haven': { name: 'Lavender Haven', price: '$28.00', image: 'img/candle-lavender.svg', alt: 'Lavender Haven soy candle in dusty lilac glass', desc: ['French lavender, vanilla bean, and white musk form a calming, restorative scent designed to slow the evening down.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'meadow': { name: 'Wildflower Meadow', price: '$30.00', image: 'img/candle-meadow.svg', alt: 'Wildflower Meadow soy candle in sage glass', desc: ['Wild lavender, honeycomb, and fresh grass make a bright, uplifting scent that brings the outdoors in.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'cedar-forest': { name: 'Cedar Forest', price: '$34.00', image: 'img/candle-cedar.svg', alt: 'Cedar Forest soy candle in forest green glass', desc: ['Virginia cedar, pine needle, and cedarwood combine for an earthy, invigorating forest walk in a jar.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'sea': { name: 'Ocean Breeze', price: '$29.00', image: 'img/candle-sea.svg', alt: 'Ocean Breeze soy candle in slate blue glass', desc: ['Sea salt, driftwood, and white tea create a crisp, refreshing scent that carries the coastline home.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'vanilla': { name: 'Spiced Vanilla', price: '$31.00', image: 'img/candle-vanilla.svg', alt: 'Spiced Vanilla soy candle in warm amber glass', desc: ['Madagascar vanilla, cinnamon, and clove warm into a comforting, spice-cabinet scent for long evenings.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] }
+    };
+
+    // Apply the ?product= param to the page (trim it; default to Midnight Wood)
+    (function applyProduct() {
+      const params = new URLSearchParams(location.search);
+      const slug = (params.get('product') || 'midnight-wood').trim();
+      const p = PRODUCTS[slug] || PRODUCTS['midnight-wood'];
+      const h1 = document.querySelector('.product-title');
+      if (h1) h1.textContent = p.name;
+      const price = document.querySelector('.product-price');
+      if (price) price.textContent = p.price;
+      const desc = document.querySelector('.product-description');
+      if (desc) desc.innerHTML = '<p>' + p.desc[0] + '</p><p>' + p.desc[1] + '</p>';
+      const main = document.getElementById('mainImage');
+      if (main) { main.src = p.image; main.alt = p.alt; }
+      document.querySelectorAll('.product-thumb').forEach(t => { t.src = p.image; t.classList.remove('active'); });
+      const firstThumb = document.querySelector('.product-thumb');
+      if (firstThumb) firstThumb.classList.add('active');
+      const bc = document.getElementById('bcName');
+      if (bc) bc.textContent = p.name;
+      document.title = 'Hollow & Vine — ' + p.name;
+    })();
+
     // Image switching
     function switchImage(thumb) {
       const mainImage = document.getElementById('mainImage');
@@ -900,6 +937,14 @@
         this.classList.add('selected');
       });
     });
+
+    // Cart button navigation - goes to checkout (kept nameless; no role/tabindex added)
+    const cartBtn = document.querySelector('.nav-icons .icon-btn:nth-child(2)');
+    if (cartBtn) {
+      cartBtn.addEventListener('click', function() {
+        location.href = 'checkout.html';
+      });
+    }
   </script>
 </body>
 </html>

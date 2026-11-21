@@ -1,8 +1,9 @@
 {
   "$meta": {
     "countUnit": "element",
-    "selectorRule": "each selector matches exactly 1 element",
-    "walkNote": "checkout Tab walk starts inside the newsletter trap and stops when the trap is declared (requirements 11.6)"
+    "selectorRule": "each selector matches exactly 1 element (except CursedLoop, see cursedLoopMatch)",
+    "walkNote": "checkout Tab walk starts inside the newsletter trap and stops when the trap is declared (requirements 11.8)",
+    "cursedLoopMatch": "A CursedLoop instance matches the golden selector when every recorded trap-region node (the focus-cycle members' dialog or common-ancestor element) is the selector element or a descendant of it. checkout uses #newsletterModal; the detected trap region is its .modal-content dialog, which is a descendant of #newsletterModal."
   },
   "index.html": {
     "hauntings": {
@@ -105,7 +106,7 @@
     },
     "controls": {
       "cookieBanner": {
-        "description": "role=dialog cookie banner that cycles focus and closes on Escape; must NOT be a Cursed Loop",
+        "description": "role=dialog cookie banner that cycles focus between its × and Accept buttons and closes on Escape; must NOT be a Cursed Loop",
         "selectors": [
           "#cookieBanner",
           "#cookieBanner .btn-close"
@@ -144,7 +145,9 @@
       "decorativeIcons": {
         "description": "Feature icons use role=presentation focusable=false correctly",
         "selectors": [
-          ".feature-icon"
+          ".features-grid .feature:nth-child(1) .feature-icon",
+          ".features-grid .feature:nth-child(2) .feature-icon",
+          ".features-grid .feature:nth-child(3) .feature-icon"
         ]
       },
       "namedSocialLinks": {
@@ -274,9 +277,11 @@
         ]
       },
       "decorativeAltNotHollow": {
-        "description": "3 thumbs have alt=\"\" (decorative)",
+        "description": "3 thumbnails have alt=\"\" (decorative, not Hollow Portraits)",
         "selectors": [
-          ".product-thumb"
+          ".product-thumbnails .product-thumb:nth-child(1)",
+          ".product-thumbnails .product-thumb:nth-child(2)",
+          ".product-thumbnails .product-thumb:nth-child(3)"
         ]
       },
       "visibleFocus": {
@@ -335,10 +340,11 @@
         "notes": "9 outline-less header/footer links are unreachable by Tab (walk starts inside trap)"
       },
       "WhisperingField": {
-        "count": 2,
+        "count": 3,
         "selectors": [
           "#email",
-          "#cardNumber"
+          "#cardNumber",
+          "#newsletterForm input[type=email]"
         ]
       },
       "SilentTongue": {
@@ -348,11 +354,16 @@
         ]
       },
       "ShatteredOrder": {
-        "count": 1,
+        "count": 2,
         "selectors": [
-          ".footer-content > .footer-col:nth-child(1) h4"
+          ".footer-content > .footer-col:nth-child(1) h4",
+          "body"
         ],
-        "notes": "h2 → h4 skip in footer"
+        "kinds": [
+          "heading-skip",
+          "no-main"
+        ],
+        "notes": "heading-skip (h2 → h4) on the footer 'Hollow & Vine' heading, plus no-main (the page uses div.checkout-page with no main landmark)"
       },
       "TheVeiled": {
         "count": 2,
@@ -370,7 +381,7 @@
         ]
       },
       "properLabels": {
-        "description": "Page has properly labeled fields (10 total)",
+        "description": "Page has 10 properly labeled fields (label for / aria-label), not Whispering Fields",
         "selectors": [
           "#firstName",
           "#lastName",
@@ -384,28 +395,19 @@
           "#expiry"
         ]
       },
-      "namedByPlaceholder": {
-        "description": "Newsletter form input named by placeholder",
-        "selectors": [
-          ".modal-form input"
-        ]
-      },
       "visibleFocusInTrap": {
-        "description": "Newsletter input and Subscribe button have visible focus",
+        "description": "Newsletter input and Subscribe button have visible focus inside the trap",
         "selectors": [
           ".modal-form input",
-          ".modal-actions .btn"
+          ".modal-actions button[type=submit]"
         ]
       },
       "mouseOnlyNativeExits": {
-        "description": "Modal exits are mouse-only; modal-close and #closeModalBtn are native buttons, not Lost Souls",
+        "description": "Modal exits are mouse-only (tabindex=-1, not in the Tab cycle); modal-close and #closeModalBtn are native buttons, not Lost Souls",
         "selectors": [
           "#newsletterModal .modal-close",
           "#closeModalBtn"
         ]
-      },
-      "noMainUndetectable": {
-        "description": "checkout.html uses div.checkout-page instead of main; the missing main landmark is not detectable under current rules"
       }
     }
   }
