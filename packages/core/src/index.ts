@@ -1,4 +1,5 @@
-// Audit engine entry point. `auditUrl` / `auditHtml` arrive in task 14.
+// Audit engine entry point.
+export { auditUrl, auditHtml, OriginScopedPolicy } from './audit.js'
 export * from './types.js'
 export * from './runner/safe-fetch.js'
 export * from './runner/tab-walker.js'

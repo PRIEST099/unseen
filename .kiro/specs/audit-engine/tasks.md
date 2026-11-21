@@ -88,7 +88,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: integration test passes
   - _Satisfies: Req 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-- [ ] 9. Implement computed style collection in `packages/core/src/runner/browser.ts`
+- [x] 9. Implement computed style collection in `packages/core/src/runner/browser.ts`
   - Add `collectTextNodeStyles(page: Page): Promise<{ textNodeStyles: Record<string, TextNodeStyle>; elementCursorStyles: Record<string, string>; errors: CollectionError[] }>` to `browser.ts`
   - Visible text nodes: nearest element ancestor has non-zero bounding box, `visibility !== "hidden"`, `display !== "none"`, `opacity > 0`
   - For each visible text node collect `color`, `background-color`, `font-size`, `font-weight`; resolve transparent `background-color` by walking up DOM ancestors until a non-transparent color is found or `<body>` is reached; fall back to `rgb(255,255,255)`
@@ -98,7 +98,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: integration test passes
   - _Satisfies: Req 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 10. Implement event listener signal collection in `packages/core/src/runner/browser.ts`
+- [x] 10. Implement event listener signal collection in `packages/core/src/runner/browser.ts`
   - Add `collectEventListeners(page: Page): Promise<{ signals: EventListenerSignal[]; errors: CollectionError[] }>` to `browser.ts`
   - Open (or reuse) a CDP session; iterate up to 5,000 DOM nodes; call `DOMDebugger.getEventListeners` with `includeAncestors: false` for each node
   - Retain only nodes with at least one listener of type `click`, `mousedown`, `pointerdown`, or `pointerup` registered directly on that node
@@ -108,7 +108,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: integration test passes
   - _Satisfies: Req 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 11. Implement page metadata collection in `packages/core/src/runner/browser.ts`
+- [x] 11. Implement page metadata collection in `packages/core/src/runner/browser.ts`
   - Add `collectPageMetadata(page: Page, axNodes: AXNode[]): Promise<{ metadata: PageMetadata; imgAltAttributes: Record<string, string | null> }>` to `browser.ts`
   - `htmlLang`: read `document.documentElement.getAttribute('lang')` via `page.evaluate`; record raw string or `null`
   - `headings`: collect all `h1`–`h6` elements in DOM order; for each, record `tagName`, zero-based `domOrderIndex`, and `accessibleName` looked up from `axNodes` by `backendDOMNodeId`
@@ -118,7 +118,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: integration test passes
   - _Satisfies: Req 9.1, 9.2, 9.3, 9.4_
 
-- [ ] 12. Implement DOM-to-AX visibility mapping in `packages/core/src/runner/browser.ts`
+- [x] 12. Implement DOM-to-AX visibility mapping in `packages/core/src/runner/browser.ts`
   - Add `buildDomAxMapping(page: Page, axNodes: AXNode[]): Promise<{ mapping: DomAxMapping[]; errors: CollectionError[] }>` to `browser.ts`
   - Single `page.evaluate` call over `document.querySelectorAll('*')` collecting: bounding box (`width > 0 && height > 0`), `visibility`, `display`, `opacity`, `aria-hidden` attribute (walking ancestors), `role` attribute, `tabindex`, `contenteditable`, tag name
   - For each visible DOM node: `hasAxNode` = whether a `AXNode` with matching `backendDOMNodeId` and `ignored === false` exists; `ariaHidden` = `aria-hidden="true"` on node or any ancestor; `isPresentational` = `role` attribute is exactly `"presentation"` or `"none"`; `isFocusable` = `tabindex >= 0` or native interactive element type
@@ -127,7 +127,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: integration test passes
   - _Satisfies: Req 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-- [ ] 13. Implement `Tab_Walker` in `packages/core/src/runner/tab-walker.ts`
+- [x] 13. Implement `Tab_Walker` in `packages/core/src/runner/tab-walker.ts`
   - Add `Tab_Walker` class (or `walkTabs` exported function) to `tab-walker.ts`, building on the pure helpers from task 4
   - Pre-walk: count focusable elements via `page.evaluate`; compute step cap with `stepCap(focusableCount)`; enumerate `backendDOMNodeId` values of all focusable elements
   - If `focusableCount === 0`, return `{ steps: [], trapDetected: false, stepCapReached: false, cycles: [] }` immediately
@@ -139,7 +139,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: integration test passes
   - _Satisfies: Req 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8, 11.9, 11.10_
 
-- [ ] 14. Implement public API and `RawAudit` assembly in `packages/core/src/index.ts`
+- [x] 14. Implement public API and `RawAudit` assembly in `packages/core/src/index.ts`
   - Replace placeholder `index.ts` with the full implementation
   - `auditUrl(url: string, options?: AuditOptions): Promise<RawAudit>`:
     - Validate: `new URL(url)` throws → rethrow as `TypeError`; scheme not `http:`/`https:` → throw `TypeError`
@@ -167,7 +167,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: all integration tests pass
   - _Satisfies: Req 1.1, 1.2, 1.5, 1.6, 1.7, 1.8, 1.11, 1.12, 3.1, 3.2, 3.6, 4.1, 4.2, 4.3, 4.4, 4.5, 12.1–12.6, 13.1, 13.2, 13.5, 13.6, 13.7, 14.1, 14.2, 15.1, 15.4, 15.5, 15.7_
 
-- [ ] 15. Write determinism test for `auditUrl`
+- [x] 15. Write determinism test for `auditUrl`
   - Add `packages/core/tests/determinism.test.ts` using `@playwright/test`
   - Call `auditUrl` twice on the same `apps/cursed-shop/index.html` fixture URL in sequence (not concurrently)
   - Null out both `auditedAt` fields (replace with `"__PLACEHOLDER__"`) and both `resourceUsage.responseTimings` arrays (replace with `[]`) before comparison
@@ -177,7 +177,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: test passes on two consecutive runs in the same environment
   - _Satisfies: Req 12.6_
 
-- [ ] 16. Final checkpoint — ensure all tests pass
+- [x] 16. Final checkpoint — ensure all tests pass
   - Run `tsc --noEmit` in `packages/core` and verify exit 0
   - Run `vitest --run` in `packages/core` and verify all Vitest unit/property tests pass
   - Run `playwright test` in `packages/core` and verify all integration tests pass (tasks 7–15)
@@ -190,6 +190,15 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
 - Tasks 4, 5, 6 build the foundation layers; tasks 7–13 add collectors in parallel-safe order; task 14 wires everything together
 - The classifier boundary (`classifier/` must never import from `runner/`) is NOT enforced by a TypeScript path alias (the `@runner/*` alias was removed; there is no CI yet). It will be enforced by ESLint `no-restricted-imports` plus a test in the haunting-classifier spec that asserts no classifier file imports from `runner/`. No task here touches `classifier/`.
 - The cursed-shop fixtures already exist in `apps/cursed-shop` (`index.html`, `product.html`, `checkout.html`, `img/`, `expected-hauntings.json`, `verify.mjs`) — they were vibe-coded with no spec. Integration tests (tasks 7–15) load them via the shared `packages/core/tests/fixtures/shop-server.ts` file server.
+- Implementation notes from run 11 (2026-11-21, written by Claude Code at the teammate's direction):
+  - The task 9–12 collectors live in `src/runner/collectors.ts` and are re-exported from `browser.ts`.
+  - `collectTextNodeStyles(page, signals)` takes the listener signals for cursor styles, so `auditUrl` runs it after `collectEventListeners`. The other collectors still run in parallel.
+  - `trapRegionNodeIds` is the trap region element (the members' dialog, else their common ancestor) followed by the cycle members. This satisfies both `design.md` (cycle ids) and the golden file's `cursedLoopMatch` rule.
+  - `TabWalkResult` gains `walkStartedAtMs` and `endReason`; `TabCycle` gains `includesAllFocusables`.
+  - `auditHtml` binds 127.0.0.1, not localhost, and uses an origin-scoped allow wrapper (`OriginScopedPolicy`).
+  - Per-resource bytes over 10 MB are recorded in `abortedResources` from `content-length`; mid-stream aborting is left to the safe-fetch spec.
+  - The determinism test also normalises `walkStartedAtMs` and Chromium-allocated ids (DOM and AX), which differ per renderer. A screenshot SHA mismatch is recorded, not failed (amendment 6).
+  - `safe-fetch.ts` aborted with the invalid code `'blocked'`, so a blocked request threw "Route is already handled". It now uses `'blockedbyclient'`.
 - Property tests (tasks 4 and 6) use `fast-check` and must each run a minimum of 100 iterations as required by the testing strategy in the design document
 
 ## Task Dependency Graph

@@ -302,13 +302,14 @@ export function installSafeFetchPolicy(page: Page, policy: SafeFetchPolicy): voi
       const url = route.request().url()
       const { block } = await policy.shouldBlock(url)
       if (block) {
-        await route.abort('blocked')
+        await route.abort('blockedbyclient')
       } else {
         await route.continue()
       }
     } catch {
-      // If policy.shouldBlock throws, treat as blocked
-      await route.abort('blocked')
+      // If policy.shouldBlock throws, treat as blocked. The route may already be
+      // handled (e.g. the page closed mid-request), so never throw from here.
+      await route.abort('blockedbyclient').catch(() => undefined)
     }
   })
 }
