@@ -162,3 +162,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `audit.mjs`: all 30 page × haunting counts match the golden file, with no EXTRA or bad selectors. The 3 NOTFIRED notes (checkout CursedLoop, SilentTongue, ShatteredOrder no-main) are page-level hauntings that the probe's per-node selector match cannot pair; their counts match.
   - `packages/core`: untouched, 47/47 tests still pass.
 - **Outcome:** passed. The golden file and the shop README are no longer stale. Next: run 10.
+
+## 2026-11-21 · Run 10 · started (teammate irumvag, own Kiro account)
+- Claimed by the teammate's Claude Code session. Branched from `kiro/run-09-cursed-shop-finish` (PR #1), because tasks 7+ test against the finished shop.
