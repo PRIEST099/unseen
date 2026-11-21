@@ -1,11 +1,11 @@
 {
   "name": "cursed-shop",
   "version": "1.0.0",
+  "private": true,
   "description": "A deliberately haunted demo storefront for THE UNSEEN accessibility auditor",
-  "main": "index.html",
   "scripts": {
-    "start": "npx serve -p 4173",
-    "serve": "npx serve -p 4173",
+    "start": "serve -l 4173 .",
+    "serve": "serve -l 4173 .",
     "verify": "node verify.mjs"
   },
   "keywords": [

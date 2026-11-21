@@ -2,12 +2,14 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": "./src",
-    "paths": {
-      "@runner/*": ["./runner/*"]
-    }
+    "rootDir": "./src"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["**/*.test.ts", "tests/**", "dist/**"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "tests/**",
+    "dist/**"
+  ]
 }

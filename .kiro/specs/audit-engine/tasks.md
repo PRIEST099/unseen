@@ -44,17 +44,17 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: `vitest --run` exits 0 with all 4 property tests passing
   - _Satisfies: Req 11.3, 11.4, 11.6_
 
-- [ ] 5. Implement `BrowserPool` in `packages/core/src/runner/browser.ts`
+- [x] 5. Implement `BrowserPool` in `packages/core/src/runner/browser.ts`
   - Create `packages/core/src/runner/browser.ts` containing the `BrowserPool` singleton class and its supporting types
   - Export a single `buildLaunchArgs(opts?)` function returning `{ channel: string | undefined; args: string[]; headless: boolean }`, so launch flags live in one place the `safe-fetch` spec can later extend (e.g. a per-audit `--host-resolver-rules` pin). The channel resolves as `opts.channel ?? process.env.UNSEEN_CHROMIUM_CHANNEL ?? 'chromium'`; an empty string is treated as "no channel" (`undefined`) so the Docker image can use the bundled build. The args always include `--disable-features=WebRtcHideLocalIpsWithMdns` and `--force-webrtc-ip-handling-policy=disable_non_proxied_udp` to block WebRTC leaks. `headless` defaults to `true`.
   - `BrowserPool` constructor accepts `BrowserPoolOptions` with `maxConcurrency: number` (1–20 inclusive, default **2**); a non-integer or out-of-range value throws `RangeError`
   - `acquire(): Promise<Browser>` — if a slot is available, launches or returns a browser immediately; if at capacity, enqueues the request with a 30-second timeout; throws immediately if queue depth reaches **20**
   - `release(browser: Browser): Promise<void>` — increments session counter; runs `browser.isConnected()` health check; if unhealthy OR session counter ≥ 50, closes and replaces the browser before dispatching to next queued caller; dispatches to next queued caller if queue is non-empty
   - Export `getPool(options?: BrowserPoolOptions): BrowserPool` as the module-level singleton accessor
-  - Acceptance: Vitest unit tests (using mocked `chromium.launch`): (a) queue depth 51 throws immediately, (b) 30s timeout rejects with error after expiry, (c) `release` decrements busy count so next `acquire` resolves, (d) session counter ≥ 50 triggers browser replacement
+  - Acceptance: Vitest unit tests (using mocked `chromium.launch`): (a) with the pool at capacity and 20 requests already queued, the 21st `acquire` throws immediately, (b) 30s timeout rejects with error after expiry, (c) `release` decrements busy count so next `acquire` resolves, (d) session counter ≥ 50 triggers browser replacement
   - _Satisfies: Req 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8_
 
-- [ ] 6. Implement `Page_Loader` in `packages/core/src/runner/browser.ts`
+- [x] 6. Implement `Page_Loader` in `packages/core/src/runner/browser.ts`
   - Add `Page_Loader` class and `normalizeBoundingBox` pure helper to `browser.ts` (alongside `BrowserPool`)
   - `createContext(browser: Browser, options: AuditOptions): Promise<BrowserContext>` — creates a `BrowserContext` with `viewport: { width: 1280, height: 900 }` (overridable), `locale: "en-US"`, `timezoneId: "UTC"`, `serviceWorkers: "block"`, `bypassCSP: false`, `storageState: undefined`; wraps failures in `AuditContextError`
   - `loadPage(context: BrowserContext, url: string, policy: SafeFetchPolicy, options: AuditOptions): Promise<{ page: Page; screenshotPng: Buffer; boundingBoxes: BoundingBox[] }>` — opens a page, calls `installSafeFetchPolicy`, navigates with `waitUntil: 'networkidle'` and `navigationTimeoutMs` timeout, checks Content-Type (throw `NonHtmlContentError` if not `text/html` or `application/xhtml+xml`), takes full-page PNG screenshot, collects bounding boxes via single `page.evaluate` over `querySelectorAll('*')` with `getBoundingClientRect()` and `backendDOMNodeId`
@@ -66,7 +66,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: property test passes; integration test passes
   - _Satisfies: Req 1.1, 1.2, 1.3, 1.4, 1.5, 1.7, 1.8, 1.9, 1.10, 14.1, 14.4, 14.5_
 
-- [ ] 7. Implement `AX_Tree_Collector` in `packages/core/src/runner/ax-tree.ts`
+- [x] 7. Implement `AX_Tree_Collector` in `packages/core/src/runner/ax-tree.ts`
   - Create `packages/core/src/runner/ax-tree.ts` and export `collectAxTree(page: Page): Promise<AXNode[]>`
   - Open a CDP session via `page.context().newCDPSession(page)`; throw `AuditCollectionError` with `step: "ax-tree"` if opening fails
   - Call `session.send('Accessibility.getFullAXTree', { fetchRelatedNodes: true })`
@@ -77,7 +77,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Acceptance: integration test passes
   - _Satisfies: Req 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7_
 
-- [ ] 8. Implement `Axe_Runner` in `packages/core/src/runner/axe.ts`
+- [x] 8. Implement `Axe_Runner` in `packages/core/src/runner/axe.ts`
   - Create `packages/core/src/runner/axe.ts` and export `runAxe(page: Page): Promise<{ violations: AxeViolation[]; incomplete: AxeViolation[]; error?: CollectionError }>`
   - Import `AxeBuilder` from `@axe-core/playwright`
   - Configure with `runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }`

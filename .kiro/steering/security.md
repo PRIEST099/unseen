@@ -59,10 +59,13 @@ export class SsrfBlockedError extends Error {
   }
 }
 
-export function isPrivateIp(ip: string): boolean { /* ... */ }
-export async function resolveAndCheck(hostname: string): Promise<void> { /* throws SsrfBlockedError */ }
-export function installSsrfGuard(page: Page): void { /* installs page.route handler */ }
+// Real exported API (SsrfBlockedError lives in packages/core/src/types.ts)
+export class RestrictiveSafeFetchPolicy implements SafeFetchPolicy { /* hosted mode: blocks private, loopback, metadata */ }
+export class PermissiveSafeFetchPolicy implements SafeFetchPolicy { /* local MCP and tests: http/https only */ }
+export function installSafeFetchPolicy(page: Page, policy: SafeFetchPolicy): void { /* page.route('**/*') handler */ }
 ```
+
+**Known gaps:** the current guard has defects listed in `docs/brief/review-notes/safe-fetch-review-1.md`: failing open on DNS errors, IPv6 parsing, missing IPv4 ranges, DNS rebinding, redirect tests, and WebSocket/WebRTC coverage. The `safe-fetch` spec closes them. Until then, do not expose the hosted auditor publicly.
 
 The SSRF guard must be installed on every `Page` before any navigation. It must intercept and block `fetch`, XHR, image loads, script loads, and stylesheet loads — not just the initial navigation. Use `page.route('**/*', ...)`.
 
@@ -112,9 +115,12 @@ Apply these in `apps/web/src/server/routes/audit.ts`:
 
 | Limit | Value |
 |-------|-------|
-| Requests per IP per minute | 10 |
-| Concurrent audits (global) | 5 |
-| Queue depth (waiting audits) | 20 |
+| Audits per IP per minute | 5 |
+| Audits per IP per hour | 30 |
+| Concurrent audits (global) | `UNSEEN_MAX_CONCURRENCY`, default **2** (range 1–20); enforced by `BrowserPool` |
+| Queue depth (waiting audits) | 20 (the 21st waiting request is rejected at once) |
+
+This table is the single source of truth for these limits. Specs and tasks must quote it, not restate different numbers.
 
 If the concurrency cap is reached, return `HTTP 429` with a `Retry-After` header. If the queue is full, return `HTTP 503`. Use a simple in-memory token bucket for per-IP rate limiting (no Redis required for the hackathon scope).
 
