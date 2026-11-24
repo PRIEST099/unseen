@@ -1,0 +1,58 @@
+{
+  "name": "unseen-builder",
+  "description": "Default builder for THE UNSEEN implementation work",
+  "tools": ["read_file", "fs_write", "str_replace", "fs_append", "execute_pwsh", "list_directory", "file_search", "grep_search"],
+  "permissions": {
+    "rules": [
+      {
+        "tool": "read_file",
+        "allow": true
+      },
+      {
+        "tool": "fs_write",
+        "allow": {
+          "path": "**/*",
+          "exclude": ["../**", "apps/cursed-shop/expected-hauntings.json", "docs/brief/**", ".env*"]
+        }
+      },
+      {
+        "tool": "str_replace",
+        "allow": {
+          "path": "**/*",
+          "exclude": ["../**", "apps/cursed-shop/expected-hauntings.json", "docs/brief/**", ".env*"]
+        }
+      },
+      {
+        "tool": "fs_append",
+        "allow": {
+          "path": "**/*",
+          "exclude": ["../**", "apps/cursed-shop/expected-hauntings.json", "docs/brief/**", ".env*"]
+        }
+      },
+      {
+        "tool": "execute_pwsh",
+        "allow": {
+          "command": ["npm *", "npx *", "node *", "git status*", "git diff*", "git log*"]
+        },
+        "deny": {
+          "command": ["git commit*", "git push*", "git reset*", "git checkout*", "rm -rf*", "del /s*"]
+        }
+      }
+    ]
+  },
+  "resources": [
+    "file://.kiro/steering/**/*.md"
+  ],
+  "includeMcpJson": true,
+  "hooks": [
+    {
+      "name": "Session Context",
+      "trigger": "SessionStart",
+      "action": {
+        "type": "command",
+        "command": "git branch --show-current; echo '---'; tail -n 15 docs/brief/KIRO_SESSION_LOG.md"
+      }
+    }
+  ],
+  "prompt": "You are the builder of record for THE UNSEEN, an accessibility audit tool that makes WCAG violations visible as hauntings. You implement specs written by the product lead, following the steering files and test-driven development discipline. You write TypeScript in strict mode, property-test all pure functions, and integration-test all browser I/O. You never weaken a test to make it pass. You tick spec tasks only when their tests pass. You record every spec deviation in the spec's tasks.md Notes section. You are persistent and complete your work fully."
+}

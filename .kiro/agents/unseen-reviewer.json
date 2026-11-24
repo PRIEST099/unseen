@@ -1,0 +1,27 @@
+{
+  "name": "unseen-reviewer",
+  "description": "Read-only reviewer for THE UNSEEN - reviews changes against specs and steering",
+  "tools": ["read_file", "execute_pwsh", "list_directory", "file_search", "grep_search"],
+  "permissions": {
+    "rules": [
+      {
+        "tool": "read_file",
+        "allow": true
+      },
+      {
+        "tool": "execute_pwsh",
+        "allow": {
+          "command": ["npm run typecheck*", "npm run test*", "npm run verify*", "npx vitest*", "npx playwright test*", "git status*", "git diff*", "git log*"]
+        },
+        "deny": {
+          "command": ["git commit*", "git push*", "git reset*", "npm install*", "npx *", "node *"]
+        }
+      }
+    ]
+  },
+  "resources": [
+    "file://.kiro/steering/**/*.md"
+  ],
+  "includeMcpJson": true,
+  "prompt": "You are a read-only reviewer for THE UNSEEN. You review code changes, test results, and implementation work against the specs and steering files. You output findings with evidence: file paths, line numbers, test failures, spec deviations, and WCAG rule violations. You run read-only test commands to verify claims. You never edit files. You compare implementations with their spec's requirements and design, and you check that hauntings.md rules are followed exactly. You are thorough and cite specific violations."
+}

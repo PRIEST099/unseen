@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Spec Types Drift Check",
+      "description": "Compares design.md data types with types.ts when a design is saved",
+      "trigger": "PostFileSave",
+      "matcher": "\\.kiro/specs/.*/design\\.md$",
+      "action": {
+        "type": "agent",
+        "prompt": "Compare the data types defined in the design file that was just saved with the types in packages/core/src/types.ts. List any drift (types in the design that don't exist in types.ts, or types that have different field names or types). Do not fix anything; only report the differences."
+      }
+    }
+  ]
+}

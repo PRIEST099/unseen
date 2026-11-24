@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@0.0.86",
+        "--browser",
+        "chromium"
+      ],
+      "env": {},
+      "disabled": false,
+      "description": "Playwright MCP server for browser automation, screenshots, and accessibility snapshots"
+    },
+    "unseen": {
+      "command": "node",
+      "args": [
+        "packages/mcp/dist/server.js"
+      ],
+      "env": {},
+      "disabled": true,
+      "description": "THE UNSEEN MCP server - audit_url, audit_html, explain_haunting, suggest_fix (enable once packages/mcp is built)"
+    }
+  },
+  "autoApprove": {
+    "playwright": [
+      "playwright_navigate",
+      "playwright_screenshot",
+      "playwright_snapshot",
+      "playwright_accessibility_snapshot"
+    ]
+  }
+}

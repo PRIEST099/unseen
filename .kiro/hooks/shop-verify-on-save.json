@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Shop Verify on Save",
+      "description": "Runs cursed-shop verification when shop files are saved",
+      "trigger": "PostFileSave",
+      "matcher": "apps/cursed-shop/.*\\.(html|css|js|svg)$",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/hooks/scripts/shop-verify.mjs"
+      }
+    }
+  ]
+}
