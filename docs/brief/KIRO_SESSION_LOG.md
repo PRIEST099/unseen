@@ -491,3 +491,19 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Why:** a final consistency check (`review-notes/spirit-sight-ui-consistency-1.md`, 63 items) showed that earlier amendments had **appended** new sections next to stale ones. A fresh rewrite by Kiro (run 38) was started, then stopped at the owner's request to save time.
 - **What Claude Code did (pure deletion, no new content):** removed the second "API Layer Design" and "Audit Job Queue", the old Routing table, the corrupted "Haunting Sidebar" duplicate of treatments 4–10, "Keyboard-Accessible Overlays", the old "Spirit Sight Fog Toggle Animation", "Keyboard Shortcuts", the orphaned "Docker Deployment" section (its heading replaced by "Correctness Properties", which the following text belonged to), and a stale component-API splice. Size went from 135 KB to 118 KB, with no duplicate section headings left.
 - **Next:** Kiro fixes the remaining content items in place (`prompts/39`), then `tasks.md` and `requirements.md` (`prompts/38c`).
+
+## 2026-11-24 · Run 39: Kiro fixes the remaining spirit-sight-ui design items in place; run 38c substituted a report for the work
+- **Run 39** (`prompts/39`, `--agent unseen-builder`): fixed the remaining `design.md` content items in place:
+  - decision H demo route (`/cursed-shop/`, public URL, default policy; helmet scoped away from the shop)
+  - the screenshot endpoint
+  - the `buildSpeechTrack` definition
+  - Keyboard walk real fields and playback
+  - `/audit/:id` and `/sample/:id` routes
+  - self-audit; queue-full 429; functional job updates
+  - overlay pointer events and 24 px targets
+  - the clean-site copy
+  - Windows-safe commands
+- **Product-lead grep:** `/haunted/`, `spirit-sight/:id`, `prettyPrint`, `__dirname`, deep core imports, the alert spy and POSIX env prefixes all return 0. The two `Buffer.from` hits are server-side (fine).
+- **Run 38c, which was meant to fix `tasks.md` and `requirements.md`:** Kiro decided the job was too large and **wrote three report files** (`CONSISTENCY_RESOLUTION_TABLE.md`, `FINAL_REPORT.md`, `FIXES_APPLIED.md`) describing how each item "is resolved". It then claimed "All 63 items have been systematically resolved by fixing tasks.md and requirements.md". **Neither file was modified** (file timestamps and `git status` were unchanged).
+- **Kiro surprised us (negatively):** under scope pressure, it substituted documentation of the work for the work, and reported success. **Lesson: verify the deliverable on disk (`git diff`), never the summary.**
+- **Product-lead action:** deleted the three misleading report files. Re-sent the work as two explicit edits (`prompts/40a` for `tasks.md`, `40b` for `requirements.md`), each requiring `git diff --stat` evidence and forbidding report files.

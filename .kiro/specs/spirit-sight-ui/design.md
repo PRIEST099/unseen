@@ -146,8 +146,9 @@ export function createServer(options: ServerOptions = {}): FastifyInstance {
     trustProxy: true, // for rate limiting behind a reverse proxy
   })
 
-  // Security: Helmet with strict CSP
+  // Security: Helmet with strict CSP (global: false, applied per route below)
   server.register(helmet, {
+    global: false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -165,19 +166,25 @@ export function createServer(options: ServerOptions = {}): FastifyInstance {
   // Rate limiting with global: false (applies only where attached)
   server.register(rateLimitPlugin, { global: false })
 
-  // Routes
-  server.register(auditRoutes, { prefix: '/api', maxConcurrency: options.maxConcurrency ?? 2 })
-  server.register(samplesRoutes, { prefix: '/api' })
-  server.register(healthRoutes, { prefix: '/api' })
+  // Routes (helmet enabled via onRequest hook)
+  server.register(async (apiContext) => {
+    apiContext.addHook('onRequest', async (request, reply) => {
+      await reply.helmet()
+    })
+    
+    apiContext.register(auditRoutes, { maxConcurrency: options.maxConcurrency ?? 2 })
+    apiContext.register(samplesRoutes)
+    apiContext.register(healthRoutes)
+  }, { prefix: '/api' })
 
-  // Serve apps/cursed-shop statically at /haunted/ (no helmet, so inline scripts work)
+  // Serve apps/cursed-shop statically at /cursed-shop/ (no helmet, so inline scripts work)
   server.register(async (instance) => {
     await instance.register(fastifyStatic, {
       root: fileURLToPath(new URL('../../../cursed-shop', import.meta.url)),
-      prefix: '/haunted/',
+      prefix: '/cursed-shop/',
       decorateReply: false,
     })
-  }, { prefix: '/haunted' })
+  }, { prefix: '/cursed-shop' })
 
   // Static file serving in production only
   if (NODE_ENV === 'production') {
@@ -228,19 +235,14 @@ server.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
 ```json
 { "url": "https://example.com" }
 ```
-or
-```json
-{ "demo": "cursed-shop-index" | "cursed-shop-product" | "cursed-shop-checkout" }
-```
 
 **Flow**:
-1. Validate input: exactly one of `url` or `demo` (JSON schema `additionalProperties: false`)
-2. If `demo`, build `url = http://127.0.0.1:${PORT}/haunted/<page>.html`
-3. If `url`, validate format (`http://` or `https://`, well-formed)
-4. SSRF pre-check: resolve DNS, check against blocked ranges (`.kiro/steering/security.md`)
-5. Create job with unique ID (`crypto.randomUUID()`)
-6. **Enqueue job before replying** (if `queue.enqueue` throws `QueueFullError`, delete job and return 503)
-7. Return `202 Accepted { "id": "uuid" }`
+1. Validate input (must have `url` field; JSON schema `additionalProperties: false`)
+2. Validate `url` format (`http://` or `https://`, well-formed)
+3. SSRF pre-check: resolve DNS, check against blocked ranges (`.kiro/steering/security.md`)
+4. Create job with unique ID (`crypto.randomUUID()`)
+5. **Enqueue job before replying** (if `queue.enqueue` throws `QueueFullError`, delete job and return 429)
+6. Return `202 Accepted { "id": "uuid" }`
 
 **Rate Limiting**:
 Attached to this route only via route-level config:
@@ -260,8 +262,7 @@ Plus a per-IP 30/hour limit enforced by `src/server/middleware/rate-limit.ts` (a
 - `202`: Job accepted and queued
 - `400`: Invalid URL format or JSON schema violation
 - `403`: SSRF blocked (private IP or metadata endpoint)
-- `429`: Rate limit exceeded (per-IP: 5/min or 30/hour)
-- `503`: Queue full (20 waiting jobs)
+- `429`: Rate limit exceeded (per-IP: 5/min or 30/hour) OR queue full (20 waiting jobs)
 
 **Error Response Format**:
 ```typescript
@@ -439,17 +440,10 @@ async function executeJob(jobId: string): Promise<void> {
   if (!job) return
 
   try {
-    // Choose policy based on demo vs. URL
-    const isDemo = job.url.startsWith('http://127.0.0.1')
-    const policy = isDemo
-      ? new OriginScopedPolicy(`http://127.0.0.1:${PORT}`, new RestrictiveSafeFetchPolicy())
-      : undefined // default restrictive
-
     const allowPrivate = process.env.UNSEEN_DEV_ALLOW_PRIVATE === '1' && NODE_ENV !== 'production'
 
     const classified = await auditAndClassify(job.url, {
       allowPrivate,
-      safeFetchPolicy: policy,
       timeoutMs: 60000,
       
       // Progress callback updates job status and stages (functional update)
@@ -461,22 +455,27 @@ async function executeJob(jobId: string): Promise<void> {
       }
     })
 
+    // Store screenshot separately before stripping from result
+    const screenshot = Buffer.from(classified.raw.screenshotPng, 'base64')
+
     // Strip screenshot from result JSON (served separately)
     const resultWithoutPng = {
       ...classified,
       raw: { ...classified.raw, screenshotPng: '' }
     }
 
-    jobStore.update(jobId, () => ({
+    jobStore.update(jobId, (j) => ({
       status: 'done',
       result: resultWithoutPng,
-      stages: { ...job.stages, done: Date.now() }
+      screenshot,
+      stages: { ...j.stages, done: Date.now() }
     }))
   } catch (error) {
     const errorResponse = mapErrorToResponse(error)
-    jobStore.update(jobId, () => ({
+    jobStore.update(jobId, (j) => ({
       status: 'error',
-      error: errorResponse
+      error: errorResponse,
+      stages: { ...j.stages, error: Date.now() }
     }))
   }
 }
@@ -503,8 +502,8 @@ function mapErrorToResponse(error: unknown): { code: string; message: string } {
 **File**: `apps/web/scripts/build-samples.mjs`
 
 ```typescript
-import { createServer } from '../tests/fixtures/shop-server.js' // from core/tests/fixtures
-import { auditAndClassify } from '@the-unseen/core'
+import { startShopServer } from '@the-unseen/core'
+import { auditAndClassify, buildSpeechTrack } from '@the-unseen/core'
 import { writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 
@@ -516,13 +515,13 @@ const samples = [
 ]
 
 async function main() {
-  const shopServer = await createServer(4173) // local server for cursed-shop
+  const { baseUrl, close } = await startShopServer() // returns random port
 
   const manifest = []
 
   for (const { id, page, name } of samples) {
-    const localUrl = `http://127.0.0.1:4173/${page}`
-    const displayUrl = `https://cursed-shop.the-unseen.app/${page}` // or /haunted/ on hosted
+    const localUrl = `${baseUrl}/${page}`
+    const displayUrl = `https://cursed-shop.the-unseen.app/${page}`
 
     const classified = await auditAndClassify(localUrl, { allowPrivate: true })
 
@@ -534,9 +533,9 @@ async function main() {
     const pngBuffer = Buffer.from(screenshotPng, 'base64')
     await writeFile(`samples/${id}.png`, pngBuffer)
 
-    // Generate 400px-wide thumbnail
-    const thumbnail = await sharp(pngBuffer).resize(400, null, { fit: 'inside' }).png().toBuffer()
-    await writeFile(`samples/${id}-thumb.png`, thumbnail)
+    // Generate 400px-wide JPEG thumbnail
+    const thumbnail = await sharp(pngBuffer).resize(400, null, { fit: 'inside' }).jpeg({ quality: 85 }).toBuffer()
+    await writeFile(`samples/${id}-thumb.jpg`, thumbnail)
 
     // Strip screenshot from JSON
     const resultWithoutPng = {
@@ -560,12 +559,12 @@ async function main() {
       url: displayUrl,
       score: classified.score,
       countsByType: classified.countsByType,
-      thumbnailUrl: `/api/samples/${id}/thumbnail.png`
+      thumbnailUrl: `/api/samples/${id}/thumbnail.jpg`
     })
   }
 
   await writeFile('samples/index.json', JSON.stringify(manifest, null, 2))
-  await shopServer.close()
+  await close()
 }
 
 main()
@@ -636,21 +635,21 @@ Run with: `npm run build-samples -w apps/web` (after `npm run build -w @the-unse
               │
               ├─ <SeanceView>
               │   └─ usePoll(/api/audit/:id)
-              │       → navigates to /spirit-sight/:id when done
+              │       → navigates to /audit/:id when done
               │
-              └─ <SpiritSightView>
+              └─ <AuditResultView>
                   ├─ useScale(containerRef)
-                  ├─ <img> (screenshot)
+                  ├─ <img> (screenshot from /api/.../screenshot.png)
                   ├─ <svg> (overlay)
                   │   └─ <HauntingOverlay> (×N hauntings)
                   ├─ <HauntingSidebar>
                   │   └─ groupHauntings(audit.hauntings)
                   ├─ <HauntingDetailDialog> (focus trap)
-                  ├─ <WhisperWalk>
+                  ├─ <WhisperWalk> (at /whisper)
                   │   └─ useWebSpeech(utterances)
-                  ├─ <KeyboardWalk>
+                  ├─ <KeyboardWalk> (at /keyboard)
                   │   └─ Tab ghost animation
-                  └─ <DaylightReport>
+                  └─ <DaylightReport> (at /daylight)
                       ├─ groupByWCAG(audit.hauntings)
                       └─ Export buttons
 ```
@@ -678,7 +677,19 @@ Run with: `npm run build-samples -w apps/web` (after `npm run build -w @the-unse
         <Routes>
           <Route path="/" element={<LandingView />} />
           <Route path="/seance/:id" element={<SeanceView />} />
-          <Route path="/spirit-sight/:id" element={<SpiritSightView />} />
+          <Route path="/audit/:jobId" element={<AuditResultView />}>
+            <Route index element={<SpiritSightPanel />} />
+            <Route path="keyboard" element={<KeyboardWalkPanel />} />
+            <Route path="whisper" element={<WhisperWalkPanel />} />
+            <Route path="daylight" element={<DaylightPanel />} />
+          </Route>
+          <Route path="/sample/:sampleId" element={<AuditResultView />}>
+            <Route index element={<SpiritSightPanel />} />
+            <Route path="keyboard" element={<KeyboardWalkPanel />} />
+            <Route path="whisper" element={<WhisperWalkPanel />} />
+            <Route path="daylight" element={<DaylightPanel />} />
+          </Route>
+          <Route path="*" element={<NotFoundView />} />
         </Routes>
       </Router>
     </SoundProvider>
@@ -794,7 +805,7 @@ Loaded from `/api/samples` on mount. Each card displays:
 - Thumbnail (screenshot scaled to 200×150px)
 - Haunting Score badge (uses severity colors)
 
-**Click behavior**: Navigate directly to `/spirit-sight/:id` with the cached `ClassifiedAudit` (no network request).
+**Click behavior**: Navigate to `/sample/:id`. The view fetches the sample from `/api/samples/:id`.
 
 ---
 
@@ -884,22 +895,34 @@ If `status === 'error'`, display the error message in an `aria-live="assertive"`
 
 **PNG Size Extraction**:
 ```typescript
-// Pure helper: decode PNG dimensions from base64 data URL or raw base64
-function pngSize(base64: string): { width: number; height: number } {
-  const stripped = base64.replace(/^data:image\/png;base64,/, '')
-  const buffer = Buffer.from(stripped, 'base64')
-  // PNG spec: width at bytes 16-19, height at 20-23 (big-endian)
-  const width = buffer.readUInt32BE(16)
-  const height = buffer.readUInt32BE(20)
-  return { width, height }
-}
+// Read from loaded <img> element using naturalWidth/naturalHeight
+const [scale, setScale] = useState<ScaleState | null>(null)
+
+useEffect(() => {
+  const img = imgRef.current
+  if (!img) return
+  
+  const handleLoad = () => {
+    const pngWidth = img.naturalWidth
+    const pngHeight = img.naturalHeight
+    const containerWidth = containerRef.current?.clientWidth ?? 1280
+    setScale(computeScale(pngWidth, pngHeight, containerWidth))
+  }
+  
+  if (img.complete) {
+    handleLoad()
+  } else {
+    img.addEventListener('load', handleLoad)
+    return () => img.removeEventListener('load', handleLoad)
+  }
+}, [audit.id]) // recalculate when audit changes
 ```
 
 **Scale Computation**:
 ```typescript
 type ScaleState = {
-  pngWidth: number          // Intrinsic PNG width (from pngSize or img.naturalWidth)
-  pngHeight: number         // Intrinsic PNG height
+  pngWidth: number          // Intrinsic PNG width (from img.naturalWidth)
+  pngHeight: number         // Intrinsic PNG height (from img.naturalHeight)
   containerWidth: number    // Available width in viewport
   scaleFactor: number       // min(1, containerWidth / pngWidth)
   scaledWidth: number       // pngWidth * scaleFactor
@@ -927,10 +950,15 @@ function computeScale(
 
 **Rendering**:
 ```tsx
+const screenshotUrl = audit.kind === 'job' 
+  ? `/api/audit/${audit.id}/screenshot.png`
+  : `/api/samples/${audit.id}/screenshot.png`
+
 <div className="spirit-sight-stage" ref={containerRef} style={{ overflowY: 'scroll', height: '100vh' }}>
   <div style={{ width: scale.scaledWidth, height: scale.scaledHeight, position: 'relative' }}>
     <img
-      src={`data:image/png;base64,${audit.raw.screenshotPng}`}
+      ref={imgRef}
+      src={screenshotUrl}
       alt="Audited page screenshot"
       width={scale.scaledWidth}
       height={scale.scaledHeight}
@@ -945,9 +973,9 @@ function computeScale(
       width={scale.scaledWidth}
       height={scale.scaledHeight}
       viewBox={`0 0 ${scale.pngWidth} ${scale.pngHeight}`}
-      style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+      style={{ position: 'absolute', top: 0, left: 0 }}
     >
-      {audit.hauntings.map(h => (
+      {audit.hauntings.filter(h => h.box !== null).map(h => (
         <HauntingOverlay key={h.id} haunting={h} scale={scale.scaleFactor} />
       ))}
     </svg>
@@ -987,7 +1015,7 @@ useEffect(() => {
 **Activation Sequence** (standard motion):
 
 1. **User clicks "Open Spirit Sight"**
-   - Button state changes to `aria-pressed="true"`, label becomes "Close Spirit Sight"
+   - Button state changes to `aria-pressed="true"` (label remains "Open Spirit Sight")
    - Focus remains on the button (no focus movement)
 
 2. **Canvas fog layer appears** (800 ms)
@@ -1018,7 +1046,7 @@ useEffect(() => {
 
 - Overlays fade out (200 ms) and are removed from the DOM
 - Canvas clears and is hidden (`opacity: 0`)
-- Button returns to `aria-pressed="false"`, label "Open Spirit Sight"
+- Button returns to `aria-pressed="false"` (label remains "Open Spirit Sight")
 
 **Acceptance Test**:
 
@@ -1055,23 +1083,29 @@ await waitFor(() => {
 ```tsx
 <g>
   {/* Visual treatment: aria-hidden decorative SVG */}
-  <g aria-hidden="true">
+  <g aria-hidden="true" style={{ pointerEvents: 'none' }}>
     <rect x={box.x} y={box.y} width={box.width} height={box.height} fill="..." />
     {/* Type-specific shapes, colors, patterns */}
   </g>
   
-  {/* Interactive button */}
+  {/* Interactive button: size in viewBox units so it scales with the SVG */}
   <foreignObject
-    x={Math.max(0, box.x + box.width / 2 - 12)}
-    y={Math.max(0, box.y + box.height / 2 - 12)}
-    width={24}
-    height={24}
+    x={Math.max(0, box.x + box.width / 2 - 12 / scaleFactor)}
+    y={Math.max(0, box.y + box.height / 2 - 12 / scaleFactor)}
+    width={24 / scaleFactor}
+    height={24 / scaleFactor}
   >
     <button
       className="haunting-overlay-button"
       onClick={() => openDialog(haunting)}
       aria-label={`${hauntingDisplayName(haunting.type)}: ${elementLabel(haunting)}, ${haunting.severity}`}
-      style={{ width: 24, height: 24, minWidth: 24, minHeight: 24 }}
+      style={{ 
+        width: '100%', 
+        height: '100%', 
+        minWidth: '100%', 
+        minHeight: '100%',
+        pointerEvents: 'auto'
+      }}
     />
   </foreignObject>
 </g>
@@ -1112,11 +1146,14 @@ function elementLabel(haunting: Haunting): string {
 Buttons are sorted before rendering:
 ```typescript
 const sortedHauntings = [...audit.hauntings].sort((a, b) => {
-  if (a.box && b.box) {
-    if (a.box.y !== b.box.y) return a.box.y - b.box.y // Top to bottom
-    return a.box.x - b.box.x // Left to right
-  }
-  return 0 // Null boxes last
+  // Null boxes always sort last
+  if (!a.box && !b.box) return 0
+  if (!a.box) return 1
+  if (!b.box) return -1
+  
+  // Both have boxes: top to bottom, then left to right
+  if (a.box.y !== b.box.y) return a.box.y - b.box.y
+  return a.box.x - b.box.x
 })
 ```
 
@@ -1132,9 +1169,10 @@ const buttonY = Math.max(0, box.y + box.height / 2 - buttonSize / 2)
 
 **Pointer Events**:
 
-- **Buttons**: `pointer-events: auto` (the default for `<button>` inside `<foreignObject>`)
-- **Decorative SVG shapes**: `pointer-events: none` (via `aria-hidden` group)
-- **Screenshot**: `pointer-events: none`
+- **SVG overlay container**: no `pointer-events` restriction (defaults to allow interaction)
+- **Decorative SVG shapes** (`aria-hidden` groups): `pointer-events: none`
+- **Buttons inside foreignObject**: `pointer-events: auto` (explicit, to override any inheritance)
+- **Screenshot**: no pointer events needed (not interactive)
 - **Fog canvas**: `pointer-events: none`
 
 **Focus Ring** (dual-tone for visibility on any background):
@@ -1246,11 +1284,18 @@ Each haunting type renders a distinct visual treatment inside the SVG overlay. A
     width={box.width}
     height={box.height}
     fill={`url(#fog-pattern-${haunting.id})`}
-    opacity={fogDensity} // 0.3–0.8 based on contrast deficit
+    opacity={computeFogOpacity(haunting)} // 0.3–0.8 based on actual contrast from TextNodeStyle
     style={{ mixBlendMode: 'multiply' }}
     className={reducedMotion ? '' : 'fog-drift'}
   />
 </g>
+
+function computeFogOpacity(haunting: Haunting): number {
+  // Extract contrast data from the haunting's raw data if available
+  // For now, default to 0.6 (medium fog)
+  // TODO: derive from audit.raw.textNodeStyles[haunting.nodeIds[0]]
+  return 0.6
+}
 ```
 
 ### 4. Lost Soul
@@ -1381,7 +1426,7 @@ Each haunting type renders a distinct visual treatment inside the SVG overlay. A
 **Reduced motion**: same
 
 ```tsx
-<g aria-hidden="true" className="silent-tongue-visual">
+<g aria-hidden="true" className="silent-tongue-visual" style={{ pointerEvents: 'none' }}>
   <rect
     x={0}
     y={0}
@@ -1390,18 +1435,19 @@ Each haunting type renders a distinct visual treatment inside the SVG overlay. A
     fill="var(--color-ember)"
     opacity={0.9}
   />
+  {/* Visual symbol only - no text in aria-hidden */}
   <text
-    x={pngWidth / 2}
+    x={20}
     y={25}
-    textAnchor="middle"
+    fontSize={20}
     fill="var(--color-bone)"
-    fontSize={16}
-    fontFamily="var(--font-atkinson)"
   >
-    ⚠ The spirits speak a garbled tongue (missing lang attribute)
+    ⚠
   </text>
 </g>
 ```
+
+The warning message "The spirits speak a garbled tongue (missing lang attribute)" appears only on the accessible overlay button and in the sidebar, never inside the aria-hidden visual.
 
 ### 9. Shattered Order
 
@@ -1651,10 +1697,10 @@ export function buildSpeechTrack(raw: RawAudit): SpeechLine[] {
       const text = announce(node, raw)
       if (text === '') return null // skip generic/none/presentation
       
-      const box = raw.boundingBoxes.find(b => b.backendDOMNodeId === node.backendNodeId) || null
+      const box = raw.boundingBoxes.find(b => b.backendDOMNodeId === node.backendDOMNodeId) || null
       
       return {
-        backendDOMNodeId: node.backendNodeId || 0,
+        backendDOMNodeId: node.backendDOMNodeId,
         text,
         note: announceNote(node),
         box,
@@ -1667,7 +1713,7 @@ export function buildSpeechTrack(raw: RawAudit): SpeechLine[] {
 **UI Component**:
 
 ```typescript
-import { announce } from '@the-unseen/core' // Will be exported after this spec adds it
+import { buildSpeechTrack } from '@the-unseen/core'
 
 type SpeechLine = {
   backendDOMNodeId: number
@@ -1693,28 +1739,23 @@ function WhisperWalk({ audit }: { audit: ClassifiedAudit }) {
   }, [])
 
   useEffect(() => {
-    // Build speech track from raw AX tree (using core helper or inline logic)
-    const track: SpeechLine[] = audit.raw.axNodes
-      .filter(node => !node.ignored)
-      .map(node => {
-        const text = announce(node, audit.raw) // Core function
-        if (text === '') return null
-        
-        const box = audit.raw.boundingBoxes.find(b => b.backendDOMNodeId === node.backendNodeId) || null
-        
-        // Haunted nodes: use haunting speech instead
-        const haunting = audit.hauntings.find(h => h.nodeIds.includes(node.backendNodeId || 0))
-        
-        return {
-          backendDOMNodeId: node.backendNodeId || 0,
-          text: haunting?.speech || text,
-          note: haunting?.speechNote,
-          box,
-        }
-      })
-      .filter((line): line is SpeechLine => line !== null)
+    // Build speech track from raw AX tree using core helper
+    const track = buildSpeechTrack(audit.raw)
     
-    setSpeechTrack(track)
+    // Override with haunting speech where present
+    const enriched = track.map(line => {
+      const haunting = audit.hauntings.find(h => h.nodeIds.includes(line.backendDOMNodeId))
+      if (haunting?.speech) {
+        return {
+          ...line,
+          text: haunting.speech,
+          note: haunting.speechNote,
+        }
+      }
+      return line
+    })
+    
+    setSpeechTrack(enriched)
   }, [audit])
 
   const speak = (index: number) => {
@@ -1955,18 +1996,23 @@ function KeyboardWalk({ audit }: { audit: ClassifiedAudit }) {
     setPlaybackState('stopped')
   }
 
+  const playbackStateRef = useRef(playbackState)
+  useEffect(() => {
+    playbackStateRef.current = playbackState
+  }, [playbackState])
+
   const animateStep = (index: number) => {
-    if (playbackState !== 'playing' || index >= steps.length) {
+    if (playbackStateRef.current !== 'playing' || index >= steps.length) {
       setPlaybackState('stopped')
       return
     }
 
     const step = steps[index]
-    const box = audit.raw.boundingBoxes.find(b => b.backendDOMNodeId === step.backendDOMNodeId)
+    const box = audit.raw.boundingBoxes.find(b => b.backendDOMNodeId === Number(step.backendDOMNodeId))
     
     // Reveal Lost Souls between previous and current step (reading order)
     if (index > 0) {
-      const prevBox = audit.raw.boundingBoxes.find(b => b.backendDOMNodeId === steps[index - 1].backendDOMNodeId)
+      const prevBox = audit.raw.boundingBoxes.find(b => b.backendDOMNodeId === Number(steps[index - 1].backendDOMNodeId))
       if (prevBox && box) {
         const soulsInBetween = lostSoulBoxes.filter(soul => 
           soul.y > prevBox.y && soul.y < box.y ||
@@ -1980,35 +2026,43 @@ function KeyboardWalk({ audit }: { audit: ClassifiedAudit }) {
     }
 
     // Check for Cursed Loop
-    const inLoop = cursedLoops.find(loop => loop.nodeIds.includes(step.backendDOMNodeId))
+    const inLoop = cursedLoops.find(loop => loop.nodeIds.includes(Number(step.backendDOMNodeId)))
     if (inLoop) {
-      announceStatus('Cursed Loop: keyboard users cannot leave this dialog')
-      setPlaybackState('stopped')
-      return
+      // Circle up to 3 times before stopping
+      const visitCount = steps.slice(0, index + 1).filter(s => loop.nodeIds.includes(Number(s.backendDOMNodeId))).length
+      if (visitCount >= 3) {
+        announceStatus('Trapped: keyboard users cannot leave this dialog')
+        setPlaybackState('stopped')
+        return
+      }
     }
 
     // Check for escapable cycle
     const inEscapableCycle = escapableCycles.find(cycle => 
-      cycle.members.some(m => m.backendDOMNodeId === step.backendDOMNodeId)
+      cycle.nodeIds.includes(step.backendDOMNodeId)
     )
-    if (inEscapableCycle && !hasCircledBefore(inEscapableCycle, index)) {
-      // Circle once: revisit all cycle members
-      // (Simplified: just announce the break)
-      announceStatus('Escapable cycle: circling once, then breaking free')
+    if (inEscapableCycle && inEscapableCycle.escapable) {
+      // Circle once: when we first return to the cycle start, announce the break
+      const cycleStartId = inEscapableCycle.nodeIds[0]
+      const isReturning = step.backendDOMNodeId === cycleStartId && index > inEscapableCycle.startStepIndex
+      if (isReturning) {
+        announceStatus('Escapable cycle: circling once, then breaking free')
+      }
     }
 
     setCurrentStep(index)
 
-    const stepDuration = reducedMotion ? 300 : 300 / speed
+    const stepDuration = reducedMotion ? 0 : 300 / speed
     setTimeout(() => animateStep(index + 1), stepDuration)
   }
 
-  const currentBox = audit.raw.boundingBoxes.find(b => b.backendDOMNodeId === steps[currentStep]?.backendDOMNodeId)
-  const currentSpeech = audit.raw.axNodes.find(n => n.backendNodeId === steps[currentStep]?.backendDOMNodeId)?.name?.value || 'element'
+  const currentBox = audit.raw.boundingBoxes.find(b => b.backendDOMNodeId === Number(steps[currentStep]?.backendDOMNodeId))
+  const currentNode = audit.raw.axNodes.find(n => n.backendDOMNodeId === Number(steps[currentStep]?.backendDOMNodeId))
+  const currentSpeech = currentNode?.name?.value || 'element'
 
   return (
     <section className="keyboard-walk" aria-label="Keyboard walk">
-      <h3>Follow the Tab Key</h3>
+      <h1>Keyboard Walk: {new URL(audit.raw.auditedUrl).hostname}</h1>
       
       <div className="walk-stage" style={{ position: 'relative' }}>
         {/* Ghost rendered inside the same SVG overlay layer */}
@@ -2055,6 +2109,13 @@ function KeyboardWalk({ audit }: { audit: ClassifiedAudit }) {
           {cursedLoops.map(loop => {
             const loopBox = loop.box
             if (!loopBox) return null
+            
+            // Determine if this is an escapable cycle
+            const cycleData = audit.raw.tabWalkResult.cycles.find(c => 
+              c.nodeIds.some(id => loop.nodeIds.includes(Number(id)))
+            )
+            const isEscapable = cycleData?.escapable ?? false
+            
             return (
               <ellipse
                 key={loop.id}
@@ -2066,7 +2127,7 @@ function KeyboardWalk({ audit }: { audit: ClassifiedAudit }) {
                 stroke="var(--color-ember)"
                 strokeWidth={3}
                 opacity={0.8}
-                className={reducedMotion ? '' : 'cursed-loop-pulse'}
+                className={reducedMotion ? '' : (isEscapable ? 'cursed-loop-pulse' : 'cursed-loop-glow')}
               />
             )
           })}
@@ -2408,7 +2469,7 @@ Every button's accessible name (via `aria-label` or the button's text content) S
 
 **File**: `apps/web/src/client/views/DaylightView.tsx` (rendered at `/audit/:id/daylight` or `/sample/:id/daylight`)
 
-Daylight mode is a calm, high-contrast, motion-free WCAG report view. It groups hauntings by WCAG criterion, lists elements that need manual checks, displays the honest coverage note, and provides Markdown and JSON export. It is the default mode when `prefers-reduced-motion: reduce` is set.
+Daylight mode is a calm, high-contrast, motion-free WCAG report view. It groups hauntings by WCAG criterion, lists elements that need manual checks, displays the honest coverage note, and provides Markdown and JSON export. When `prefers-reduced-motion: reduce` is set, the Spirit Sight view defaults to showing the screenshot without automatic fog animation, and playback controls default to manual step mode.
 
 ### Layout
 
@@ -2846,11 +2907,11 @@ function formatAxe(violations: AxeViolation[]): string {
 npm run build -w apps/web
 
 # Start the production server in the background
-NODE_ENV=production PORT=3456 node apps/web/dist/server/main.js &
+npm run start -w apps/web &
 export SERVER_PID=$!
 
 # Run the self-audit test
-PORT=3456 npx playwright test apps/web/e2e/self-audit.spec.ts
+npx playwright test -w apps/web
 
 # Stop the server
 kill $SERVER_PID
@@ -2862,11 +2923,11 @@ kill $SERVER_PID
 export default defineConfig({
   testDir: './e2e',
   use: {
-    baseURL: 'http://127.0.0.1:3456',
+    baseURL: 'http://127.0.0.1:3000',
   },
   webServer: {
-    command: 'NODE_ENV=production PORT=3456 node dist/server/main.js',
-    port: 3456,
+    command: 'npm run start',
+    port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 10000, // 10s to start
   },
@@ -2980,7 +3041,7 @@ import { COLORS } from './tokens'
 
 // Import from core (the WCAG 2.x relative luminance formula)
 function computeContrastRatio(fg: string, bg: string): number {
-  // ... implementation in @the-unseen/core/src/classifier/contrast.ts
+  // ... implementation in core (see classifier/contrast.ts)
 }
 
 describe('Design token contrast', () => {
@@ -3147,8 +3208,8 @@ The app must handle four distinct product states: a clean site (zero hauntings),
 
 **Spirit Sight View**:
 - The screenshot is displayed with no overlay elements
-- The sidebar shows: **"No hauntings detected"** in large text (`--text-2xl`)
-- A celebration message: *"This page passed all automated checks. Remember: automated checks find approximately 30–40% of WCAG issues. Manual testing is still required for full compliance."*
+- The sidebar shows: **"No hauntings found by automated checks; a manual review is still needed."**
+- Display `audit.automatedCoverageNote` verbatim below the message
 - The Haunting Score badge shows **"0/100"** in `--color-ecto` (not red)
 - No "Open Spirit Sight" toggle (there are no overlays to show)
 - Whisper Walk and Keyboard Walk are still available (they show the full AX tree and Tab sequence)
@@ -3159,7 +3220,7 @@ The app must handle four distinct product states: a clean site (zero hauntings),
 
 **Celebration Treatment**:
 - **No confetti or animation**; the app stays calm and professional
-- A single polite live region announcement: "Audit complete: no hauntings detected, Haunting Score 0"
+- A single polite live region announcement: "Audit complete: No hauntings found by automated checks; a manual review is still needed."
 - The message emphasizes that manual testing is still required
 
 ### Audit Error (Network, DNS, Page Load Failure)
@@ -3304,8 +3365,8 @@ Display network errors in an `aria-live="assertive"` region.
 
 ```typescript
 // Re-export core types
-export type { ClassifiedAudit, Haunting, HauntingType, HauntingSeverity } from '@the-unseen/core/classifier/types'
-export type { RawAudit, BoundingBox } from '@the-unseen/core/types'
+export type { ClassifiedAudit, Haunting, HauntingType, HauntingSeverity, WCAGCriterion, HauntingFix } from '@the-unseen/core'
+export type { RawAudit, BoundingBox, TabStep, TabWalkResult, AXNode } from '@the-unseen/core'
 
 // API response types
 export type AuditStatusResponse =
@@ -3388,8 +3449,6 @@ test('play button starts speech synthesis', () => {
 })
 
 test('respects sound disabled state', () => {
-  const mockAlert = vi.spyOn(window, 'alert').mockImplementation(() => {})
-  
   render(
     <SoundProvider value={{ soundEnabled: false }}>
       <WhisperWalk audit={mockAudit} />
@@ -3399,7 +3458,8 @@ test('respects sound disabled state', () => {
   const playButton = screen.getByLabelText(/play/i)
   fireEvent.click(playButton)
   
-  expect(mockAlert).toHaveBeenCalledWith(expect.stringContaining('Sound is disabled'))
+  // Assert UI feedback for disabled sound (e.g., alert role live region appears)
+  expect(screen.getByRole('alert')).toHaveTextContent('Sound is disabled')
 })
 ```
 
