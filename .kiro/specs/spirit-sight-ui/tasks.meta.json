@@ -1,0 +1,158 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Phase 1: Vertical slice (Landing → Séance → Spirit Sight → Daylight → Export)": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540592790
+      },
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540626118
+      },
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540631544
+      }
+    ],
+    "1.0 Scaffold `apps/web` with package.json, tsconfig, and build tools": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540600694
+      },
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540642648
+      },
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795541026423
+      }
+    ],
+    "1.1 Add `onProgress` callback to `auditAndClassify` (additive core change)": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540604241
+      }
+    ],
+    "1.2 Generate sample data with `build-samples.mjs` and serve sample endpoints": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540604425
+      }
+    ],
+    "1.3 Implement Fastify server with security, rate limit, and static serving": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540604588
+      }
+    ],
+    "1.4 Implement job queue, store, and worker with stage tracking": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540604750
+      }
+    ],
+    "1.5 Implement routing, app shell, and Landing view": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540604898
+      }
+    ],
+    "1.6 Implement Spirit Sight view with geometry, overlays, score, and fog toggle": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540605002
+      }
+    ],
+    "1.7 Implement Daylight mode with WCAG report and export": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540605108
+      }
+    ],
+    "1.8 Self-audit test on Landing, Spirit Sight, and Daylight views": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540605219
+      }
+    ],
+    "2.1 Implement Séance view with real stage polling": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540605317
+      }
+    ],
+    "2.2 Implement Whisper Walk with Web Speech and synchronized highlighting": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540605552
+      }
+    ],
+    "2.3 Implement Keyboard Walk with ghost animation and Lost Soul reveals": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540605982
+      }
+    ],
+    "3.1 Implement Haunting Detail Dialog": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540606658
+      }
+    ],
+    "3.2 Implement \"Takes Form\" celebration animation": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540607083
+      }
+    ],
+    "3.3 Implement optional ambient drone (Web Audio)": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540607446
+      }
+    ],
+    "3.4 Implement all product states": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540607531
+      }
+    ],
+    "3.5 Final self-audit on all routes": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795540607619
+      }
+    ],
+    "1.0a Add `buildSpeechTrack` to core classifier": [
+      {
+        "executionId": "9d486b68-cb10-4d67-a0c5-d42c75e05c27",
+        "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
+        "timestamp": 1795541046044
+      }
+    ]
+  }
+}

@@ -6,10 +6,10 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 
 ## Tasks
 
-- [ ] 1. Phase 1: Vertical slice (Landing → Séance → Spirit Sight → Daylight → Export)
+- [x] 1. Phase 1: Vertical slice (Landing → Séance → Spirit Sight → Daylight → Export)
   - The vertical slice delivers one complete user path: submit a Cursed Shop demo → real progress → score + overlays + WCAG report → export → self-audit proof. All subsequent features build on this foundation.
   
-  - [ ] 1.0 Scaffold `apps/web` with package.json, tsconfig, and build tools
+  - [x] 1.0 Scaffold `apps/web` with package.json, tsconfig, and build tools
     - _Requirements: Requirement 1 (Serve the Spirit Sight UI Application)_
     - _Design: Section "Overview", "API Layer Design", "SPA Architecture"_
     - **Acceptance Criteria:**
@@ -29,7 +29,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** `npm run typecheck -w apps/web` passes (with empty client/server stubs)
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm install` completes without peer-dependency warnings
   
-  - [ ] 1.0a Add `buildSpeechTrack` to core classifier
+  - [-] 1.0a Add `buildSpeechTrack` to core classifier
     - _Requirements: Requirement 13 (Implement Whisper Walk with Web Speech) — the Whisper Walk needs AX-tree speech in reading order_
     - _Design: Section "Data Contract: Core Types to UI Needs" row "Speech", decision I from prompt 38_
     - **Acceptance Criteria:**
@@ -46,7 +46,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run test -w @the-unseen/core` passes; `buildSpeechTrack` and `SpeechLine` are exported by name from `@the-unseen/core`
     - **Note in audit-engine spec:** Add this change to `.kiro/specs/audit-engine/tasks.md` Notes section under "Drift from spec": "Task 1.0a (spirit-sight-ui): Added `buildSpeechTrack(raw): SpeechLine[]` exported by name from `src/index.ts`. This builds the AX-tree speech track for the Whisper Walk. `SpeechLine` type also exported. No breaking change; additive only."
   
-  - [ ] 1.1 Add `onProgress` callback to `auditAndClassify` (additive core change)
+  - [~] 1.1 Add `onProgress` callback to `auditAndClassify` (additive core change)
     - _Requirements: Requirement 3 (Execute Audits with Progress Tracking)_
     - _Design: Section "Audit Job Queue > Job Worker" and Requirement 3 acceptance criteria 2–3_
     - **Acceptance Criteria:**
@@ -64,7 +64,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w @the-unseen/core`, `npm run test -w @the-unseen/core` pass
     - **Note in audit-engine spec:** Add this change to `.kiro/specs/audit-engine/tasks.md` Notes section under "Drift from spec": "Task 1.1 (spirit-sight-ui): Added optional `onProgress` callback to `auditAndClassify` for real-time stage reporting. Stages emitted: loading, tree, walking, classifying. No breaking change; additive only."
   
-  - [ ] 1.2 Generate sample data with `build-samples.mjs` and serve sample endpoints
+  - [~] 1.2 Generate sample data with `build-samples.mjs` and serve sample endpoints
     - _Requirements: Requirement 5 (Provide Pre-Audited Samples)_
     - _Design: Section "Sample Generation" and "API Layer Design > Route: GET /api/samples"_
     - **Acceptance Criteria:**
@@ -84,7 +84,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Run `npm run build-samples -w apps/web` manually; verify `samples/index.json`, `samples/cursed-shop-index.json`, `samples/cursed-shop-index.png`, and `samples/cursed-shop-index-thumb.jpg` are created; start the dev API server and verify `GET /api/samples` returns 3 samples with correct scores
     - **Checkpoint:** `npm run build-samples -w apps/web` completes without error; `samples/index.json` exists and contains 3 samples; `GET /api/samples` returns the cached metadata
   
-  - [ ] 1.3 Implement Fastify server with security, rate limit, and static serving
+  - [~] 1.3 Implement Fastify server with security, rate limit, and static serving
     - _Requirements: Requirement 1 (Serve the Spirit Sight UI Application), Requirement 2 (Accept Audit Requests)_
     - _Design: Section "API Layer Design > Fastify Server Factory", "Entry Point", and decision H from prompt 38_
     - **Acceptance Criteria:**
@@ -105,7 +105,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Vitest integration test that starts the server, calls `GET /api/health`, and asserts `200 { "status": "ok" }`; test that setting `UNSEEN_DEV_ALLOW_PRIVATE=1` and `NODE_ENV=production` throws the expected error
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run dev:api -w apps/web` starts without error; `GET /api/health` returns 200; `GET /cursed-shop/index.html` serves the Cursed Shop HTML
   
-  - [ ] 1.4 Implement job queue, store, and worker with stage tracking
+  - [~] 1.4 Implement job queue, store, and worker with stage tracking
     - _Requirements: Requirement 3 (Execute Audits with Progress Tracking), Requirement 4 (Return Audit Status and Results)_
     - _Design: Section "Audit Job Queue > Job Store", "Job Queue", and "Job Worker", decision N from prompt 38_
     - **Acceptance Criteria:**
@@ -126,7 +126,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Vitest integration test that: Starts the server, Posts a Cursed Shop demo URL (e.g. `http://localhost:3000/cursed-shop/index.html` once the server is running), Polls `GET /api/audit/:id` every 500ms, Verifies that stages progress in order: `queued → loading → tree → walking → classifying → done`, Verifies that the final result is a `ClassifiedAudit` with `score > 0`, Calls `GET /api/audit/:id/screenshot.png` and verifies a PNG is returned
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run test -w apps/web` passes; posting a demo URL and polling returns a done result within 20 seconds
   
-  - [ ] 1.5 Implement routing, app shell, and Landing view
+  - [~] 1.5 Implement routing, app shell, and Landing view
     - _Requirements: Requirement 6 (Display Landing Page), Requirement 22 (Ensure App Self-Accessibility)_
     - _Design: Section "Routing and URL Structure", "Landing View", "Route Focus and Keyboard Navigation", decision F from prompt 38_
     - **Acceptance Criteria:**
@@ -142,7 +142,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/`, Verifies the h1 "THE UNSEEN", Tabs through the skip link, sound toggle, keyboard help button, URL input, submit button, and sample cards, Verifies that the skip link is visible when focused, Clicks a sample card, Verifies navigation to `/sample/cursed-shop-index`
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/` without error; clicking a sample card navigates to `/sample/:id`; the skip link is visible on focus
   
-  - [ ] 1.6 Implement Spirit Sight view with geometry, overlays, score, and fog toggle
+  - [~] 1.6 Implement Spirit Sight view with geometry, overlays, score, and fog toggle
     - _Requirements: Requirement 8 (Render Spirit Sight View with Screenshot and Overlay), Requirement 9 (Render All Ten Haunting Visual Treatments), Requirement 10 (Make Haunting Overlays Keyboard-Accessible), Requirement 11 (Display Haunting List Sidebar), Requirement 12 (Animate Spirit Sight Fog Toggle)_
     - _Design: Section "Spirit Sight View", "Haunting Visual Treatments (All 10 Types)", "Haunting Sidebar", decision B/D/J from prompt 38_
     - **Acceptance Criteria:**
@@ -176,7 +176,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index`, Clicks "Open Spirit Sight", Waits for overlays to appear (wait for the SVG to have `display: block` and at least one `<button>` child), Tabs through overlay buttons, Verifies that each button has an accessible name matching the format, Clicks an overlay button, Verifies that the haunting detail dialog opens (detected by `role="dialog"` in the DOM)
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/sample/cursed-shop-index` without error; clicking "Open Spirit Sight" reveals overlays; tabbing through overlays works; clicking an overlay opens a dialog stub
   
-  - [ ] 1.7 Implement Daylight mode with WCAG report and export
+  - [~] 1.7 Implement Daylight mode with WCAG report and export
     - _Requirements: Requirement 16 (Render Daylight Mode Report), Requirement 17 (Export Audit Results)_
     - _Design: Section "Daylight Mode", "Summary", "Coverage Note", "Findings by WCAG Criterion", "Needs Manual Check", decision on clean-site copy from prompt 38_
     - **Acceptance Criteria:**
@@ -194,7 +194,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index/daylight`, Verifies the h1 "Daylight report: cursed-shop.the-unseen.app", Verifies that the first criterion row contains "1.1.1", Clicks "Export as Markdown", Verifies that a file download is triggered (by checking for a `download` attribute or a Blob URL), Downloads the file and verifies it contains the Haunting Score and criterion groups
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/sample/cursed-shop-index/daylight` without error; clicking "Export as Markdown" downloads a file; the file contains the Haunting Score and criterion groups
   
-  - [ ] 1.8 Self-audit test on Landing, Spirit Sight, and Daylight views
+  - [~] 1.8 Self-audit test on Landing, Spirit Sight, and Daylight views
     - _Requirements: Requirement 22 (Ensure App Self-Accessibility)_
     - _Design: Section "Accessibility Self-Audit", decision F from prompt 38_
     - **Acceptance Criteria:**
@@ -205,7 +205,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - [ ] 2. Phase 2: Séance, Whisper Walk, and Keyboard Walk
   - Phase 2 completes the three audit lenses: real-time progress (Séance), AX-tree speech (Whisper Walk), and Tab sequence animation (Keyboard Walk).
   
-  - [ ] 2.1 Implement Séance view with real stage polling
+  - [~] 2.1 Implement Séance view with real stage polling
     - _Requirements: Requirement 7 (Display Séance Loading Stage)_
     - _Design: Section "Routing and URL Structure" and "SeanceView"_
     - **Acceptance Criteria:**
@@ -220,7 +220,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Posts a demo URL, Navigates to `/seance/:id`, Waits for the Séance view to display "Loading page…", Waits for auto-navigation to `/audit/:id`, Verifies that the Spirit Sight view is rendered
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; posting a demo URL and navigating to `/seance/:id` shows real stage updates and auto-navigates to Spirit Sight when done
   
-  - [ ] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
+  - [~] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
     - _Requirements: Requirement 13 (Implement Whisper Walk with Web Speech)_
     - _Design: Section "WhisperWalk"_
     - **Acceptance Criteria:**
@@ -238,7 +238,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index/whisper`, Clicks Play, Waits for the first utterance to complete, Verifies that the caption updates, Clicks Pause, Clicks Step forward, Verifies that the caption advances
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; loading `/sample/cursed-shop-index/whisper` and clicking Play speaks the first utterance and highlights the corresponding element
   
-  - [ ] 2.3 Implement Keyboard Walk with ghost animation and Lost Soul reveals
+  - [~] 2.3 Implement Keyboard Walk with ghost animation and Lost Soul reveals
     - _Requirements: Requirement 14 (Animate Keyboard Walk)_
     - _Design: Section "KeyboardWalk"_
     - **Acceptance Criteria:**
@@ -258,7 +258,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - [ ] 3. Phase 3: Haunting Detail, Takes Form, Ambient Drone, and Product States
   - Phase 3 adds the haunting detail dialog, the "takes form" celebration animation, the optional ambient drone, all product states, and the final self-audit proof.
   
-  - [ ] 3.1 Implement Haunting Detail Dialog
+  - [~] 3.1 Implement Haunting Detail Dialog
     - _Requirements: Requirement 15 (Display Haunting Detail Dialog)_
     - _Design: Section "Haunting Detail Dialog"_
     - **Acceptance Criteria:**
@@ -277,7 +277,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index`, Clicks "Open Spirit Sight", Clicks an overlay button (the first Nameless Spirit), Verifies that the dialog opens (detected by `role="dialog"`), Verifies that the h2 contains "Nameless Spirit", Presses Escape, Verifies that the dialog closes and focus returns to the overlay button
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; clicking an overlay button opens the dialog; pressing Escape closes it and returns focus
   
-  - [ ] 3.2 Implement "Takes Form" celebration animation
+  - [~] 3.2 Implement "Takes Form" celebration animation
     - _Requirements: Requirement 18 (Animate "Takes Form" on Fix)_
     - _Design: Section "Product States > Fixed Haunting"_
     - **Acceptance Criteria:**
@@ -288,7 +288,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Manual test (no automated test for now): Load a sample with hauntings, Manually edit the sample JSON to remove one haunting, Re-audit, Verify that the fixed haunting animates from red to green
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; the "takes form" animation is implemented and can be triggered by editing a sample
   
-  - [ ] 3.3 Implement optional ambient drone (Web Audio)
+  - [~] 3.3 Implement optional ambient drone (Web Audio)
     - _Requirements: Requirement 19 (Play Ambient Drone)_
     - _Design: Section "Product States > Ambient Drone"_
     - **Acceptance Criteria:**
@@ -300,7 +300,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Manual test (no automated test for Web Audio): Enable sound, Open Spirit Sight, Verify that a low drone is audible (use headphones), Disable sound, Verify that the drone stops
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; the ambient drone plays when sound is enabled and Spirit Sight is open
   
-  - [ ] 3.4 Implement all product states
+  - [~] 3.4 Implement all product states
     - _Requirements: Requirement 20 (Handle All Product States)_
     - _Design: Section "Product States"_
     - **Acceptance Criteria:**
@@ -312,7 +312,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e tests for each state (already covered in previous tasks)
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; all product states are implemented and testable
   
-  - [ ] 3.5 Final self-audit on all routes
+  - [~] 3.5 Final self-audit on all routes
     - _Requirements: Requirement 22 (Ensure App Self-Accessibility)_
     - _Design: Section "Accessibility Self-Audit", decision F from prompt 38_
     - **Acceptance Criteria:**
@@ -330,7 +330,12 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - None yet
 
 **Drift from design**:
-- None yet
+- Task 1.0 (scaffold): `apps/web/tsconfig.server.json` adds `"rootDir": "src/server"` so `tsc -p tsconfig.server.json` emits `dist/server/main.js` (not `dist/server/src/server/main.js`), which the `start` script and the static-root path `../client` depend on. `tsconfig.client.json` `lib` adds `DOM.Iterable` alongside `ES2022` and `DOM`.
+- Task 1.0 (scaffold): additional devDependencies not named in the task AC but required to typecheck and run the scaffold: `@types/node`, `@types/react`, `@types/react-dom`, `jsdom` (vitest `environment: "jsdom"`), `pino-pretty` (dev logger transport in the design's `createServer`).
+- Task 1.0 (scaffold): version choices follow the design's stack (React 18, Vite 5, `@vitejs/plugin-react` 4) rather than the newest majors, and `vitest` is `^2.1.4` to match `packages/core`. `@playwright/test` is pinned to exact `1.65.1` to match `packages/core` and the Docker tag (requirement 24.2).
+- Task 1.0 (scaffold): `vitest.config.ts` adds `environmentMatchGlobs: [['src/server/**', 'node']]` so server tests run in Node while client tests use jsdom. `playwright.config.ts` also sets `testMatch`, `timeout: 240000`, `workers: 1`, `channel` (`UNSEEN_CHROMIUM_CHANNEL ?? 'chromium'`), `reuseExistingServer` and `webServer.timeout: 120000` per requirement 28.
+- Task 1.0 (scaffold): `tsconfig.json` overrides the base `module`/`moduleResolution` (`NodeNext`) with `ESNext`/`bundler` as specified. Server source must therefore write relative imports with explicit `.js` extensions (as in the design snippets) so the emitted ESM runs under Node.
+- Task 1.0 (scaffold): minimal stubs `src/client/main.tsx` (renders an `h1` in `main#main`) and `src/server/main.ts` (`export {}`) were added so both tsconfigs have inputs; tasks 1.3 and 1.5 replace them. Empty directories are kept with `.gitkeep` files (`src/client/{components,views,hooks,contexts}`, `src/server/{routes,jobs}`, `e2e`, `scripts`, `samples`).
 
 **Blocked tasks**:
 - None
