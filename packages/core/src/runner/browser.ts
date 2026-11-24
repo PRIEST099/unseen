@@ -25,8 +25,7 @@ export type LaunchArgs = {
 /**
  * Flags that stop WebRTC from sending UDP around the egress proxy (safe-fetch spec decision F).
  * `--disable-webrtc` is not a Chromium switch. `disable_non_proxied_udp` forces WebRTC traffic
- * through a proxy or nowhere. The old `--disable-features=WebRtcHideLocalIpsWithMdns` is dropped:
- * it exposed local IPs and would also be overwritten by the single `--disable-features` below.
+ * through a proxy or nowhere.
  */
 export const WEBRTC_LEAK_FLAGS: readonly string[] = [
   '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
@@ -34,17 +33,44 @@ export const WEBRTC_LEAK_FLAGS: readonly string[] = [
 ]
 
 /**
- * `--disable-quic`: QUIC is UDP and bypasses an HTTP proxy.
- * `--disable-features=DnsOverHttps`: Chromium's built-in resolver would skip the proxy's DNS pinning.
- * Chromium keeps only the last `--disable-features` switch, so this must stay the only one.
+ * Chromium honours only one `--disable-features` switch, so every feature we disable is listed here and
+ * `buildLaunchArgs` emits them as that single switch (extra values from `extraArgs` are merged in, not dropped).
+ * `DnsOverHttps`: Chromium's built-in resolver would skip the proxy's DNS pinning.
  */
-export const EGRESS_FLAGS: readonly string[] = ['--disable-quic', '--disable-features=DnsOverHttps']
+export const DISABLED_FEATURES: readonly string[] = ['DnsOverHttps', 'WebRtcHideLocalIpsWithMdns']
 
+/** `--disable-quic`: QUIC is UDP and bypasses an HTTP proxy. */
+export const EGRESS_FLAGS: readonly string[] = ['--disable-quic']
+
+/** Chromium's own background traffic (Google endpoints, updates, pings) would otherwise show up as blocked requests. */
+export const BACKGROUND_TRAFFIC_FLAGS: readonly string[] = [
+  '--disable-background-networking',
+  '--disable-component-update',
+  '--disable-domain-reliability',
+  '--no-pings',
+  '--disable-sync',
+  '--metrics-recording-only',
+]
+
+const DISABLE_FEATURES_PREFIX = '--disable-features='
+
+/** Split `--disable-features=` switches out of `args` and merge their values with `base` into one switch. */
+export function mergeDisableFeatures(args: readonly string[], base: readonly string[]): { rest: string[]; merged: string } {
+  const features = [...base]
+  const rest: string[] = []
+  for (const arg of args) {
+    if (arg.startsWith(DISABLE_FEATURES_PREFIX)) features.push(...arg.slice(DISABLE_FEATURES_PREFIX.length).split(','))
+    else rest.push(arg)
+  }
+  const unique = [...new Set(features.map((f) => f.trim()).filter((f) => f !== ''))]
+  return { rest, merged: `${DISABLE_FEATURES_PREFIX}${unique.join(',')}` }
+}
 export function buildLaunchArgs(opts: LaunchArgsOptions = {}): LaunchArgs {
   const raw = opts.channel ?? process.env.UNSEEN_CHROMIUM_CHANNEL ?? 'chromium'
+  const { rest, merged } = mergeDisableFeatures(opts.extraArgs ?? [], DISABLED_FEATURES)
   return {
     channel: raw === '' ? undefined : raw,
-    args: [...WEBRTC_LEAK_FLAGS, ...EGRESS_FLAGS, ...(opts.extraArgs ?? [])],
+    args: [...WEBRTC_LEAK_FLAGS, ...EGRESS_FLAGS, ...BACKGROUND_TRAFFIC_FLAGS, merged, ...rest],
     headless: opts.headless ?? true,
   }
 }

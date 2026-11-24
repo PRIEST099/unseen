@@ -551,3 +551,18 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-24 · UI build in the Kiro IDE · started (owner, Kiro IDE)
 - The owner drives `.kiro/specs/spirit-sight-ui/tasks.md` from the Kiro IDE (Specs panel, "Start task"). Claude Code verifies each task. Branch `kiro/ui-build-ide`.
+
+## 2026-11-24 · Run 42: safe-fetch hardening (owner account, `--agent unseen-builder`)
+- **Instruction:** `prompts/42-safe-fetch-hardening.md`, built from the product lead's verification.
+- **Kiro produced:**
+  1. The proxy now **refuses** allowed/synthetic authorities (403 plus a `blockedRequests` entry), with case and trailing-dot normalisation, so the WebSocket path to `audit-html.unseen.invalid` can no longer reach an unpinned dial.
+  2. try/catch around every `dial()`, including later Happy Eyeballs attempts.
+  3. One strict authority parser (port 1–65535) for CONNECT and absolute-form.
+  4. A single merged `--disable-features=DnsOverHttps,WebRtcHideLocalIpsWithMdns`.
+  5. Chromium background-networking switches, with a test that a simple page's audit has no `blockedRequests` for hosts it never referenced.
+- Kiro logged that two old assertions changed: the allow-listed-dial test was replaced by refusal tests, and the exact `--disable-features` value changed.
+- **Claude Code verification:**
+  - typecheck and lint: exit 0
+  - `vitest --run`: **626/626**
+  - `playwright test`: **103/103**
+  - Cursed Shop verify: VERIFY PASSED

@@ -16,8 +16,8 @@ export type DialFn = (target: DialTarget) => net.Socket
 export type ProxyOptions = {
   /** Every refusal and failure is appended here. */
   blockedLog: BlockedEntry[]
-  /** Exact `host:port` authorities that are dialled without DNS or range checks. */
-  allowAuthorities?: readonly string[]
+  /** host:port authorities that the page layer serves in-process (oute.fulfill). The proxy never dials them: it answers 403. */
+  servedAuthorities?: readonly string[]
   lookup?: LookupFn
   dial?: DialFn
   dnsTimeoutMs?: number
@@ -53,7 +53,15 @@ export function parseAuthority(text: string): Authority | null {
   const host = match[1] ?? match[2]
   const port = Number(match[3])
   if (host === undefined || host === '' || !Number.isInteger(port) || port < 1 || port > 65535) return null
-  return { host, port }
+  const name = normaliseHost(host)
+  if (name === '') return null
+  return { host: name, port }
+}
+
+/** Case and trailing-dot insensitive `host:port` key; unparsable text falls back to lowercase. */
+function canonicalAuthority(text: string): string {
+  const parsed = parseAuthority(text)
+  return parsed ? isoAuthority(parsed.host, parsed.port) : text.toLowerCase()
 }
 
 function defaultDial(target: DialTarget): net.Socket {
@@ -81,7 +89,7 @@ export class SsrfGuardProxy {
   private readonly server: http.Server
   private readonly sockets = new Set<Duplex>()
   private readonly cache = new Map<string, Promise<HostVerdict>>()
-  private readonly allowed: Set<string>
+  private readonly served: Set<string>
   private readonly dial: DialFn
   private readonly lookup: LookupFn | undefined
   private lookupsRunning = 0
@@ -89,7 +97,7 @@ export class SsrfGuardProxy {
   private stopped = false
 
   constructor(private readonly options: ProxyOptions) {
-    this.allowed = new Set((options.allowAuthorities ?? []).map((a) => a.toLowerCase()))
+    this.served = new Set((options.servedAuthorities ?? []).map(canonicalAuthority))
     this.dial = options.dial ?? defaultDial
     this.lookup = options.lookup
     this.server = http.createServer((req, res) => this.handleRequest(req, res))
@@ -199,8 +207,16 @@ export class SsrfGuardProxy {
           }
           return
         }
+        let socket: net.Socket
+        try {
+          socket = this.dial({ address: target.address, port, family: target.family })
+        } catch (err) {
+          lastError = err
+          this.log(`dial://${target.address}:${port}`, `dial threw: ${errorText(err)}`)
+          launch()
+          return
+        }
         pending++
-        const socket = this.dial({ address: target.address, port, family: target.family })
         this.track(socket)
         attempts.push(socket)
         socket.once('connect', () => {
@@ -229,10 +245,8 @@ export class SsrfGuardProxy {
 
   /** Resolve the target to a connected socket, or answer the client with the refusal. */
   private async openUpstream(host: string, port: number): Promise<{ socket: net.Socket } | { status: number; reason: string }> {
-    if (this.allowed.has(isoAuthority(host, port))) {
-      const family: 0 | 4 | 6 = net.isIPv6(host) ? 6 : net.isIPv4(host) ? 4 : 0
-      const literal = [{ address: host, family }]
-      return { socket: await this.connectAny(literal, port) }
+    if (this.served.has(isoAuthority(host, port))) {
+      return { status: 403, reason: 'synthetic origin is served in-process and is never dialled' }
     }
     const verdict = await this.validate(host)
     if (!verdict.ok) return { status: verdict.kind === 'blocked' ? 403 : 502, reason: verdict.reason }
@@ -349,8 +363,9 @@ function parseAbsoluteHttp(text: string): HttpTarget | null {
   } catch {
     return null
   }
-  if (url.protocol !== 'http:' || url.hostname === '') return null
-  return { url, host: normaliseHost(url.hostname), port: url.port === '' ? 80 : Number(url.port) }
+  if (url.protocol !== 'http:') return null
+  const authority = parseAuthority(`${url.hostname}:${url.port === '' ? 80 : url.port}`)
+  return authority ? { url, host: authority.host, port: authority.port } : null
 }
 
 function upstreamHeaders(headers: http.IncomingHttpHeaders, host: string): http.OutgoingHttpHeaders {

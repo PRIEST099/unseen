@@ -58,8 +58,8 @@ export type AuditHooks = {
   beforeClose?: (page: Page, raw: RawAudit) => Promise<void>
   /** Registers page routes that answer requests (auditHtml's synthetic origin). Runs before the policy is installed. */
   serve?: (page: Page) => Promise<void>
-  /** Egress proxy seams: a fake resolver and dialler for tests, and exact authorities that skip DNS and range checks. */
-  proxy?: { lookup?: LookupFn; dial?: DialFn; allowAuthorities?: readonly string[] }
+  /** Egress proxy seams: a fake resolver and dialler for tests, and authorities served in-process that the proxy refuses to dial. */
+  proxy?: { lookup?: LookupFn; dial?: DialFn; servedAuthorities?: readonly string[] }
 }
 
 /** Per-audit egress state: the proxy's address (absent in permissive mode) and the log it writes to. */
@@ -394,6 +394,6 @@ export async function auditHtml(html: string, options: AuditOptions = {}): Promi
   const policy = new OriginScopedPolicy(STABLE_HTML_ORIGIN, selectPolicy(options))
   return auditUrlWithHooks(`${STABLE_HTML_ORIGIN}/`, { ...options, safeFetchPolicy: policy }, {
     serve: (page) => serveHtml(page, html),
-    proxy: { allowAuthorities: [`${new URL(STABLE_HTML_ORIGIN).host}:80`] },
+    proxy: { servedAuthorities: [`${new URL(STABLE_HTML_ORIGIN).host}:80`] },
   })
 }

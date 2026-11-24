@@ -47,6 +47,27 @@ test('Chromium launch args disable WebRTC leaks, QUIC and DNS-over-HTTPS', () =>
   const { args } = buildLaunchArgs()
   for (const flag of WEBRTC_LEAK_FLAGS) expect(args).toContain(flag)
   expect(args).toContain('--disable-quic')
-  expect(args).toContain('--disable-features=DnsOverHttps')
+  expect(args).toContain('--disable-features=DnsOverHttps,WebRtcHideLocalIpsWithMdns')
   expect(args).not.toContain('--disable-webrtc')
+})
+
+test('a WebSocket to the synthetic audit origin (case and trailing-dot variants) is refused, not dialled', async () => {
+  const html = `<!doctype html><html lang="en"><head><title>t</title></head><body><main><h1>ws</h1></main>
+<script>for (const h of ['audit-html.unseen.invalid', 'AUDIT-HTML.UNSEEN.INVALID', 'audit-html.unseen.invalid.']) {
+  try { const ws = new WebSocket('ws://' + h + '/'); ws.onerror = () => {} } catch (e) {}
+}</script></body></html>`
+
+  const raw = await auditHtml(html)
+
+  const refused = raw.blockedRequests.filter((b) => b.url.startsWith('connect://audit-html.unseen.invalid'))
+  expect(refused.length).toBeGreaterThan(0)
+  for (const entry of refused) expect(entry.reason).toBe('synthetic origin is served in-process and is never dialled')
+})
+
+test('an audit of a simple page has no blockedRequests for hosts the page never referenced', async () => {
+  const html = '<!doctype html><html lang="en"><head><title>t</title></head><body><main><h1>quiet</h1><p>text</p></main></body></html>'
+
+  const raw = await auditHtml(html)
+
+  expect(raw.blockedRequests).toEqual([])
 })

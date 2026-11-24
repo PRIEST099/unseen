@@ -457,3 +457,9 @@ These tasks verify the fix works correctly (exploratory tests now fail, proving 
   - Document that egress firewall is defense-in-depth, NOT a replacement for application-level SSRF guard
   - _Requirements: 2.39, 2.40 from bugfix.md_
   - _Defense: Clauses 2.39–2.40 from design.md Expected Behavior section_
+
+### Notes: run 37 follow-ups (deviations)
+
+- Proxy option `allowAuthorities` (dial without DNS or range checks) is replaced by `servedAuthorities` (the proxy answers 403 and never dials). Reason: `route.fulfill` already serves the synthetic origin, and WebSockets reached the unpinned dial path. The existing proxy test "dials an allow-listed authority without DNS or range checks" asserted the removed behaviour and was replaced by refusal tests. Its neighbouring assertion (a different port is still 403) is kept in the new tests.
+- `--disable-features` is now one merged switch: `DnsOverHttps,WebRtcHideLocalIpsWithMdns` (plus caller extras). The two tests that asserted the old exact value `--disable-features=DnsOverHttps` were updated to the merged value. The earlier note that WebRtcHideLocalIpsWithMdns was dropped is superseded on the product lead's instruction.
+- All six background-traffic switches exist in Chromium and were added. The "no unreferenced blockedRequests" test also passes without them on this machine (headless chromium channel), so it guards against regression rather than reproducing the noise here.
