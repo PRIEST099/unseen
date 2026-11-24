@@ -9,6 +9,7 @@ import { cachedAudit, hostnameOf, loadAudit } from '../utils/audit-source'
 import type { AuditLoadResult, AuditSource } from '../utils/audit-source'
 import { LensPlaceholderPanel } from './LensPlaceholderPanel'
 import { NotFoundView } from './NotFoundView'
+import { WhisperWalk } from './WhisperWalk'
 
 type AuditResultViewProps = {
   source: 'job' | 'sample'
@@ -126,6 +127,8 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
         </>
       ) : lens === 'daylight' ? (
         <DaylightReport audit={result.audit} hostname={hostname} basePath={basePath} />
+      ) : lens === 'whisper' ? (
+        <WhisperWalk source={source} audit={result.audit} hostname={hostname} basePath={basePath} />
       ) : (
         <LensPlaceholderPanel lens={lens} hostname={hostname} basePath={basePath} />
       )}

@@ -220,7 +220,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Posts a demo URL, Navigates to `/seance/:id`, Waits for the Séance view to display "Loading page…", Waits for auto-navigation to `/audit/:id`, Verifies that the Spirit Sight view is rendered
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; posting a demo URL and navigating to `/seance/:id` shows real stage updates and auto-navigates to Spirit Sight when done
   
-  - [~] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
+  - [x] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
     - _Requirements: Requirement 13 (Implement Whisper Walk with Web Speech)_
     - _Design: Section "WhisperWalk"_
     - **Acceptance Criteria:**

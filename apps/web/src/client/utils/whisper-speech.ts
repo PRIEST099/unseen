@@ -16,11 +16,14 @@ export function pickSpokenHaunting(ordered: readonly Haunting[]): Haunting | und
   )
 }
 
+/** True when the browser can speak (Web Speech synthesis and its utterance class are present). */
+export function isSpeechAvailable(): boolean {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance === 'function'
+}
+
 /** Speaks `text` in a whisper. Returns false when the browser has no speech synthesis. */
 export function speakWhisper(text: string): boolean {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window) || typeof SpeechSynthesisUtterance !== 'function') {
-    return false
-  }
+  if (!isSpeechAvailable()) return false
   const utterance = new SpeechSynthesisUtterance(text)
   utterance.pitch = WHISPER_PITCH
   utterance.rate = WHISPER_RATE
