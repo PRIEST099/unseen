@@ -262,6 +262,8 @@ test('finding 38: blockedRequests records policy reasons and policy-error, not C
   try {
     const a = await auditUrl(`${server.baseUrl}/`, {
       safeFetchPolicy: {
+        // A local test server is reached directly: the stub policy opts out of the egress proxy.
+        mode: 'permissive',
         shouldBlock: async (url) => {
           if (url.endsWith('/boom.png')) throw new Error('policy exploded')
           if (url.endsWith('/blocked.png')) return { block: true, reason: 'test-reason' }

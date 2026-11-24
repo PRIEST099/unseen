@@ -6,6 +6,29 @@ This task list implements a complete replacement of `packages/core/src/runner/sa
 
 ## Notes
 
+**Implementation record (run 13b).** Deviations from the spec text, all decided against `security.md` and prompt 26:
+
+- **Phase 1 tests assert the correct behaviour, not the wrong one.** The run prompt required exploratory tests to fail on the old code, so no assertions were flipped in task 16. They live in `packages/core/src/runner/safe-fetch-exploratory.test.ts` (not `safe-fetch.test.ts`, because they mock `dns/promises` module-wide). The mock covers both the old `resolve4/resolve6` seam and the new `lookup` seam. Failure output on the pre-fix code (19 of 19 failed):
+  - 1.1/1.2 `expected false to be true` (ENODATA, ENOTFOUND allowed), 1.3 `expected false to be true` (empty answer allowed).
+  - 2.1-2.4 `expected 'invalid URL format' to match /^blocked IP address \(/` (IPv6 hosts blocked only by accident of a parse failure).
+  - 3.1-3.5 `expected false to be true` (192.0.0.8, 198.18.0.1, 224.0.0.251, 240.0.0.1, 255.255.255.255 allowed); 3.6 `expected 'invalid URL format' to match`.
+  - 4.1 `Failed to load url ./ssrf-guard-proxy.js` (nothing pins DNS).
+  - 7.1-7.5 `expected 'blocked IP address' to match /^blocked IP address \(/`. The addresses were already blocked, so these are regression guards that only failed on the reason format.
+  - `tests/safe-fetch-websocket.int.spec.ts` on the old code: `Expected {url: "connect://127.0.0.1:58994", reason: "blocked IP address (loopback)"}, Received array: []`, and the launch-args test `Expected value: "--disable-quic"`.
+  - `tests/safe-fetch-loopback.int.spec.ts` PASSED on the old code (the old route check already blocked all four URLs). It stays as the required regression test; it is not exploratory evidence.
+- **Task 5** (redirect exploratory) stays deferred as written; redirect coverage is task 18.
+- **Fake public address.** Tests use `93.184.216.34` instead of `203.0.113.10`, because the classifier blocks TEST-NET-3 (design 2.13).
+- **ipaddr.js quirk.** `ipaddr.parse('::192.168.1.1')` returns an IPv4-mapped address, so a real IPv4-compatible address such as `::8.8.8.8` would be read as public 8.8.8.8. `parseIpLiteral` first rewrites IPv6 text to the WHATWG hex form. `::/96` is blocked whole; `::ffff:0:0/96` and `64:ff9b::/96` are judged by the IPv4 address they carry; `2002::/16` is blocked whole.
+- **IPv6 is an allow-list** (inside `2000::/3`, `range() === 'unicast'`, not in the named deny table), per review item 9.
+- **WebRTC flags.** `--disable-features=WebRtcHideLocalIpsWithMdns` was removed. Chromium keeps one `--disable-features` switch, and the spec requires `--disable-features=DnsOverHttps`. `WEBRTC_LEAK_FLAGS` is now the two `*-webrtc-ip-handling-policy=disable_non_proxied_udp` flags; `EGRESS_FLAGS` holds `--disable-quic` and `--disable-features=DnsOverHttps`.
+- **`installSafeFetchPolicy` uses `route.fallback()`** instead of `route.continue()`, so auditHtml's `route.fulfill` handler (registered earlier) answers the synthetic origin after the policy has counted and allowed the request.
+- **Main-frame refusal.** The proxy answers a refused plain-HTTP request with 403 `text/plain`, so Chromium reports a non-HTML navigation. `audit.ts` turns a failed navigation (`NonHtmlContentError` or `net::ERR_*`) into `SsrfBlockedError` carrying the proxy's refusal reason, picking the first logged entry whose reason contains "blocked". Chromium also makes background requests (for example `www.google.com:443`) through the proxy; with a fake resolver they are logged as DNS failures in `blockedRequests`.
+- **auditHtml.** `STABLE_HTML_ORIGIN` is now `http://audit-html.unseen.invalid` (was `http://127.0.0.1:0`); `auditedUrl` is `<origin>/`. The audit-engine Req 13 text was already amended. The page is no longer a secure context (the old 127.0.0.1 origin was).
+- **Test changes forced by the fix.** `audit.int.spec.ts` "failing listen": auditHtml has no local server, so the test now fails the proxy's `listen` and expects `egress proxy failed to start: listen EMFILE`. `audit-lifecycle.int.spec.ts` finding 38: the stub policy has no mode (restrictive by decision B) and reaches a local server, so it now sets `mode: 'permissive'`. `safe-fetch-dns.test.ts` (mocked `resolve4/resolve6`) was deleted; `safe-fetch.test.ts`, `dns-resolver.test.ts` and the preservation tests replace it.
+- **Test seams.** `AuditHooks` gained `serve` (routes registered before the policy) and `proxy` (`lookup`, `dial`, `allowAuthorities`). `RestrictiveSafeFetchPolicy` takes `{ lookup }`.
+- **New files:** `runner/ip-classifier.ts`, `dns-resolver.ts`, `host-validator.ts`, `ssrf-guard-proxy.ts`, each with `*.test.ts`; `tests/arbitraries/ip-addresses.ts`; `apps/web/DEPLOY.md`.
+- Task 14's old-style "Remove ... `ipv4ToNumber()` ..." is done: `safe-fetch.ts` holds only the two policies and `installSafeFetchPolicy`.
+
 **Execution Order:** Bugfix tasks run as a linear sequence. While some tasks within a phase could theoretically run in parallel (e.g., multiple exploratory tests), they are ordered for clarity and to minimize test file conflicts.
 
 **auditHtml Change:** This spec amends audit-engine Req 13 (`.kiro/specs/audit-engine/requirements.md`). The old spec required auditHtml to serve HTML from a local 127.0.0.1 HTTP server, which would be blocked by the proxy once loopback bypasses are removed. The new requirement: serve HTML with `page.route(...).fulfill()` on a synthetic origin `http://audit-html.unseen.invalid/`. OriginScopedPolicy allows exactly that synthetic origin through `allowAuthorities` in the proxy options. See finding 12 and 20 in `docs/brief/review-notes/safe-fetch-spec-review-1.md`.
@@ -36,7 +59,7 @@ This task list implements a complete replacement of `packages/core/src/runner/sa
 
 These tests run BEFORE the fix is implemented. They demonstrate that specific vulnerabilities exist in the current code by asserting the WRONG (vulnerable) behavior on concrete failing cases. All tests in this phase are expected to pass on unfixed code, confirming the bugs. After the fix (Phase 3 task 16), the same tests with flipped assertions will verify correct behavior.
 
-### - [ ] 1. Write exploratory tests for DNS error fail-open vulnerabilities
+### - [x] 1. Write exploratory tests for DNS error fail-open vulnerabilities
 
   - **Property 1: Bug Condition** - DNS Resolution Failures Allow Private Access
   - **CRITICAL**: This test MUST PASS on unfixed code with the WRONG (vulnerable) assertions
@@ -51,7 +74,7 @@ These tests run BEFORE the fix is implemented. They demonstrate that specific vu
   - Run typecheck, vitest
   - _Requirements: 1.1, 1.2, 1.3, 1.4 from bugfix.md_
 
-### - [ ] 2. Write exploratory tests for IPv6 parsing vulnerabilities
+### - [x] 2. Write exploratory tests for IPv6 parsing vulnerabilities
 
   - **Property 1: Bug Condition** - IPv6 Addresses Bypass IP Blocking
   - **CRITICAL**: This test MUST PASS on unfixed code with the WRONG (vulnerable) assertions
@@ -67,7 +90,7 @@ These tests run BEFORE the fix is implemented. They demonstrate that specific vu
   - Run typecheck, vitest
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5 from bugfix.md_
 
-### - [ ] 3. Write exploratory tests for missing blocked IP ranges
+### - [x] 3. Write exploratory tests for missing blocked IP ranges
 
   - **Property 1: Bug Condition** - Reserved IP Ranges Not Blocked
   - **CRITICAL**: This test MUST PASS on unfixed code with the WRONG (vulnerable) assertions
@@ -85,7 +108,7 @@ These tests run BEFORE the fix is implemented. They demonstrate that specific vu
   - Run typecheck, vitest
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7 from bugfix.md_
 
-### - [ ] 4. Write exploratory test for DNS rebinding (TOCTOU)
+### - [x] 4. Write exploratory test for DNS rebinding (TOCTOU)
 
   - **Property 1: Bug Condition** - DNS Rebinding Bypasses IP Checks
   - **CRITICAL**: This test MUST PASS on unfixed code with the WRONG (vulnerable) assertions
@@ -101,13 +124,13 @@ These tests run BEFORE the fix is implemented. They demonstrate that specific vu
   - Run typecheck, vitest
   - _Requirements: 4.1, 4.2 from bugfix.md_
 
-### - [ ] 5. Mark redirect test as deferred (pre-check blocks before redirect is reached)
+### - [x] 5. Mark redirect test as deferred (pre-check blocks before redirect is reached)
 
   - **NOTE**: The restrictive pre-check in audit.ts blocks `http://127.0.0.1:<port>/` before any browser starts, so the redirect is never served on unfixed code
   - Defer this exploratory test; redirect validation will be tested in Phase 3 task 18 using fake resolver/dial seams that map `public.test` → local server
   - _Requirements: 5.1, 5.2 from bugfix.md_
 
-### - [ ] 6. Write exploratory test for WebSocket bypass
+### - [x] 6. Write exploratory test for WebSocket bypass
 
   - **Property 1: Bug Condition** - WebSocket Connections to Private IPs Not Blocked
   - **CRITICAL**: This test MUST PASS on unfixed code with the WRONG (vulnerable) assertions
@@ -123,7 +146,7 @@ These tests run BEFORE the fix is implemented. They demonstrate that specific vu
   - Run typecheck, vitest, playwright
   - _Requirements: 6.1, 6.2 from bugfix.md_
 
-### - [ ] 7. Write exploratory tests for IP encoding normalization gaps
+### - [x] 7. Write exploratory tests for IP encoding normalization gaps
 
   - **Property 1: Bug Condition** - Non-Standard IP Encodings Bypass Checks
   - **CRITICAL**: This test MUST PASS on unfixed code with the WRONG (vulnerable) assertions
@@ -144,14 +167,14 @@ These tests run BEFORE the fix is implemented. They demonstrate that specific vu
 
 These tasks implement the in-process CONNECT proxy architecture with canonical IP classification, DNS pinning, and complete blocked range coverage. After this phase, all exploratory tests from Phase 1 should fail (the bugs are fixed).
 
-### - [ ] 8. Add ipaddr.js dependency to packages/core
+### - [x] 8. Add ipaddr.js dependency to packages/core
 
   - Add `ipaddr.js` ^2.2.0 to `packages/core/package.json` dependencies
   - From the repo root, run `npm install ipaddr.js@^2.2.0 -w @the-unseen/core`
   - Verify `ipaddr.js` is available: create a minimal test that imports `ipaddr.parse()` and asserts it works
   - _Requirements: Design section "Dependencies to Add"_
 
-### - [ ] 9. Implement canonical IP classification module with complete blocked ranges
+### - [x] 9. Implement canonical IP classification module with complete blocked ranges
 
   - Create `packages/core/src/runner/ip-classifier.ts` with:
     - `classifyAddress(canonical: ipaddr.IPv4 | ipaddr.IPv6): { blocked: boolean; reason: string }`
@@ -171,7 +194,7 @@ These tasks implement the in-process CONNECT proxy architecture with canonical I
   - _Bug_Condition: Categories 2 and 3 from design.md Bug Condition section_
   - _Expected_Behavior: Clauses 2.6–2.13 from design.md Expected Behavior section_
 
-### - [ ] 10. Implement fail-closed DNS resolution module
+### - [x] 10. Implement fail-closed DNS resolution module
 
   - Create `packages/core/src/runner/dns-resolver.ts` with:
     - `resolveHostname(hostname: string): Promise<ResolvedAddress[]>`
@@ -191,7 +214,7 @@ These tasks implement the in-process CONNECT proxy architecture with canonical I
   - _Bug_Condition: Category 1 from design.md Bug Condition section_
   - _Expected_Behavior: Clauses 2.1–2.5 from design.md Expected Behavior section_
 
-### - [ ] 11. Implement in-process HTTP(S) CONNECT proxy server
+### - [x] 11. Implement in-process HTTP(S) CONNECT proxy server
 
   - Create `packages/core/src/runner/ssrf-guard-proxy.ts` with:
     - `SsrfGuardProxy` class with methods: `start(): Promise<number>`, `stop(): Promise<void>`, `handleConnect()`, `handleRequest()`
@@ -242,7 +265,7 @@ These tasks implement the in-process CONNECT proxy architecture with canonical I
   - _Bug_Condition: Category 4 from design.md Bug Condition section_
   - _Expected_Behavior: Clauses 2.14–2.18a from design.md Expected Behavior section_
 
-### - [ ] 12. Integrate proxy with PageLoader context creation and audit lifecycle
+### - [x] 12. Integrate proxy with PageLoader context creation and audit lifecycle
 
   - Modify `packages/core/src/runner/browser.ts`:
     - `PageLoader.createContext(browser, options, proxy?: { server: string; bypass: '<-loopback>' })` forwards `proxy` to `browser.newContext({ proxy })`
@@ -272,7 +295,7 @@ These tasks implement the in-process CONNECT proxy architecture with canonical I
   - _Requirements: 2.19, 2.20, 2.21, 2.36, 2.37, 2.38 from bugfix.md_
   - _Integration: audit-guard.ts and resource-limits.ts from design.md section 2.19–2.23_
 
-### - [ ] 13. Update Chromium launch args for DNS and QUIC
+### - [x] 13. Update Chromium launch args for DNS and QUIC
 
   - Modify `packages/core/src/runner/browser.ts`:
     - In `buildLaunchArgs()`, add `--disable-quic` and `--disable-features=DnsOverHttps` to the args array
@@ -284,7 +307,7 @@ These tasks implement the in-process CONNECT proxy architecture with canonical I
   - _Bug_Condition: Category 6 from design.md Bug Condition section (WebRTC)_
   - _Expected_Behavior: Clause 2.29 from design.md Expected Behavior section_
 
-### - [ ] 14. Rewrite RestrictiveSafeFetchPolicy and PermissiveSafeFetchPolicy
+### - [x] 14. Rewrite RestrictiveSafeFetchPolicy and PermissiveSafeFetchPolicy
 
   - Modify `packages/core/src/runner/safe-fetch.ts`:
     - Add `readonly mode?: 'restrictive' | 'permissive'` to `SafeFetchPolicy` interface
@@ -321,7 +344,7 @@ These tasks implement the in-process CONNECT proxy architecture with canonical I
   - Run typecheck, vitest, playwright
   - _Requirements: 2.34, 2.35, 2.36, 2.37, 2.38, 3.1, 3.2, 3.3, 3.4 from bugfix.md_
   - _Preservation: Clauses 3.1–3.4 from design.md Preservation section_
-### - [ ] 15. Implement blocked request recording in RawAudit
+### - [x] 15. Implement blocked request recording in RawAudit
 
   - Modify `packages/core/src/audit.ts`:
     - During audit assembly, merge `proxy.blockedLog` (array of `{ url: string, reason: string }`) into `RawAudit.blockedRequests`
@@ -341,7 +364,7 @@ These tasks implement the in-process CONNECT proxy architecture with canonical I
 
 These tasks verify the fix works correctly (exploratory tests now fail, proving bugs are fixed) and that legitimate requests still work (preservation tests).
 
-### - [ ] 16. Verify exploratory tests now fail (bugs are fixed)
+### - [x] 16. Verify exploratory tests now fail (bugs are fixed)
 
   - **Property 1: Expected Behavior** - All SSRF Vulnerabilities Blocked
   - **IMPORTANT**: Re-run the SAME tests from Phase 1 (tasks 1-7) with flipped assertions - do NOT write new tests
@@ -358,7 +381,7 @@ These tasks verify the fix works correctly (exploratory tests now fail, proving 
   - Run typecheck, vitest, playwright
   - _Requirements: Expected Behavior Properties from design.md Property 1_
 
-### - [ ] 17. Write property-based preservation tests for legitimate public requests
+### - [x] 17. Write property-based preservation tests for legitimate public requests
 
   - **Property 2: Preservation** - Public URLs Continue to Work
   - **IMPORTANT**: Use `await fc.assert(fc.asyncProperty(...), { numRuns: 200 })`
@@ -383,7 +406,7 @@ These tasks verify the fix works correctly (exploratory tests now fail, proving 
   - _Requirements: Property 2 from design.md Correctness Properties_
   - _Preservation: Clauses 3.1–3.14 from design.md Preservation section_
 
-### - [ ] 18. Write integration test for HTTP redirect validation
+### - [x] 18. Write integration test for HTTP redirect validation
 
   - Create `packages/core/tests/safe-fetch-redirect.int.spec.ts`
   - Use fake resolver/dial seams:
@@ -398,7 +421,7 @@ These tasks verify the fix works correctly (exploratory tests now fail, proving 
   - _Requirements: 2.24, 2.25, 2.26, 2.26a from bugfix.md_
   - _Expected_Behavior: Clauses 2.24–2.26a from design.md Expected Behavior section_
 
-### - [ ] 19. Write integration test for WebSocket blocking
+### - [x] 19. Write integration test for WebSocket blocking
 
   - Create `packages/core/tests/safe-fetch-websocket.int.spec.ts`
   - Create an HTML file or serve via auditHtml that opens `new WebSocket("ws://127.0.0.1:8080")` to a closed port
@@ -411,7 +434,7 @@ These tasks verify the fix works correctly (exploratory tests now fail, proving 
   - _Requirements: 2.27, 2.28, 2.29 from bugfix.md_
   - _Expected_Behavior: Clauses 2.27–2.29 from design.md Expected Behavior section_
 
-### - [ ] 20. Run full packages/core test suite and verify existing tests pass
+### - [x] 20. Run full packages/core test suite and verify existing tests pass
 
   - In packages/core run `npm run typecheck`, then `npx vitest --run`, then the integration suite: `$env:UNSEEN_CHROMIUM_CHANNEL='chromium'; npx playwright test` on Windows PowerShell, or `UNSEEN_CHROMIUM_CHANNEL=chromium npx playwright test` in bash or the Playwright Docker image. All three must pass
   - Assert all existing tests that do NOT specifically probe safe-fetch internals continue to pass
@@ -423,7 +446,7 @@ These tasks verify the fix works correctly (exploratory tests now fail, proving 
   - _Requirements: 3.12, 3.13, 3.14 from bugfix.md_
   - _Preservation: Clause 3.12–3.14 from design.md Preservation section_
 
-### - [ ] 21. Document egress firewall rules for defense-in-depth
+### - [x] 21. Document egress firewall rules for defense-in-depth
 
   - Create `apps/web/DEPLOY.md` with:
     - Egress firewall configuration for Docker (iptables rules)

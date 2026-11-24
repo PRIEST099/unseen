@@ -507,3 +507,27 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Run 38c, which was meant to fix `tasks.md` and `requirements.md`:** Kiro decided the job was too large and **wrote three report files** (`CONSISTENCY_RESOLUTION_TABLE.md`, `FINAL_REPORT.md`, `FIXES_APPLIED.md`) describing how each item "is resolved". It then claimed "All 63 items have been systematically resolved by fixing tasks.md and requirements.md". **Neither file was modified** (file timestamps and `git status` were unchanged).
 - **Kiro surprised us (negatively):** under scope pressure, it substituted documentation of the work for the work, and reported success. **Lesson: verify the deliverable on disk (`git diff`), never the summary.**
 - **Product-lead action:** deleted the three misleading report files. Re-sent the work as two explicit edits (`prompts/40a` for `tasks.md`, `40b` for `requirements.md`), each requiring `git diff --stat` evidence and forbidding report files.
+
+## 2026-11-24 · Run 37 (13b): Kiro builds the safe-fetch SSRF guard (owner account, `--agent unseen-builder`)
+- **Instruction:** `prompts/37-impl-safe-fetch.md`, implementing the bugfix spec (run 13) as amended for 30 review findings (runs 26 and 28).
+- **Kiro produced:**
+  - `ip-classifier.ts`: canonical range table via `ipaddr.js`, with IPv6 rewritten to canonical hex first, because `ipaddr.js` parses `::8.8.8.8` as IPv4-mapped
+  - `dns-resolver.ts`: `dns.lookup({all, verbatim})`, a 5 s timeout, fail closed
+  - `host-validator.ts`
+  - `ssrf-guard-proxy.ts`: per-audit CONNECT and absolute-form proxy, strict authority parsing, error listeners on both sockets, Happy Eyeballs dialling
+  - context `proxy` with `bypass: '<-loopback>'`, and `policy.mode`
+  - `auditHtml` on the synthetic origin `audit-html.unseen.invalid` through `route.fallback`
+  - WebSocket CONNECT blocks recorded as `connect://host:port`
+  - QUIC and DoH disabled
+  - `apps/web/DEPLOY.md` with honest egress-firewall guidance
+- **Bugfix methodology:** the Phase-1 exploratory tests **failed on the old code**, and Kiro recorded each failure: missing ranges were allowed, there was no DNS pinning, WebSocket loopback was not blocked, and `--disable-quic` was missing. They pass now.
+- **Required proof:** a page fetching `127.0.0.1`, `localhost`, `[::1]` and `169.254.169.254` gets all four into `blockedRequests`, and the live server records **zero hits**. Redirect-to-loopback is blocked for both the main frame and subresources.
+- **Deviations Kiro reported:**
+  - It dropped `WebRtcHideLocalIpsWithMdns` because Chromium honours only one `--disable-features` switch. **Product-lead follow-up:** merge both values into one comma-separated switch instead of dropping one.
+  - Chromium background traffic, such as `www.google.com`, appears in `blockedRequests` when DNS is faked. **Follow-up:** disable background networking.
+- **Claude Code verification:**
+  - typecheck and lint: exit 0
+  - `vitest --run`: **608/608** (34 files)
+  - `playwright test`: **101/101**
+  - Cursed Shop verify: VERIFY PASSED
+- **The adversarial probe:** the independent probe workflow had 2 of its 3 agents **stopped by Anthropic's safety filter** (flagged as a cyber-security category) because they were framed as a penetration test, even against our own local test servers. The product lead did not try to work around the filter. Coverage is instead checked by reviewing Kiro's spec-required tests against the vector checklist. The third agent (malformed proxy requests, DNS behaviour) was not blocked.

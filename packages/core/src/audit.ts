@@ -1,7 +1,10 @@
-import { createServer } from 'node:http'
 import type { Browser, BrowserContext, Page } from 'playwright'
 import type { AuditOptions, AXNode, CollectionError, DomNodeInfo, RawAudit, SafeFetchPolicy, TabWalkResult } from './types.js'
-import { AuditTimeoutError, HtmlSizeError, SsrfBlockedError } from './types.js'
+import { AuditTimeoutError, HtmlSizeError, NonHtmlContentError, SsrfBlockedError } from './types.js'
+import { SsrfGuardProxy } from './runner/ssrf-guard-proxy.js'
+import type { BlockedEntry, DialFn } from './runner/ssrf-guard-proxy.js'
+import type { LookupFn } from './runner/dns-resolver.js'
+import type { ContextProxy } from './runner/browser.js'
 import { AuditGuard } from './audit-guard.js'
 import { classify } from './classifier/classify.js'
 import type { ClassifiedAudit } from './classifier/types.js'
@@ -53,6 +56,39 @@ export type AuditHooks = {
   walk?: (page: Page) => Promise<{ walk: TabWalkResult; errors: CollectionError[] }>
   /** Awaited after the audit is assembled and before the context closes, with the page still open. */
   beforeClose?: (page: Page, raw: RawAudit) => Promise<void>
+  /** Registers page routes that answer requests (auditHtml's synthetic origin). Runs before the policy is installed. */
+  serve?: (page: Page) => Promise<void>
+  /** Egress proxy seams: a fake resolver and dialler for tests, and exact authorities that skip DNS and range checks. */
+  proxy?: { lookup?: LookupFn; dial?: DialFn; allowAuthorities?: readonly string[] }
+}
+
+/** Per-audit egress state: the proxy's address (absent in permissive mode) and the log it writes to. */
+type Egress = { context: ContextProxy | undefined; blockedLog: BlockedEntry[] }
+
+/** A navigation that failed while the proxy was refusing requests is reported as the SSRF block it was. */
+function attributeProxyBlock(err: unknown, url: string, log: readonly BlockedEntry[]): unknown {
+  // Background browser traffic can fail DNS too; the refusal that caused the failed navigation is the one to report.
+  const first = log.find((e) => e.reason.includes('blocked')) ?? log[0]
+  if (!first) return err
+  const navigationFailure = err instanceof Error && /net::ERR_/.test(err.message)
+  return err instanceof NonHtmlContentError || navigationFailure ? new SsrfBlockedError(url, first.reason) : err
+}
+
+/** Start the per-audit proxy unless the policy is permissive. No mode means restrictive. */
+async function startEgress(
+  policy: SafeFetchPolicy,
+  hooks: AuditHooks
+): Promise<{ egress: Egress; proxy: SsrfGuardProxy | undefined }> {
+  const blockedLog: BlockedEntry[] = []
+  if (policy.mode === 'permissive') return { egress: { context: undefined, blockedLog }, proxy: undefined }
+  const proxy = new SsrfGuardProxy({ blockedLog, ...hooks.proxy })
+  try {
+    const port = await proxy.start()
+    return { egress: { context: { server: `http://127.0.0.1:${port}`, bypass: '<-loopback>' }, blockedLog }, proxy }
+  } catch (err) {
+    await proxy.stop().catch(() => undefined)
+    throw new Error(`egress proxy failed to start: ${err instanceof Error ? err.message : String(err)}`)
+  }
 }
 
 /** Audit a live URL and return the raw evidence the classifier needs. */
@@ -73,12 +109,17 @@ export async function auditUrlWithHooks(url: string, options: AuditOptions, hook
   if (pre.block) throw new SsrfBlockedError(url, pre.reason)
 
   const timeoutMs = options.timeoutMs ?? FULL_AUDIT_TIMEOUT_MS
+  const { egress, proxy } = await startEgress(policy, hooks)
   const guard = new AuditGuard()
   const timer = setTimeout(() => guard.fail(new AuditTimeoutError('full-audit', timeoutMs)), timeoutMs)
   try {
-    return await runAudit(url, policy, options, guard, hooks)
+    return await runAudit(url, policy, options, guard, hooks, egress)
+  } catch (err) {
+    throw attributeProxyBlock(err, url, egress.blockedLog)
   } finally {
     clearTimeout(timer)
+    // runAudit has closed the context by now, so no page is still talking to the proxy.
+    await proxy?.stop()
   }
 }
 
@@ -111,9 +152,10 @@ async function createContextGuarded(
   loader: PageLoader,
   browser: Browser,
   options: AuditOptions,
-  guard: AuditGuard
+  guard: AuditGuard,
+  proxy: ContextProxy | undefined
 ): Promise<BrowserContext> {
-  const creating = loader.createContext(browser, options)
+  const creating = loader.createContext(browser, options, proxy)
   try {
     return await guard.race(creating)
   } catch (err) {
@@ -127,7 +169,8 @@ async function runAudit(
   policy: SafeFetchPolicy,
   options: AuditOptions,
   guard: AuditGuard,
-  hooks: AuditHooks
+  hooks: AuditHooks,
+  egress: Egress
 ): Promise<RawAudit> {
   const started = Date.now()
   const crashed = (): AuditTimeoutError => new AuditTimeoutError('browser-crash', Date.now() - started)
@@ -137,9 +180,9 @@ async function runAudit(
   browser.on('disconnected', onDisconnect)
   try {
     const loader = new PageLoader()
-    const context = await createContextGuarded(loader, browser, options, guard)
+    const context = await createContextGuarded(loader, browser, options, guard, egress.context)
     try {
-      return await collectAudit(url, policy, options, guard, { loader, context, crashed, hooks })
+      return await collectAudit(url, policy, options, guard, { loader, context, crashed, hooks, blockedLog: egress.blockedLog })
     } finally {
       await closeContext(context, browser)
     }
@@ -154,6 +197,7 @@ type AuditParts = {
   context: BrowserContext
   crashed: () => AuditTimeoutError
   hooks: AuditHooks
+  blockedLog: readonly BlockedEntry[]
 }
 
 async function collectAudit(
@@ -169,6 +213,7 @@ async function collectAudit(
       // A renderer crash at any later point must end the audit, not hang it.
       page.on('crash', () => guard.fail(parts.crashed()))
       parts.hooks.onPageCreated?.(page)
+      await parts.hooks.serve?.(page)
       await meter.attach(page)
     })
   )
@@ -176,7 +221,7 @@ async function collectAudit(
   try {
     const collectionErrors: CollectionError[] = []
     const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks)
-    const raw = assemble(url, options, loaded, meter, evidence, collectionErrors)
+    const raw = assemble(url, options, loaded, meter, evidence, collectionErrors, parts.blockedLog)
     await parts.hooks.beforeClose?.(loaded.page, raw)
     return raw
   } finally {
@@ -261,7 +306,8 @@ function assemble(
   loaded: LoadedPage,
   meter: ResourceMeter,
   ev: Evidence,
-  collectionErrors: CollectionError[]
+  collectionErrors: CollectionError[],
+  proxyBlocked: readonly BlockedEntry[]
 ): RawAudit {
   const viewport = options.viewport ?? { ...DEFAULT_VIEWPORT }
   return {
@@ -285,21 +331,26 @@ function assemble(
     pageMetadata: ev.meta.metadata,
     domAxMapping: ev.mapping.mapping,
     resourceUsage: meter.usage,
-    blockedRequests: meter.blockedRequests,
+    // page.route verdicts first, then what the egress proxy refused (redirect hops, WebSockets, tunnels).
+    blockedRequests: [...meter.blockedRequests, ...proxyBlocked],
     abortedResources: meter.abortedResources,
     collectionErrors,
   }
 }
 
 /**
- * Allows exactly one origin (the in-process server) and delegates every other
- * URL to the configured policy unchanged.
+ * Allows exactly one origin (the synthetic auditHtml origin) and delegates every other
+ * URL to the configured policy unchanged. The mode of the inner policy is kept, so the
+ * egress proxy is still used unless that policy is permissive.
  */
 export class OriginScopedPolicy implements SafeFetchPolicy {
   constructor(
     private readonly origin: string,
     private readonly inner: SafeFetchPolicy
   ) {}
+  get mode(): 'restrictive' | 'permissive' | undefined {
+    return this.inner.mode
+  }
   async shouldBlock(url: string): Promise<{ block: boolean; reason: string }> {
     try {
       if (new URL(url).origin === this.origin) return { block: false, reason: '' }
@@ -310,50 +361,39 @@ export class OriginScopedPolicy implements SafeFetchPolicy {
   }
 }
 
-/** The in-process server's port changes every run; auditHtml reports this origin instead (Req 12.6). */
-export const STABLE_HTML_ORIGIN = 'http://127.0.0.1:0'
-
-function isRawAudit(x: unknown): x is RawAudit {
-  return typeof x === 'object' && x !== null && 'schemaVersion' in x && x.schemaVersion === '1' && 'auditedUrl' in x
-}
-
 /**
- * Replace the random local host:port everywhere in the audit: auditedUrl, request URLs, and the
- * page URL the AX tree reports on its root node. A plain text replacement over the JSON form
- * covers every field, including ones added later.
+ * The origin auditHtml serves the page from. It never resolves in DNS: the page is answered by
+ * `route.fulfill` before any network use, so no local HTTP server and no loopback exception exist.
+ * It is also the origin reported in `auditedUrl` (Req 12.6).
  */
-function stabiliseOrigin(raw: RawAudit, origin: string): RawAudit {
-  const hostPort = new URL(origin).host
-  const parsed: unknown = JSON.parse(JSON.stringify(raw).replaceAll(hostPort, new URL(STABLE_HTML_ORIGIN).host))
-  if (!isRawAudit(parsed)) throw new Error('auditHtml: the audit changed shape while its origin was normalised')
-  return parsed
+export const STABLE_HTML_ORIGIN = 'http://audit-html.unseen.invalid'
+
+/** Serve `html` for `/` and `/index.html` on the synthetic origin; every other path is a 404 (relative subresources fail closed). */
+async function serveHtml(page: Page, html: string): Promise<void> {
+  await page.route(
+    (url) => url.origin === STABLE_HTML_ORIGIN,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname
+      const found = path === '/' || path === '/index.html'
+      await route
+        .fulfill(
+          found
+            ? { status: 200, contentType: 'text/html; charset=utf-8', body: html }
+            : { status: 404, contentType: 'text/plain', body: '' }
+        )
+        .catch(() => undefined)
+    }
+  )
 }
-/** Audit an HTML string by serving it on 127.0.0.1 at a random port. */
+
+/** Audit an HTML string. It is served on a synthetic origin through `route.fulfill`; nothing listens on a local port. */
 export async function auditHtml(html: string, options: AuditOptions = {}): Promise<RawAudit> {
   const bytes = Buffer.byteLength(html, 'utf8')
   if (bytes > MAX_HTML_BYTES) throw new HtmlSizeError(bytes)
 
-  const server = createServer((req, res) => {
-    if (req.url === '/' || req.url === '/index.html') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      res.end(html)
-    } else {
-      res.writeHead(404).end()
-    }
+  const policy = new OriginScopedPolicy(STABLE_HTML_ORIGIN, selectPolicy(options))
+  return auditUrlWithHooks(`${STABLE_HTML_ORIGIN}/`, { ...options, safeFetchPolicy: policy }, {
+    serve: (page) => serveHtml(page, html),
+    proxy: { allowAuthorities: [`${new URL(STABLE_HTML_ORIGIN).host}:80`] },
   })
-  await new Promise<void>((ok, fail) => {
-    server.once('error', fail)
-    server.listen(0, '127.0.0.1', () => ok())
-  }).catch((err: unknown) => {
-    throw new Error(`auditHtml could not start its local server: ${err instanceof Error ? err.message : String(err)}`)
-  })
-  try {
-    const addr = server.address()
-    if (!addr || typeof addr === 'string') throw new Error('auditHtml server has no port')
-    const origin = `http://127.0.0.1:${addr.port}`
-    const policy = new OriginScopedPolicy(origin, selectPolicy(options))
-    return stabiliseOrigin(await auditUrl(`${origin}/`, { ...options, safeFetchPolicy: policy }), origin)
-  } finally {
-    await new Promise((ok) => server.close(() => ok(undefined)))
-  }
 }

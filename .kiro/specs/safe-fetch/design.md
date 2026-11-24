@@ -368,7 +368,7 @@ Addresses in `64:ff9b:1::/48`, `::/96` (IPv4-compatible), `fec0::/10` (deprecate
 
 2.39 WHEN the hosted `apps/web` service is deployed THEN the deployment guide (`apps/web/DEPLOY.md`, to be created) SHALL document egress controls that block outbound connections from the container to private IP ranges, cloud metadata endpoints, and loopback addresses. Host `OUTPUT` rules do not filter container traffic: use the `DOCKER-USER` chain, Kubernetes NetworkPolicy, or the platform's egress controls. Never block the proxy's own upstream connections. When a platform (Render, Fly) cannot enforce it, the in-process proxy is the only layer
 
-2.40 WHEN egress firewall rules are configured THEN the rules SHALL block outbound traffic to all ranges listed in clause 2.13, providing defense-in-depth even if the application-level guard fails
+2.40 (Deployment guidance lives in `apps/web/DEPLOY.md`.) WHEN egress firewall rules are configured THEN the rules SHALL block outbound traffic to all ranges listed in clause 2.13, providing defense-in-depth even if the application-level guard fails
 
 **Example Docker deployment with egress rules (documented in DEPLOY.md):**
 ```yaml

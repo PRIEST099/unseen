@@ -22,17 +22,29 @@ export type LaunchArgs = {
   headless: boolean
 }
 
-/** Flags that stop WebRTC from leaking local or private IPs (safe-fetch review §6). */
+/**
+ * Flags that stop WebRTC from sending UDP around the egress proxy (safe-fetch spec decision F).
+ * `--disable-webrtc` is not a Chromium switch. `disable_non_proxied_udp` forces WebRTC traffic
+ * through a proxy or nowhere. The old `--disable-features=WebRtcHideLocalIpsWithMdns` is dropped:
+ * it exposed local IPs and would also be overwritten by the single `--disable-features` below.
+ */
 export const WEBRTC_LEAK_FLAGS: readonly string[] = [
-  '--disable-features=WebRtcHideLocalIpsWithMdns',
   '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+  '--webrtc-ip-handling-policy=disable_non_proxied_udp',
 ]
+
+/**
+ * `--disable-quic`: QUIC is UDP and bypasses an HTTP proxy.
+ * `--disable-features=DnsOverHttps`: Chromium's built-in resolver would skip the proxy's DNS pinning.
+ * Chromium keeps only the last `--disable-features` switch, so this must stay the only one.
+ */
+export const EGRESS_FLAGS: readonly string[] = ['--disable-quic', '--disable-features=DnsOverHttps']
 
 export function buildLaunchArgs(opts: LaunchArgsOptions = {}): LaunchArgs {
   const raw = opts.channel ?? process.env.UNSEEN_CHROMIUM_CHANNEL ?? 'chromium'
   return {
     channel: raw === '' ? undefined : raw,
-    args: [...WEBRTC_LEAK_FLAGS, ...(opts.extraArgs ?? [])],
+    args: [...WEBRTC_LEAK_FLAGS, ...EGRESS_FLAGS, ...(opts.extraArgs ?? [])],
     headless: opts.headless ?? true,
   }
 }
@@ -271,8 +283,11 @@ function stampedBackendIds(root: CdpNode): Map<number, number> {
   return out
 }
 
+/** Per-context proxy (never a launch-level `--proxy-server`). `<-loopback>` removes Chromium's implicit loopback bypass. */
+export type ContextProxy = { server: string; bypass: '<-loopback>' }
+
 export class PageLoader {
-  async createContext(browser: Browser, options: AuditOptions = {}): Promise<BrowserContext> {
+  async createContext(browser: Browser, options: AuditOptions = {}, proxy?: ContextProxy): Promise<BrowserContext> {
     try {
       return await browser.newContext({
         viewport: options.viewport ?? { ...DEFAULT_VIEWPORT },
@@ -282,6 +297,7 @@ export class PageLoader {
         serviceWorkers: 'block',
         bypassCSP: false,
         storageState: undefined,
+        ...(proxy ? { proxy } : {}),
       })
     } catch (err) {
       throw new AuditContextError(err)

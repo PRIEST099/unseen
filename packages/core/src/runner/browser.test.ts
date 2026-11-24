@@ -30,6 +30,14 @@ describe('PageLoader.createContext (Req 14.5)', () => {
       expect.objectContaining({ bypassCSP: false, serviceWorkers: 'block', viewport: { width: 1280, height: 900 } })
     )
   })
+  it('forwards a per-context proxy with the loopback bypass removed, and sets none by default', async () => {
+    const newContext = vi.fn(async (_options: unknown) => ({}))
+    const browser = { newContext } as unknown as Browser
+    await new PageLoader().createContext(browser)
+    expect(newContext.mock.calls[0]?.[0]).not.toHaveProperty('proxy')
+    await new PageLoader().createContext(browser, {}, { server: 'http://127.0.0.1:9', bypass: '<-loopback>' })
+    expect(newContext.mock.calls[1]?.[0]).toMatchObject({ proxy: { server: 'http://127.0.0.1:9', bypass: '<-loopback>' } })
+  })
 })
 
 function fakeBrowser(connected = true): Browser {
@@ -58,6 +66,15 @@ describe('buildLaunchArgs', () => {
     process.env.UNSEEN_CHROMIUM_CHANNEL = ''
     expect(buildLaunchArgs().channel).toBeUndefined()
     expect(buildLaunchArgs({ channel: 'msedge' }).channel).toBe('msedge')
+  })
+
+  it('adds --disable-quic and --disable-features=DnsOverHttps, and keeps exactly one --disable-features switch', () => {
+    const args = buildLaunchArgs().args
+    expect(args).toContain('--disable-quic')
+    expect(args).toContain('--disable-features=DnsOverHttps')
+    expect(args.filter((a) => a.startsWith('--disable-features='))).toHaveLength(1)
+    expect(args).not.toContain('--disable-webrtc')
+    expect(args.some((a) => a.startsWith('--proxy-server'))).toBe(false)
   })
 
   it('appends extra args after the defaults', () => {

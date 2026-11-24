@@ -51,8 +51,8 @@ test('auditUrl blocks loopback under the restrictive policy before any pool acqu
   }
 })
 
-// Finding 41: a server that cannot listen is a typed error, not an unhandled 'error' event.
-test('auditHtml turns a failing listen into an Error instead of crashing', async () => {
+// Finding 41 (updated by safe-fetch): auditHtml has no local server any more; a proxy that cannot listen is a typed Error, not a crash.
+test('auditHtml turns a failing proxy listen into an Error instead of crashing', async () => {
   const original = net.Server.prototype.listen
   net.Server.prototype.listen = function (this: net.Server): net.Server {
     queueMicrotask(() => this.emit('error', new Error('listen EMFILE')))
@@ -60,8 +60,9 @@ test('auditHtml turns a failing listen into an Error instead of crashing', async
   }
   try {
     await expect(auditHtml('<!doctype html><html lang="en"><body><h1>x</h1></body></html>')).rejects.toThrow(
-      /could not start its local server: listen EMFILE/
+      /egress proxy failed to start: listen EMFILE/
     )
+    expect(getPool().busyCount).toBe(0)
   } finally {
     net.Server.prototype.listen = original
   }

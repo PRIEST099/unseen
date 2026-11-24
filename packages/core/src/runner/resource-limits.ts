@@ -44,6 +44,7 @@ export class ResourceMeter {
   /** Wrap a policy so that every request is counted, and none is allowed once a limit is hit. */
   wrapPolicy(inner: SafeFetchPolicy): SafeFetchPolicy {
     return {
+      mode: inner.mode,
       shouldBlock: async (url) => {
         this.usage.requestCount++
         if (this.usage.requestCount > MAX_REQUESTS) {

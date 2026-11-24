@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.0",
-    "axe-core": "^4.10.0"
+    "axe-core": "^4.10.0",
+    "ipaddr.js": "^2.5.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",

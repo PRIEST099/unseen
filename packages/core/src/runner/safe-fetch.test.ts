@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { RestrictiveSafeFetchPolicy, PermissiveSafeFetchPolicy } from './safe-fetch.js'
+import { ResourceMeter } from './resource-limits.js'
 
 describe('RestrictiveSafeFetchPolicy', () => {
   const policy = new RestrictiveSafeFetchPolicy()
@@ -153,5 +154,54 @@ describe('Error handling', () => {
     const restrictive = new RestrictiveSafeFetchPolicy()
     const result = await restrictive.shouldBlock('not-a-valid-url')
     expect(result.block).toBe(true)
+  })
+})
+
+describe('safe-fetch modes and resolver seam (task 14)', () => {
+  const publicLookup = async (): Promise<Array<{ address: string; family: number }>> => [{ address: '93.184.216.34', family: 4 }]
+
+  it('reports its mode, and no policy mode means restrictive', () => {
+    expect(new RestrictiveSafeFetchPolicy().mode).toBe('restrictive')
+    expect(new PermissiveSafeFetchPolicy().mode).toBe('permissive')
+  })
+
+  it('allows a name that resolves only to public addresses and passes the name to the resolver', async () => {
+    const lookup = vi.fn(publicLookup)
+    const r = await new RestrictiveSafeFetchPolicy({ lookup }).shouldBlock('http://example.test/')
+    expect(r).toEqual({ block: false, reason: '' })
+    expect(lookup).toHaveBeenCalledWith('example.test')
+  })
+
+  it('blocks a name with one blocked address among public ones', async () => {
+    const lookup = async (): Promise<Array<{ address: string; family: number }>> => [
+      { address: '93.184.216.34', family: 4 },
+      { address: '::ffff:10.0.0.1', family: 6 },
+    ]
+    const r = await new RestrictiveSafeFetchPolicy({ lookup }).shouldBlock('http://example.test/')
+    expect(r.block).toBe(true)
+    expect(r.reason).toContain('blocked IP address (private)')
+  })
+
+  it('fails closed on a resolver error', async () => {
+    const lookup = async (): Promise<never> => {
+      throw Object.assign(new Error('x'), { code: 'ENOTFOUND' })
+    }
+    const r = await new RestrictiveSafeFetchPolicy({ lookup }).shouldBlock('http://example.test/')
+    expect(r.block).toBe(true)
+    expect(r.reason).toContain('DNS resolution failed')
+  })
+
+  it('does not consult the resolver for an IP literal', async () => {
+    const lookup = vi.fn(publicLookup)
+    const r = await new RestrictiveSafeFetchPolicy({ lookup }).shouldBlock('http://10.0.0.1/')
+    expect(r.block).toBe(true)
+    expect(lookup).not.toHaveBeenCalled()
+  })
+
+  it('ResourceMeter.wrapPolicy forwards the mode of the policy it wraps', () => {
+    const meter = new ResourceMeter(() => undefined)
+    expect(meter.wrapPolicy(new PermissiveSafeFetchPolicy()).mode).toBe('permissive')
+    expect(meter.wrapPolicy(new RestrictiveSafeFetchPolicy()).mode).toBe('restrictive')
+    expect(meter.wrapPolicy({ shouldBlock: async () => ({ block: false, reason: '' }) }).mode).toBeUndefined()
   })
 })

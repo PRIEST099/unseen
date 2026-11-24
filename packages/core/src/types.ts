@@ -227,6 +227,8 @@ export type AuditOptions = {
 
 // SSRF guard interface
 export interface SafeFetchPolicy {
+  /** `'permissive'` runs without the egress proxy. Absent means restrictive. */
+  readonly mode?: 'restrictive' | 'permissive'
   shouldBlock(url: string): Promise<{ block: boolean; reason: string }>
 }
 
