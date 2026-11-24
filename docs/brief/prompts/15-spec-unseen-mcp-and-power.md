@@ -49,3 +49,9 @@ In a fresh Kiro workspace with the Power installed:
 2. Kiro must call `audit_url`, detect the Nameless Spirit (an icon-only button), fix it with a real accessible name, re-audit and report a lower score.
 
 Document the exact steps in `power/DEMO.md`, because this is the 1:10–1:50 segment of the video.
+
+## Addendum (2026-11-24): current Kiro formats (checked against kiro.dev docs)
+- **Powers:** new powers use the **Agent Plugins** format: `plugin.json` (`$schema` `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`, `name` in kebab-case, `version`, `description`, `author{name}`, `keywords`), an optional `mcp.json` (top-level `mcpServers`), and `skills/<skill>/SKILL.md` (front matter: `name`, `description`). `POWER.md` is legacy, so use `plugin.json`. Test with Powers panel → "Add Custom Power" → "Import power from a folder". It is shareable through a public GitHub URL (`power/` subdirectory).
+- **Hooks:** IDE 1.x and CLI V3 use standalone `.kiro/hooks/*.json` with `{"version": "v1", "hooks": [{name, trigger, matcher, action: {type: "command"|"agent", command|prompt}, description, timeout}]}`. The PascalCase triggers are `PostFileSave`, `PreToolUse`, `PostToolUse`, `Stop`, `SessionStart` and `UserPromptSubmit`. **There is no manual/user-triggered hook type any more.** Implement "Exorcise" as a manual steering file (`#exorcise`, which run 27 creates) plus a power skill. The `.kiro.hook` `when`/`then` format is legacy; do not use it.
+- **Custom agent:** `unseen-auditor` uses the CLI V3 schema (`tools` plus `permissions.rules`, `resources`, `mcpServers` or `includeMcpJson`), not the legacy `allowedTools`.
+- **After `packages/mcp` is built,** enable the `unseen` entry in `.kiro/settings/mcp.json` (run 27 adds it disabled). From then on, UI runs audit their own output with THE UNSEEN.

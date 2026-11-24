@@ -194,7 +194,10 @@ const url14 = "http://0177.0.0.1/"  // 0177 (octal) = 127 (decimal)
 
 2.12 WHEN an IPv6 address contains a percent-encoded zone ID (e.g., `fe80::1%25eth0`) THEN the system SHALL strip the zone ID (everything from `%` onward) before classification
 
-2.13 WHEN an IPv4 or IPv6 address is classified THEN the system SHALL check it against the complete blocked range list including all ranges from `security.md` PLUS the following additional ranges:
+2.13 WHEN an IPv4 or IPv6 address is classified THEN the system SHALL check it against the following rules:
+
+**IPv4 Classification (Allowlist):**
+An IPv4 address is allowed only if `ipaddr.process(addr).range() === 'unicast'` AND it is not in any blocked range below.
 
 **Complete IPv4 Blocked Ranges:**
 | Range | Description |
@@ -207,11 +210,22 @@ const url14 = "http://0177.0.0.1/"  // 0177 (octal) = 127 (decimal)
 | `100.64.0.0/10` | IANA shared address (CGNAT) |
 | `0.0.0.0/8` | "This" network |
 | `192.0.0.0/24` | IETF protocol assignments |
+| `192.0.2.0/24` | TEST-NET-1 (documentation) |
+| `198.51.100.0/24` | TEST-NET-2 (documentation) |
+| `203.0.113.0/24` | TEST-NET-3 (documentation) |
+| `192.88.99.0/24` | 6to4 relay anycast (deprecated) |
 | `198.18.0.0/15` | Network benchmark testing |
 | `224.0.0.0/4` | IPv4 multicast |
 | `240.0.0.0/4` | Reserved for future use |
 | `255.255.255.255/32` | Limited broadcast |
 | `169.254.169.254/32` | AWS EC2 metadata (explicit) |
+
+**IPv6 Classification (Allowlist):**
+An IPv6 address is allowed only if it is inside `2000::/3`, `ipaddr.process(addr).range() === 'unicast'`, and it is not in any blocked range below.
+
+Exception: an address in `64:ff9b::/96` is allowed only if its low 32 bits, read as IPv4, pass the IPv4 rule.
+
+Addresses in `64:ff9b:1::/48`, `::/96` (IPv4-compatible), `fec0::/10` (deprecated site-local), and `100::/64` (discard prefix) fall outside `2000::/3` and are therefore blocked.
 
 **Complete IPv6 Blocked Ranges:**
 | Range | Description |
@@ -220,7 +234,15 @@ const url14 = "http://0177.0.0.1/"  // 0177 (octal) = 127 (decimal)
 | `fe80::/10` | IPv6 link-local |
 | `fc00::/7` | IPv6 unique local (ULA) |
 | `::ffff:0:0/96` | IPv4-mapped IPv6 |
+| `::/96` | IPv4-compatible (excluding ::1 and ::) |
+| `2001::/23` | IETF protocol assignments (includes Teredo 2001::/32) |
+| `2001:db8::/32` | Documentation |
 | `2002::/16` | 6to4 |
+| `3fff::/20` | Documentation |
+| `5f00::/16` | Documentation |
+| `64:ff9b:1::/48` | Local-use NAT64 |
+| `fec0::/10` | Deprecated site-local |
+| `100::/64` | Discard prefix |
 | `ff00::/8` | IPv6 multicast |
 | `::/128` | Unspecified address |
 | `fd00:ec2::254/128` | AWS EC2 metadata IPv6 |
@@ -234,21 +256,37 @@ const url14 = "http://0177.0.0.1/"  // 0177 (octal) = 127 (decimal)
 
 **Chosen Architecture: Option B — In-Process HTTP(S) CONNECT Proxy**
 
-2.14 WHEN an audit begins THEN the system SHALL launch Chromium with `--proxy-server=127.0.0.1:<proxy-port>` pointing to an in-process HTTP proxy server
+2.14 WHEN a restrictive audit creates its BrowserContext THEN the system SHALL pass `proxy: { server: 'http://127.0.0.1:<proxy-port>', bypass: '<-loopback>' }` to `browser.newContext()` in `PageLoader.createContext`. The bypass value is set explicitly so it does not depend on PLAYWRIGHT_DISABLE_FORCED_CHROMIUM_PROXIED_LOOPBACK. No host is ever bypassed
 
 2.15 WHEN the in-process proxy receives a CONNECT request for a hostname THEN the proxy SHALL:
+  - Parse the CONNECT target with a strict authority parser: `host:port` or `[v6]:port`. The port SHALL be a decimal integer from 1 to 65535 and is required; otherwise reply 400 and log it
+  - Wrap the whole handler in try/catch and turn any exception into 502 plus a blockedLog entry
+  - Attach 'error' listeners to clientSocket and serverSocket before any await; each destroys both sockets
+  - Set a 10 s connect timeout on serverSocket
   - Call `dns.lookup(hostname, { all: true, verbatim: true })`
   - Validate ALL returned addresses against the complete blocked range list
   - If any address is blocked, close the connection with an error
-  - If all addresses are allowed, establish a TCP connection to one of the validated addresses
-  - Tunnel the CONNECT stream to that validated IP address
+  - If all addresses are allowed, establish a TCP connection to one of the validated addresses using `net.connect({ host: hostname, port, lookup: pinnedLookup, autoSelectFamily: true, autoSelectFamilyAttemptTimeout: 250 })` where pinnedLookup returns only the cached validated addresses. Node then tries each validated address and never re-resolves
+  - Tunnel the CONNECT stream to that validated IP address with `stream.pipeline()` for both directions
   - Cache the hostname → validated-IP-set mapping for the duration of the audit
+
+2.15a WHEN the proxy receives a 'request' event (non-CONNECT HTTP request) THEN the proxy SHALL:
+  - Require an absolute-form `http:` request-target (otherwise reply 400)
+  - Resolve and validate the host exactly as in 2.15 (same pinned cache)
+  - Forward it with `http.request({ host: <hostname>, port, method, path: <origin-form path+query>, headers, lookup: pinnedLookup, agent: false })`
+  - Strip `Proxy-Connection`, `Proxy-Authorization` and hop-by-hop headers, overwrite `Host`, and stream the request and response bodies both ways
+  - Validate each request on a keep-alive client socket separately, because Chromium reuses one proxy connection for many hosts
+  - Destroy the socket on any 'upgrade' event (Chromium sends WebSockets as CONNECT)
+  - Never follow redirects in the proxy; Chromium re-requests each hop through the proxy
+  - Take the target host only from the request-target URL, never from the Host header
 
 2.16 WHEN the proxy receives a subsequent CONNECT or HTTP request for a cached hostname THEN the proxy SHALL use the cached validated IP address(es) without calling `dns.lookup()` again (DNS pinning)
 
 2.17 WHEN a page makes a subresource request (image, script, XHR, fetch) to any hostname THEN Chromium SHALL route the request through the proxy, and the proxy SHALL apply the same resolve-validate-connect flow
 
-2.18 WHEN the audit completes or times out THEN the system SHALL close the in-process proxy server and clear all hostname-to-IP caches
+2.18 WHEN the proxy receives a request or CONNECT whose authority equals an entry in `allowAuthorities: string[]` (exact `host:port`, e.g. `127.0.0.1:53412`) THEN it SHALL connect directly to that host and port without DNS or range checks. Every other loopback port stays blocked. auditHtml supplies its server's authority through OriginScopedPolicy.egress. The context proxy SHALL NOT use Playwright's `bypass` option
+
+2.18a WHEN the audit completes or times out THEN the system SHALL close the in-process proxy server and clear all hostname-to-IP caches
 
 **Justification for Option B:**
 - **Single enforcement point:** All requests (HTTP, HTTPS, WebSocket upgrades, redirects) flow through the proxy
@@ -258,10 +296,13 @@ const url14 = "http://0177.0.0.1/"  // 0177 (octal) = 127 (decimal)
 - **No per-URL Chromium flags:** Avoids `--host-resolver-rules` complexity and 100-entry limits
 - **Integration simplicity:** Existing `page.route()` handler in `installSafeFetchPolicy()` can be removed or simplified to only record blocked requests for `RawAudit.blockedRequests`
 
-**Integration with `audit-guard.ts`:**
-2.19 WHEN the proxy server fails to start (port collision, OS error) THEN the system SHALL call `guard.fail(new Error("proxy startup failed: <reason>"))` before browser acquisition
+2.19 WHEN the proxy server fails to start (port collision, OS error) THEN audit.ts SHALL throw `new Error('egress proxy failed to start: <reason>')` and no browser is acquired. The proxy.start() runs in auditUrlWithHooks after the pre-check and before runAudit. proxy.stop() runs in that function's finally, after runAudit's finally has closed the context
 
-2.20 WHEN a DNS resolution inside the proxy times out (exceeds 5 seconds per `security.md`) THEN the proxy SHALL close the connection and log the timeout, but SHALL NOT call `guard.fail()` (individual request failures do not abort the audit)
+2.20 WHEN a DNS resolution inside the proxy times out (exceeds 5 seconds) THEN the proxy SHALL reject with 'DNS resolution timed out' and the request SHALL be blocked. Each lookup is raced against a 5000 ms timer. At most 8 lookups per audit are in flight (queue the rest), and at most 100 distinct hostnames are resolved per audit (more are blocked with 'too many hosts')
+
+2.20a WHEN the proxy's stop() method is called THEN it SHALL track every accepted and upstream socket in a Set, destroy them all, then call server.close(), and resolve within 1 s
+
+2.20b WHEN tests need to control DNS or dialling THEN `SsrfGuardProxy` options SHALL include `lookup?: (host) => Promise<{address,family}[]>` and `dial?: (ip, port) => net.Socket` for tests only. The defaults are `dns.promises.lookup(host, {all:true, verbatim:true})` and `net.connect`. RestrictiveSafeFetchPolicy and SsrfGuardProxy take an optional `deps`. AuditHooks gains `safeFetchDeps?: SafeFetchDeps` (a test seam, like onPageCreated)
 
 2.21 WHEN the browser disconnects or crashes THEN `audit-guard.ts` SHALL call `guard.fail()` as it does today, and the audit cleanup SHALL close the proxy server
 
@@ -274,9 +315,11 @@ const url14 = "http://0177.0.0.1/"  // 0177 (octal) = 127 (decimal)
 
 2.24 WHEN Chromium receives an HTTP 301, 302, 307, or 308 redirect response THEN Chromium SHALL make a new request to the redirect target URL, which SHALL be routed through the in-process proxy
 
-2.25 WHEN the proxy receives a CONNECT or HTTP request for the redirect target hostname THEN the proxy SHALL resolve and validate the target hostname exactly as it does for initial requests (clause 2.15)
+2.25 WHEN the proxy receives a CONNECT or HTTP request for the redirect target hostname THEN the proxy SHALL resolve and validate the target hostname exactly as it does for initial requests (clause 2.15). page.route is not relied on for redirect hops, because Playwright does not route them
 
 2.26 WHEN a redirect target resolves to a blocked address THEN the proxy SHALL close the connection, Chromium SHALL fail the redirect, and the blocked URL and reason SHALL be recorded in `RawAudit.blockedRequests`
+
+2.26a WHEN page.goto fails and the proxy logged a block for the main-frame request THEN loadPage throws SsrfBlockedError(url, reason)
 
 **Testing Strategy:**
 - Create a local Node.js HTTP server on a random port that returns `HTTP 302` with `Location: http://127.0.0.1:1234/admin`
@@ -289,9 +332,9 @@ const url14 = "http://0177.0.0.1/"  // 0177 (octal) = 127 (decimal)
 
 2.28 WHEN the proxy receives a CONNECT request (regardless of the target protocol) THEN the proxy SHALL apply the same resolve-validate-connect flow (clause 2.15), blocking WebSocket connections to private addresses
 
-2.29 WHEN Chromium is launched for an audit THEN the system SHALL include the launch argument `--disable-webrtc` to prevent WebRTC peer connections that could leak internal IP addresses or access internal services
+2.29 WHEN Chromium is launched for an audit THEN the system SHALL keep the existing WEBRTC_LEAK_FLAGS from buildLaunchArgs (`--force-webrtc-ip-handling-policy=disable_non_proxied_udp`, `--webrtc-ip-handling-policy=disable_non_proxied_udp`). With the proxy in place, WebRTC can only use TCP through the proxy's CONNECT, which is validated. The system SHALL also add `--disable-quic` and `--disable-features=DnsOverHttps` to ensure every request goes through the proxy
 
-**Note:** The `--disable-webrtc` flag is a defense-in-depth measure. The primary protection is the proxy. If a future Chromium version removes or ignores this flag, the proxy still blocks internal access.
+**Note:** The existing WEBRTC_LEAK_FLAGS plus the proxy are defense-in-depth. `disable_non_proxied_udp` makes WebRTC use only proxied TCP, which reaches the proxy as CONNECT.
 
 ### Encoding Normalization (Addresses Category 7)
 
@@ -313,35 +356,40 @@ const url14 = "http://0177.0.0.1/"  // 0177 (octal) = 127 (decimal)
   - NOT apply private/loopback IP restrictions (allow `127.0.0.1`, `::1`, `10.0.0.0/8`, etc.)
   - NOT use the in-process proxy (direct connection)
 
-2.36 WHEN `installSafeFetchPolicy(page, policy)` is called with a `RestrictiveSafeFetchPolicy` THEN the system SHALL start the in-process proxy, launch Chromium with `--proxy-server`, and pass the policy to the proxy for validation logic
+2.36 WHEN `SafeFetchPolicy` interface is defined THEN it SHALL include an optional `readonly mode?: 'restrictive' | 'permissive'` field. `RestrictiveSafeFetchPolicy` sets `mode: 'restrictive'`, `PermissiveSafeFetchPolicy` sets `mode: 'permissive'`, and `ResourceMeter.wrapPolicy()` and `OriginScopedPolicy` forward `inner.mode`
 
-2.37 WHEN `installSafeFetchPolicy(page, policy)` is called with a `PermissiveSafeFetchPolicy` THEN the system SHALL skip proxy setup and install a minimal `page.route()` handler that only blocks non-http(s) schemes
+2.37 WHEN the egress mode is chosen THEN the proxy SHALL be used unless `policy.mode === 'permissive'`. A policy with no mode is treated as restrictive. The mode is never inferred with `instanceof` checks
 
-2.38 WHEN a request is blocked by the proxy or policy THEN the system SHALL record `{ url: string, reason: string }` in an array that is merged into `RawAudit.blockedRequests` during audit assembly
+2.38 WHEN `installSafeFetchPolicy(page, policy)` is called THEN it SHALL install `page.route('**/*', handler)` in every mode so ResourceMeter keeps counting every request exactly once. The proxy is owned by audit.ts, not by installSafeFetchPolicy
+
+2.38 WHEN a request is blocked by the proxy or policy THEN the system SHALL record `{ url: string, reason: string }` in an array that is merged into `RawAudit.blockedRequests` during audit assembly. For tunnelled traffic (https, ws, wss), CONNECT blocks are recorded as `{ url: 'connect://<authority>', reason }` where authority is the hostname:port from the CONNECT request, because only the authority is known before the tunnel is established
 
 ### Defense in Depth (Documentation Requirement)
 
-2.39 WHEN the hosted `apps/web` service is deployed THEN the deployment guide (`apps/web/DEPLOY.md`, to be created) SHALL document egress firewall rules that block outbound connections from the container to private IP ranges, cloud metadata endpoints, and loopback addresses
+2.39 WHEN the hosted `apps/web` service is deployed THEN the deployment guide (`apps/web/DEPLOY.md`, to be created) SHALL document egress controls that block outbound connections from the container to private IP ranges, cloud metadata endpoints, and loopback addresses. Host `OUTPUT` rules do not filter container traffic: use the `DOCKER-USER` chain, Kubernetes NetworkPolicy, or the platform's egress controls. Never block the proxy's own upstream connections. When a platform (Render, Fly) cannot enforce it, the in-process proxy is the only layer
 
-2.40 WHEN egress firewall rules are configured THEN the firewall SHALL block outbound traffic to all ranges listed in clause 2.13, providing defense-in-depth even if the application-level guard fails
+2.40 WHEN egress firewall rules are configured THEN the rules SHALL block outbound traffic to all ranges listed in clause 2.13, providing defense-in-depth even if the application-level guard fails
 
 **Example Docker deployment with egress rules (documented in DEPLOY.md):**
 ```yaml
-# docker-compose.yml excerpt
-services:
-  web:
-    image: the-unseen:latest
-    networks:
-      - restricted
-    # Outbound traffic policy enforced by Docker network
+# Docker: rules go in the DOCKER-USER chain
+# Matched on the container bridge interface
 
-networks:
-  restricted:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.30.0.0/16
-    # Firewall rules applied via iptables or cloud provider security groups
+# For each IPv4 range in 2.13 including 0.0.0.0/8:
+# iptables -I DOCKER-USER -i <bridge> -d <range> -j REJECT
+
+# ip6tables equivalents for ::/128, ::1/128, ::ffff:0:0/96, 64:ff9b::/96, 
+# 64:ff9b:1::/48, 2002::/16, 2001::/32, fc00::/7, fe80::/10, ff00::/8
+
+# Loopback inside the container's network namespace is NOT filtered, 
+# because Chromium reaches the proxy over it
+
+# AWS: use a VPC network ACL with explicit DENY entries for RFC 1918, 
+# 100.64.0.0/10 and 169.254.0.0/16, ordered before an ALLOW for 0.0.0.0/0 
+# on TCP 80/443 and on the resolver's port 53. 
+# Set the EC2 instance metadata hop limit to 1 and require IMDSv2
+
+# Kubernetes: NetworkPolicy with egress blocks to the same ranges
 ```
 
 ## Hypothesized Root Cause
@@ -445,20 +493,23 @@ audit.ts (auditUrl)
     │       └─► If Restrictive: resolve + validate top-level URL
     │           If blocked: throw SsrfBlockedError
     │
+    ├─► Read policy.mode before ResourceMeter wraps it
+    │
+    ├─► If policy.mode !== 'permissive':
+    │      ├─► Start in-process proxy on 127.0.0.1:0 (random port)
+    │      └─► If proxy startup fails: throw Error('egress proxy failed to start')
+    │
     ├─► Acquire browser from pool
+    │
+    ├─► createContext(browser, options, proxy?: { server, bypass: '<-loopback>' })
+    │       │
+    │       └─► If proxy provided: pass to browser.newContext({ proxy })
     │
     ├─► installSafeFetchPolicy(page, policy)
     │       │
-    │       ├─► If Restrictive:
-    │       │      ├─► Start in-process proxy on random port
-    │       │      ├─► Launch Chromium with --proxy-server=127.0.0.1:<port>
-    │       │      └─► Proxy handles all CONNECT/HTTP requests:
-    │       │              dns.lookup() → validate IPs → tunnel to validated IP
-    │       │
-    │       └─► If Permissive:
-    │              └─► Install page.route() handler that only blocks non-http(s) schemes
+    │       └─► Install page.route() handler in every mode (for ResourceMeter counting)
     │
-    ├─► page.goto(url) → All requests flow through proxy (Restrictive) or direct (Permissive)
+    ├─► page.goto(url) → All requests flow through context proxy (if restrictive)
     │       │
     │       ├─► Initial request validated by proxy
     │       ├─► Subresource requests (images, scripts) validated by proxy
@@ -467,7 +518,9 @@ audit.ts (auditUrl)
     │
     ├─► Collect evidence (AX tree, axe, Tab walk)
     │
-    └─► Assemble RawAudit with blockedRequests from proxy log
+    ├─► Assemble RawAudit with blockedRequests from proxy log
+    │
+    └─► finally: proxy.stop() (after context close)
 ```
 
 **Proxy Flow (Restrictive Mode):**
@@ -479,12 +532,14 @@ audit.ts (auditUrl)
 
 Client (Chromium) sends: CONNECT example.com:443 HTTP/1.1
     │
+    ├─► Check allowAuthorities set: exact match? → dial directly without checks
+    │
     ├─► Check hostname cache: example.com → cached IPs?
     │      │
     │      ├─► If cached: use cached validated IPs
     │      │
     │      └─► If not cached:
-    │             ├─► dns.lookup(example.com, { all: true, verbatim: true })
+    │             ├─► this.lookup(example.com) with 5 s timeout
     │             │      │
     │             │      ├─► Throws error? → Close connection, log "DNS resolution failed"
     │             │      ├─► Returns []? → Close connection, log "hostname did not resolve"
@@ -500,11 +555,13 @@ Client (Chromium) sends: CONNECT example.com:443 HTTP/1.1
     │             │
     │             └─► Cache: example.com → [validated IPs]
     │
-    ├─► Establish TCP connection to one of the validated IPs (port from CONNECT request)
+    ├─► Dial with net.connect({ host, port, lookup: pinnedLookup, 
+    │                          autoSelectFamily: true, autoSelectFamilyAttemptTimeout: 250 })
+    │   where pinnedLookup returns only cached validated addresses
     │
     ├─► Reply: HTTP/1.1 200 Connection established
     │
-    └─► Tunnel: Bidirectional stream between client and validated IP
+    └─► Tunnel: Bidirectional stream.pipeline() between client and validated IP
 ```
 
 ### Specific Changes
@@ -514,7 +571,8 @@ Client (Chromium) sends: CONNECT example.com:443 HTTP/1.1
 **New Function:**
 ```typescript
 import { lookup } from 'dns/promises'
-import { ipaddr } from 'ipaddr.js'
+import type { LookupAddress } from 'dns'
+import ipaddr from 'ipaddr.js'
 
 interface ResolvedAddress {
   address: string   // IP address string (e.g., "192.0.2.1" or "2001:db8::1")
@@ -524,7 +582,7 @@ interface ResolvedAddress {
 
 async function resolveHostname(hostname: string): Promise<ResolvedAddress[]> {
   // Fail-closed: any error blocks the request
-  let results: Array<{ address: string; family: 4 | 6 }>
+  let results: LookupAddress[]
   try {
     results = await lookup(hostname, { all: true, verbatim: true })
   } catch (err) {
@@ -537,7 +595,7 @@ async function resolveHostname(hostname: string): Promise<ResolvedAddress[]> {
 
   return results.map((r) => ({
     address: r.address,
-    family: r.family,
+    family: r.family === 6 ? 6 : 4,
     canonical: ipaddr.process(r.address),  // Normalize to canonical form
   }))
 }
@@ -547,7 +605,7 @@ async function resolveHostname(hostname: string): Promise<ResolvedAddress[]> {
 
 **New Functions:**
 ```typescript
-import { ipaddr } from 'ipaddr.js'
+import ipaddr from 'ipaddr.js'
 
 // Complete blocked ranges (clause 2.13)
 const BLOCKED_IPV4_RANGES = [
@@ -559,6 +617,10 @@ const BLOCKED_IPV4_RANGES = [
   { name: 'cgnat', cidr: '100.64.0.0/10' },
   { name: 'this-network', cidr: '0.0.0.0/8' },
   { name: 'ietf-protocol', cidr: '192.0.0.0/24' },
+  { name: 'test-net-1', cidr: '192.0.2.0/24' },
+  { name: 'test-net-2', cidr: '198.51.100.0/24' },
+  { name: 'test-net-3', cidr: '203.0.113.0/24' },
+  { name: '6to4-relay', cidr: '192.88.99.0/24' },
   { name: 'benchmark', cidr: '198.18.0.0/15' },
   { name: 'multicast', cidr: '224.0.0.0/4' },
   { name: 'reserved', cidr: '240.0.0.0/4' },
@@ -571,7 +633,15 @@ const BLOCKED_IPV6_RANGES = [
   { name: 'link-local', cidr: 'fe80::/10' },
   { name: 'unique-local', cidr: 'fc00::/7' },
   { name: 'ipv4-mapped', cidr: '::ffff:0:0/96' },
+  { name: 'ipv4-compatible', cidr: '::/96' },
+  { name: 'ietf-protocol', cidr: '2001::/23' },
+  { name: 'doc-db8', cidr: '2001:db8::/32' },
+  { name: 'doc-3fff', cidr: '3fff::/20' },
+  { name: 'doc-5f00', cidr: '5f00::/16' },
   { name: '6to4', cidr: '2002::/16' },
+  { name: 'nat64-local', cidr: '64:ff9b:1::/48' },
+  { name: 'site-local-deprecated', cidr: 'fec0::/10' },
+  { name: 'discard', cidr: '100::/64' },
   { name: 'multicast', cidr: 'ff00::/8' },
   { name: 'unspecified', cidr: '::/128' },
   { name: 'ec2-metadata-v6', cidr: 'fd00:ec2::254/128' },
@@ -589,6 +659,65 @@ function isBlockedIPv4(ip: ipaddr.IPv4): { blocked: boolean; range?: string } {
 }
 
 function isBlockedIPv6(ip: ipaddr.IPv6): { blocked: boolean; range?: string } {
+  // Extract embedded IPv4 FIRST before applying blanket IPv6 table
+  
+  // IPv4-mapped (::ffff:a.b.c.d)
+  if (ip.isIPv4MappedAddress()) {
+    const embedded = ip.toIPv4Address()
+    const result = isBlockedIPv4(embedded)
+    if (result.blocked) {
+      return { blocked: true, range: `ipv4-mapped-${result.range}` }
+    }
+  }
+
+  // IPv4-compatible (::/96 excluding ::ffff and special cases)
+  const parts = ip.parts
+  const isIpv4Compatible = parts[0] === 0 && parts[1] === 0 && parts[2] === 0 && 
+                           parts[3] === 0 && parts[4] === 0 && parts[5] === 0 &&
+                           !(parts[6] === 0xffff) && // not IPv4-mapped
+                           !(parts[6] === 0 && parts[7] === 0) && // not ::
+                           !(parts[6] === 0 && parts[7] === 1) // not ::1
+  if (isIpv4Compatible) {
+    const ipv4Num = (parts[6] << 16) | parts[7]
+    const a = (ipv4Num >> 24) & 0xff
+    const b = (ipv4Num >> 16) & 0xff
+    const c = (ipv4Num >> 8) & 0xff
+    const d = ipv4Num & 0xff
+    const embedded = ipaddr.parse(`${a}.${b}.${c}.${d}`) as ipaddr.IPv4
+    const result = isBlockedIPv4(embedded)
+    if (result.blocked) {
+      return { blocked: true, range: `ipv4-compatible-${result.range}` }
+    }
+  }
+
+  // 6to4 (2002::/16)
+  if (ip.match(ipaddr.parseCIDR('2002::/16'))) {
+    const ipv4Num = (parts[1] << 16) | parts[2]
+    const a = (ipv4Num >> 24) & 0xff
+    const b = (ipv4Num >> 16) & 0xff
+    const c = (ipv4Num >> 8) & 0xff
+    const d = ipv4Num & 0xff
+    const embedded = ipaddr.parse(`${a}.${b}.${c}.${d}`) as ipaddr.IPv4
+    const result = isBlockedIPv4(embedded)
+    if (result.blocked) {
+      return { blocked: true, range: `6to4-${result.range}` }
+    }
+  }
+
+  // NAT64 (64:ff9b::/96)
+  if (ip.match(ipaddr.parseCIDR('64:ff9b::/96'))) {
+    const ipv4Num = (parts[6] << 16) | parts[7]
+    const a = (ipv4Num >> 24) & 0xff
+    const b = (ipv4Num >> 16) & 0xff
+    const c = (ipv4Num >> 8) & 0xff
+    const d = ipv4Num & 0xff
+    const embedded = ipaddr.parse(`${a}.${b}.${c}.${d}`) as ipaddr.IPv4
+    const result = isBlockedIPv4(embedded)
+    if (result.blocked) {
+      return { blocked: true, range: `nat64-${result.range}` }
+    }
+  }
+
   // Check standard IPv6 ranges
   for (const range of BLOCKED_IPV6_RANGES) {
     const [cidrAddr, bits] = range.cidr.split('/')
@@ -598,41 +727,11 @@ function isBlockedIPv6(ip: ipaddr.IPv6): { blocked: boolean; range?: string } {
     }
   }
 
-  // Extract embedded IPv4 from IPv4-mapped (::ffff:a.b.c.d)
-  if (ip.isIPv4MappedAddress()) {
-    const embedded = ip.toIPv4Address()
-    return isBlockedIPv4(embedded)
-  }
-
-  // Extract embedded IPv4 from 6to4 (2002:AABB:CCDD::/48 where AABBCCDD is IPv4)
-  if (ip.match(ipaddr.parseCIDR('2002::/16'))) {
-    const parts = ip.parts  // [0x2002, 0xAABB, 0xCCDD, ...]
-    const ipv4Num = (parts[1] << 16) | parts[2]
-    const a = (ipv4Num >> 24) & 0xff
-    const b = (ipv4Num >> 16) & 0xff
-    const c = (ipv4Num >> 8) & 0xff
-    const d = ipv4Num & 0xff
-    const embedded = ipaddr.parse(`${a}.${b}.${c}.${d}`)
-    return isBlockedIPv4(embedded as ipaddr.IPv4)
-  }
-
-  // Extract embedded IPv4 from NAT64 (64:ff9b::a.b.c.d)
-  if (ip.match(ipaddr.parseCIDR('64:ff9b::/96'))) {
-    const parts = ip.parts  // [0x64, 0xff9b, 0, 0, 0, 0, 0xAABB, 0xCCDD]
-    const ipv4Num = (parts[6] << 16) | parts[7]
-    const a = (ipv4Num >> 24) & 0xff
-    const b = (ipv4Num >> 16) & 0xff
-    const c = (ipv4Num >> 8) & 0xff
-    const d = ipv4Num & 0xff
-    const embedded = ipaddr.parse(`${a}.${b}.${c}.${d}`)
-    return isBlockedIPv4(embedded as ipaddr.IPv4)
-  }
-
   return { blocked: false }
 }
 
 function classifyAddress(canonical: ipaddr.IPv4 | ipaddr.IPv6): { blocked: boolean; reason: string } {
-  if (canonical.kind() === 'ipv4') {
+  if (canonical instanceof ipaddr.IPv4) {
     const result = isBlockedIPv4(canonical)
     if (result.blocked) {
       return { blocked: true, reason: `blocked IP address (${result.range})` }
@@ -657,20 +756,35 @@ import * as net from 'net'
 interface ProxyOptions {
   policy: SafeFetchPolicy
   blockedLog: Array<{ url: string; reason: string }>
+  allowAuthorities?: readonly string[]  // e.g. ["127.0.0.1:53412"]
+  lookup?: (host: string) => Promise<Array<{address: string; family: 4|6}>>
+  dial?: (ip: string, port: number) => net.Socket
 }
 
 class SsrfGuardProxy {
   private server: http.Server
   private port: number = 0
   private hostnameCache = new Map<string, ResolvedAddress[]>()
-  private readonly policy: SafeFetchPolicy
   private readonly blockedLog: Array<{ url: string; reason: string }>
+  private readonly allowAuthorities: Set<string>
+  private readonly lookup: (host: string) => Promise<Array<{address: string; family: 4|6}>>
+  private readonly dial: (ip: string, port: number) => net.Socket
+  private readonly sockets = new Set<net.Socket>()
 
   constructor(options: ProxyOptions) {
-    this.policy = options.policy
     this.blockedLog = options.blockedLog
+    this.allowAuthorities = new Set(options.allowAuthorities ?? [])
+    this.lookup = options.lookup ?? ((host) => lookup(host, { all: true, verbatim: true }))
+    this.dial = options.dial ?? ((ip, port) => net.connect(port, ip))
     this.server = http.createServer()
-    this.server.on('connect', this.handleConnect.bind(this))
+    this.server.on('connect', (req, sock, head) => void this.handleConnect(req, sock, head).catch(err => {
+      sock.destroy()
+      this.blockedLog.push({ url: `connect://${req.url}`, reason: 'proxy-error' })
+    }))
+    this.server.on('request', (req, res) => void this.handleRequest(req, res).catch(err => {
+      res.writeHead(502).end()
+      this.blockedLog.push({ url: req.url ?? 'unknown', reason: 'proxy-error' })
+    }))
   }
 
   async start(): Promise<number> {
@@ -689,23 +803,51 @@ class SsrfGuardProxy {
 
   async stop(): Promise<void> {
     this.hostnameCache.clear()
+    for (const sock of this.sockets) {
+      sock.destroy()
+    }
+    this.sockets.clear()
     return new Promise((resolve) => {
       this.server.close(() => resolve())
+      setTimeout(resolve, 1000) // 1 s timeout
     })
   }
 
   private async handleConnect(req: http.IncomingMessage, clientSocket: net.Socket, head: Buffer): Promise<void> {
-    const url = `https://${req.url}/`  // CONNECT target is "hostname:port"
-    let hostname: string
-    let port: number
-    try {
-      const parsed = new URL(url)
-      hostname = parsed.hostname.replace(/^\[|\]$/g, '')  // Strip brackets from IPv6
-      port = parseInt(parsed.port, 10)
-    } catch {
+    // Parse authority: host:port or [v6]:port
+    const match = /^(?:\[([0-9a-fA-F:.]+)\]|([^:\[\]]+)):(\d{1,5})$/.exec(req.url ?? '')
+    if (!match) {
       clientSocket.write('HTTP/1.1 400 Bad Request\r\n\r\n')
       clientSocket.end()
-      this.blockedLog.push({ url, reason: 'invalid CONNECT target' })
+      this.blockedLog.push({ url: `connect://${req.url}`, reason: 'invalid CONNECT target' })
+      return
+    }
+    const hostname = match[1] || match[2]
+    const port = parseInt(match[3], 10)
+    if (port < 1 || port > 65535) {
+      clientSocket.write('HTTP/1.1 400 Bad Request\r\n\r\n')
+      clientSocket.end()
+      this.blockedLog.push({ url: `connect://${req.url}`, reason: 'invalid port' })
+      return
+    }
+
+    const authority = `${hostname}:${port}`
+
+    // Check allowAuthorities
+    if (this.allowAuthorities.has(authority)) {
+      const serverSocket = this.dial(hostname, port)
+      this.sockets.add(clientSocket)
+      this.sockets.add(serverSocket)
+      const destroyBoth = () => { clientSocket.destroy(); serverSocket.destroy(); this.sockets.delete(clientSocket); this.sockets.delete(serverSocket) }
+      clientSocket.on('error', destroyBoth)
+      serverSocket.on('error', destroyBoth)
+      serverSocket.on('connect', () => {
+        clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n')
+        serverSocket.write(head)
+        serverSocket.pipe(clientSocket)
+        clientSocket.pipe(serverSocket)
+      })
+      serverSocket.setTimeout(10000, destroyBoth)
       return
     }
 
@@ -715,14 +857,22 @@ class SsrfGuardProxy {
       if (this.hostnameCache.has(hostname)) {
         addresses = this.hostnameCache.get(hostname)!
       } else {
-        addresses = await resolveHostname(hostname)
+        const lookupResults = await Promise.race([
+          this.lookup(hostname),
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('DNS resolution timed out')), 5000))
+        ])
+        addresses = lookupResults.map(r => ({
+          address: r.address,
+          family: r.family,
+          canonical: ipaddr.process(r.address)
+        }))
         // Check if ANY address is blocked
         for (const addr of addresses) {
           const classification = classifyAddress(addr.canonical)
           if (classification.blocked) {
             clientSocket.write('HTTP/1.1 403 Forbidden\r\n\r\n')
             clientSocket.end()
-            this.blockedLog.push({ url, reason: classification.reason })
+            this.blockedLog.push({ url: `connect://${authority}`, reason: classification.reason })
             return
           }
         }
@@ -732,22 +882,113 @@ class SsrfGuardProxy {
       clientSocket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n')
       clientSocket.end()
       const reason = err instanceof Error ? err.message : String(err)
-      this.blockedLog.push({ url, reason })
+      this.blockedLog.push({ url: `connect://${authority}`, reason })
       return
     }
 
-    // Connect to first validated address
-    const targetIp = addresses[0].address
-    const serverSocket = net.connect(port, targetIp, () => {
+    // Connect with happy eyeballs
+    const serverSocket = net.connect({
+      host: hostname,
+      port,
+      lookup: (host, opts, cb) => {
+        const addrs = addresses.map(a => ({ address: a.address, family: a.family }))
+        cb(null, addrs as any)
+      },
+      autoSelectFamily: true,
+      autoSelectFamilyAttemptTimeout: 250
+    })
+
+    this.sockets.add(clientSocket)
+    this.sockets.add(serverSocket)
+
+    const destroyBoth = () => { 
+      clientSocket.destroy()
+      serverSocket.destroy()
+      this.sockets.delete(clientSocket)
+      this.sockets.delete(serverSocket)
+    }
+
+    clientSocket.on('error', destroyBoth)
+    serverSocket.on('error', destroyBoth)
+
+    serverSocket.on('connect', () => {
       clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n')
       serverSocket.write(head)
       serverSocket.pipe(clientSocket)
       clientSocket.pipe(serverSocket)
     })
 
-    serverSocket.on('error', () => {
-      clientSocket.end()
+    serverSocket.setTimeout(10000, destroyBoth)
+  }
+
+  private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    // Only absolute-form http:// requests
+    if (!req.url?.startsWith('http://')) {
+      res.writeHead(400).end()
+      this.blockedLog.push({ url: req.url ?? 'unknown', reason: 'origin-form or non-http in proxy' })
+      return
+    }
+
+    const parsed = new URL(req.url)
+    const hostname = parsed.hostname
+    const port = parsed.port ? parseInt(parsed.port, 10) : 80
+
+    // Resolve and validate (same as CONNECT)
+    let addresses: ResolvedAddress[]
+    try {
+      if (this.hostnameCache.has(hostname)) {
+        addresses = this.hostnameCache.get(hostname)!
+      } else {
+        const lookupResults = await Promise.race([
+          this.lookup(hostname),
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('DNS resolution timed out')), 5000))
+        ])
+        addresses = lookupResults.map(r => ({
+          address: r.address,
+          family: r.family,
+          canonical: ipaddr.process(r.address)
+        }))
+        for (const addr of addresses) {
+          const classification = classifyAddress(addr.canonical)
+          if (classification.blocked) {
+            res.writeHead(403).end()
+            this.blockedLog.push({ url: req.url, reason: classification.reason })
+            return
+          }
+        }
+        this.hostnameCache.set(hostname, addresses)
+      }
+    } catch (err) {
+      res.writeHead(502).end()
+      const reason = err instanceof Error ? err.message : String(err)
+      this.blockedLog.push({ url: req.url, reason })
+      return
+    }
+
+    // Forward the request
+    const proxyReq = http.request({
+      host: hostname,
+      port,
+      method: req.method,
+      path: parsed.pathname + parsed.search,
+      headers: { ...req.headers, host: `${hostname}:${port}` },
+      lookup: (host, opts, cb) => {
+        const addrs = addresses.map(a => ({ address: a.address, family: a.family }))
+        cb(null, addrs as any)
+      },
+      agent: false
     })
+
+    proxyReq.on('response', (proxyRes) => {
+      res.writeHead(proxyRes.statusCode ?? 500, proxyRes.headers)
+      proxyRes.pipe(res)
+    })
+
+    proxyReq.on('error', () => {
+      res.writeHead(502).end()
+    })
+
+    req.pipe(proxyReq)
   }
 }
 ```
@@ -822,91 +1063,129 @@ export class PermissiveSafeFetchPolicy implements SafeFetchPolicy {
 
 **Updated Function:**
 ```typescript
-export function installSafeFetchPolicy(page: Page, policy: SafeFetchPolicy): {
-  proxy?: SsrfGuardProxy
-  cleanup: () => Promise<void>
-} {
-  const blockedLog: Array<{ url: string; reason: string }> = []
-
-  if (policy instanceof RestrictiveSafeFetchPolicy) {
-    // Start in-process proxy
-    const proxy = new SsrfGuardProxy({ policy, blockedLog })
-    // Proxy.start() is called in browser.ts before launching Chromium with --proxy-server
-    return {
-      proxy,
-      cleanup: async () => {
-        await proxy.stop()
-      },
-    }
-  } else {
-    // Permissive mode: install minimal page.route() handler
-    page.route('**/*', async (route) => {
-      try {
-        const url = route.request().url()
-        const { block } = await policy.shouldBlock(url)
-        if (block) {
-          await route.abort('blockedbyclient')
-        } else {
-          await route.continue()
-        }
-      } catch {
-        await route.abort('blockedbyclient').catch(() => undefined)
+export function installSafeFetchPolicy(page: Page, policy: SafeFetchPolicy): void {
+  // Install page.route in every mode for ResourceMeter counting
+  page.route('**/*', async (route) => {
+    try {
+      const url = route.request().url()
+      const { block } = await policy.shouldBlock(url)
+      if (block) {
+        await route.abort('blockedbyclient')
+      } else {
+        await route.continue()
       }
-    })
-
-    return {
-      cleanup: async () => {
-        // No proxy to stop
-      },
+    } catch {
+      await route.abort('blockedbyclient').catch(() => undefined)
     }
-  }
+  })
 }
 ```
 
-#### 6. Integration with `browser.ts`
+**Note:** Proxy lifecycle is managed by audit.ts, not by installSafeFetchPolicy. The function keeps its original signature (preserves API).
 
-**Changes to `PageLoader.loadPage()`:**
+#### 6. Integration with `audit.ts`
+
+**Changes to `auditUrlWithHooks()`:**
 ```typescript
-// In packages/core/src/runner/browser.ts
+// In packages/core/src/audit.ts
 
-async loadPage(
-  context: BrowserContext,
-  url: string,
-  policy: SafeFetchPolicy,
-  options: AuditOptions,
-  onPageCreated?: (page: Page) => Promise<void>
-): Promise<LoadedPage> {
-  const { proxy, cleanup } = installSafeFetchPolicy(page, policy)
+async function auditUrlWithHooks(url: string, options: AuditOptions): Promise<RawAudit> {
+  const policy = selectPolicy(options)
+  
+  // Pre-check
+  const preCheck = await policy.shouldBlock(url)
+  if (preCheck.block) {
+    throw new SsrfBlockedError(url, preCheck.reason)
+  }
 
-  // If restrictive mode, start proxy and configure Chromium
-  if (proxy) {
-    const proxyPort = await proxy.start()
-    // Re-launch context with proxy (or launch browser with --proxy-server initially)
-    // This requires refactoring browser.ts to accept proxy options
+  // Read mode before ResourceMeter wraps it
+  const mode = policy.mode
+  
+  // Start proxy if restrictive
+  let proxy: SsrfGuardProxy | undefined
+  let proxyServer: string | undefined
+  if (mode !== 'permissive') {
+    const blockedLog: Array<{ url: string; reason: string }> = []
+    proxy = new SsrfGuardProxy({ blockedLog, allowAuthorities: options.allowAuthorities })
+    try {
+      const port = await proxy.start()
+      proxyServer = `http://127.0.0.1:${port}`
+    } catch (err) {
+      throw new Error(`egress proxy failed to start: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 
   try {
-    const page = await context.newPage()
-    if (onPageCreated) await onPageCreated(page)
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 30_000 })
-    // ... rest of page load logic
+    // Acquire browser from pool (no proxy args at launch)
+    const browser = await pool.acquire()
+    
+    // Create context with proxy option if restrictive
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 900 },
+      locale: 'en-US',
+      timezoneId: 'UTC',
+      ...(proxyServer ? { proxy: { server: proxyServer, bypass: '<-loopback>' } } : {})
+    })
+
+    try {
+      const page = await context.newPage()
+      installSafeFetchPolicy(page, meter.wrapPolicy(policy))
+      
+      await page.goto(url, { waitUntil: 'networkidle', timeout: 30_000 })
+      // ... collect evidence, assemble RawAudit
+      
+    } finally {
+      await context.close()
+    }
   } finally {
-    await cleanup()
+    if (proxy) {
+      await proxy.stop()
+    }
   }
 }
 ```
 
-**Note:** The exact integration point depends on whether the proxy can be started before `context.newPage()` or requires `browser.newContext()` with `--proxy-server` launch args. The design should minimize changes to `browser.ts` by handling proxy lifecycle in `safe-fetch.ts`.
+**Key Points:**
+- Mode is checked explicitly (`policy.mode !== 'permissive'`), never with `instanceof`
+- Proxy starts per audit in auditUrlWithHooks, before browser acquisition
+- Proxy port passed as context option: `browser.newContext({ proxy: { server, bypass: '<-loopback>' } })`
+- buildLaunchArgs unchanged (no launch-level proxy args)
+- Proxy stops in finally after context close
 
-#### 7. WebRTC Disabling
+#### 7. Chromium Launch Args for DNS and Protocol Control
 
 **Changes to `browser.ts`:**
 ```typescript
-// In chromium.launch() call
-const browser = await chromium.launch({
-  headless: true,
-  args: [
-    '--disable-webrtc',  // Disable WebRTC to prevent IP leaks
+// In buildLaunchArgs()
+const WEBRTC_LEAK_FLAGS = [
+  '--disable-features=WebRtcHideLocalIpsWithMdns',
+  '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+  '--webrtc-ip-handling-policy=disable_non_proxied_udp'
+]
+
+const PROXY_ENFORCEMENT_FLAGS = [
+  '--disable-quic',                      // Force TCP through proxy
+  '--disable-features=DnsOverHttps'      // Disable DNS-over-HTTPS; use system resolver which goes through proxy
+]
+
+export function buildLaunchArgs(): { channel: string; args: string[]; headless: boolean } {
+  return {
+    channel: process.env.UNSEEN_CHROMIUM_CHANNEL || 'chrome',
+    headless: true,
+    args: [
+      ...WEBRTC_LEAK_FLAGS,
+      ...PROXY_ENFORCEMENT_FLAGS,
+      // ... other args
+    ]
+  }
+}
+```
+
+**Rationale:**
+- **WebRTC flags:** `disable_non_proxied_udp` forces WebRTC to use proxied TCP only, which reaches the proxy as CONNECT and is validated
+- **`--disable-quic`:** Forces HTTP/3 traffic to downgrade to HTTP/2 or HTTP/1.1 through the proxy
+- **`--disable-features=DnsOverHttps`:** Ensures DNS queries go through the system resolver, not Chromium's built-in DoH, so the proxy sees every request
+- **No `--disable-webrtc`:** This flag does not exist in Chromium and would be silently ignored
     // ... other args
   ],
 })
@@ -958,8 +1237,8 @@ The testing strategy follows a three-phase approach:
 
 6. **Category 6: Non-HTTP Protocols**
    - **Test 6.1:** Create a page that opens `new WebSocket("ws://127.0.0.1:8080")`; audit the page; assert that the WebSocket connection proceeds (not blocked)
-   - **Test 6.2:** Check Chromium launch args; assert `--disable-webrtc` is NOT present
-   - **Expected Counterexamples:** Unfixed code does not block WebSocket or disable WebRTC
+   - **Test 6.2:** Check Chromium launch args; assert WEBRTC_LEAK_FLAGS are present (they already exist: `--force-webrtc-ip-handling-policy=disable_non_proxied_udp`, `--webrtc-ip-handling-policy=disable_non_proxied_udp`). This is a positive check confirming existing protection, not a bug
+   - **Expected Counterexamples:** Unfixed code does not block WebSocket
 
 7. **Category 7: Encoding Normalization**
    - **Test 7.1:** Call `shouldBlock("http://2130706433/")`, assert returns `{ block: false }` (32-bit decimal not normalized)
@@ -1006,8 +1285,8 @@ END FOR
    - **Test 5.1 (fixed):** Start a local test server that returns `HTTP 302` to `http://127.0.0.1:1234/`; audit the server URL; assert that `RawAudit.blockedRequests` contains `{ url: "http://127.0.0.1:1234/", reason: "blocked IP address (loopback)" }`
 
 6. **Category 6: Non-HTTP Protocols**
-   - **Test 6.1 (fixed):** Audit a page that opens `new WebSocket("ws://127.0.0.1:8080")`; assert that `RawAudit.blockedRequests` contains the WebSocket URL and reason "blocked IP address (loopback)"
-   - **Test 6.2 (fixed):** Check Chromium launch args; assert `--disable-webrtc` is present
+   - **Test 6.1 (fixed):** Audit a page that opens `new WebSocket("ws://127.0.0.1:8080")`; assert that `RawAudit.blockedRequests` contains entry with URL `connect://127.0.0.1:8080` and reason "blocked IP address (loopback)"
+   - **Test 6.2 (fixed):** Check Chromium launch args; assert each WEBRTC_LEAK_FLAGS entry is present (`--force-webrtc-ip-handling-policy=disable_non_proxied_udp`, `--webrtc-ip-handling-policy=disable_non_proxied_udp`), plus `--disable-quic` and `--disable-features=DnsOverHttps`. Never assert `--disable-webrtc` (that flag does not exist)
 
 7. **Category 7: Encoding Normalization**
    - **Test 7.1 (fixed):** Call `shouldBlock("http://2130706433/")`, assert returns `{ block: true, reason: "blocked IP address (loopback)" }`

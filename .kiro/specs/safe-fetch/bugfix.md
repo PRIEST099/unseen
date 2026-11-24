@@ -142,15 +142,15 @@ This bugfix specification uses the bug condition methodology to systematically c
 
 #### 5. HTTP Redirects
 
-2.22 WHEN a request returns an HTTP 301, 302, 307, or 308 redirect to a new URL THEN the system SHALL intercept the redirect in `page.route()`, resolve and validate the redirect target hostname, and block the redirect if any resolved address is in a blocked range
+2.22 WHEN a request returns an HTTP 301, 302, 307, or 308 redirect to a new URL THEN the system SHALL pass the redirect through the egress proxy, which validates the new host (page.route does not see redirect hops)
 
-2.23 WHEN a redirect chain contains multiple hops THEN every hop SHALL be validated before being followed
+2.23 WHEN a redirect chain contains multiple hops THEN every hop SHALL be validated by the proxy before being followed
 
 #### 6. Non-HTTP Protocols
 
-2.24 WHEN a page attempts to initiate a WebSocket connection (`ws://` or `wss://`) to a hostname THEN the system SHALL intercept the connection attempt, resolve and validate the hostname, and block the connection if any resolved address is in a blocked range
+2.24 WHEN a page attempts to initiate a WebSocket connection (`ws://` or `wss://`) to a hostname THEN the system SHALL intercept the connection attempt via the proxy's CONNECT handler, resolve and validate the hostname, and block the connection if any resolved address is in a blocked range
 
-2.25 WHEN Chromium is launched for an audit THEN the system SHALL include launch flags to disable WebRTC (e.g., `--disable-webrtc`) to prevent WebRTC-based IP leaks and internal service access
+2.25 WHEN Chromium is launched for an audit THEN the system SHALL keep the existing WEBRTC_LEAK_FLAGS from buildLaunchArgs (`--force-webrtc-ip-handling-policy=disable_non_proxied_udp`, `--webrtc-ip-handling-policy=disable_non_proxied_udp`). With the proxy in place, WebRTC can only use TCP through the proxy's CONNECT, which is validated. The system SHALL also add `--disable-quic` and `--disable-features=DnsOverHttps` to ensure every request goes through the proxy
 
 #### 7. Canonical Address Normalization
 
@@ -188,7 +188,7 @@ This bugfix specification uses the bug condition methodology to systematically c
 
 3.9 WHEN blocked requests occur during an audit THEN the system SHALL CONTINUE TO record them in `RawAudit.blockedRequests` with the URL and reason, allowing the page to continue loading other resources
 
-3.10 WHEN resource metering is active in `runner/resource-limits.ts` THEN the system SHALL CONTINUE TO count requests and bytes, with safe-fetch blocking happening independently
+3.10 WHEN resource metering is active in `runner/resource-limits.ts` THEN the system SHALL CONTINUE TO count requests and bytes, with safe-fetch blocking happening in `page.route()` through ResourceMeter.wrapPolicy, which runs in both restrictive and permissive modes. The proxy records blocks but does not count requests
 
 3.11 WHEN the audit guard in `audit-guard.ts` manages the audit lifecycle THEN the system SHALL CONTINUE TO work with the safe-fetch policy without requiring lifecycle changes
 

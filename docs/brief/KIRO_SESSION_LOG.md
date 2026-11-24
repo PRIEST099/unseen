@@ -361,3 +361,29 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-24 · Run 25 (12b) · started (owner account)
 - Kiro builds the haunting classifier (all tasks of `.kiro/specs/haunting-classifier/tasks.md`), after first fixing the `collectBoundingBoxes` pairing defect it reported in run 22. Visible in the Terminal panel.
+
+## 2026-11-24 · Safe-fetch spec review (Claude Code workflow: 2 reviewers plus verifiers)
+- **30 confirmed findings, 8 blockers.** Several were checked against the Playwright 1.65.1 source and Node 24:
+  - A launch-level `--proxy-server` hits Chromium's implicit loopback and link-local bypass, so the metadata endpoint stays reachable.
+  - `instanceof` mode dispatch is never true on real code paths.
+  - There is no handler for plain-HTTP absolute-form requests.
+  - Every HTTPS CONNECT crashes Node (`new URL(...).port === ''`).
+  - `--disable-webrtc` does not exist.
+- Evidence: `review-notes/safe-fetch-spec-review-1.md`.
+
+## 2026-11-24 · Runs 26 and 28: Kiro amends the safe-fetch spec (owner account)
+- **Instructions:** `prompts/26-safe-fetch-spec-amend.md` (decisions A–J), then `prompts/28-safe-fetch-spec-cleanup.md` by `--resume-id`, for stale sections that run 26 missed. Model `claude-sonnet-4.5`, fs tools only, run in the Terminal panel in parallel with run 25.
+- **Kiro produced:**
+  - a per-audit proxy wired through the Playwright context `proxy` option with `bypass: '<-loopback>'`
+  - explicit `policy.mode` (fail closed)
+  - CONNECT plus absolute-form handling, with a strict authority parser and Host taken from the request-target
+  - an error listener on both sockets
+  - Happy Eyeballs dialling (`autoSelectFamily`)
+  - a 5 s DNS timeout
+  - `auditHtml` on a synthetic origin, with Req 13 amended in the audit-engine spec
+  - the real WebRTC/QUIC/DoH flags
+  - a canonical range table
+  - `fc.asyncProperty` tests with an injectable resolver and dialer
+  - an honest egress-firewall section
+  - a rewrite of `tasks.md`
+- **Product-lead check:** grep for `instanceof Restrictive|--proxy-server|--disable-webrtc` now finds only "do not use" lines.

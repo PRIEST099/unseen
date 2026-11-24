@@ -68,3 +68,20 @@ Ordered so that a demo-able vertical slice arrives early:
 2. Then Spirit Sight on a sample.
 3. Then the whisper walk, keyboard walk and Daylight.
 4. Then the polish (fog shader, takes-form animation).
+
+## Addendum (2026-11-24): what the judges told us, and the engine as it really is
+**Judges' guidance** (`PRODUCT_BRIEF.md` §11b): all 5 criteria are weighted equally, so **Design is a full fifth of the score**. The judges asked for:
+- "a complete, polished product, not a proof of concept"
+- "a clean interface and an intuitive user experience"
+- "simple, focused solutions"
+- a demo video that shows it working **end to end**
+
+Shape the spec around that:
+1. **One obvious path.** Landing (paste a URL, or pick the Cursed Shop) → séance with real stages → Spirit Sight → keyboard walk and whisper walk → Daylight report. Every view has one primary action and is reachable in at most 2 clicks or keypresses.
+2. **Demo-first ordering in `tasks.md`.** First a vertical slice that runs end to end on the Cursed Shop, including the score and the WCAG export. Then polish (fog shader, takes-form animation, ambient sound), then edge cases. If time runs out, polish beats features.
+3. **The app audits itself.** A Playwright test runs `auditAndClassify` on the built app and must report **zero hauntings**. Treat that as a demo moment: "THE UNSEEN finds nothing haunted in itself".
+4. **Real engine API:** `auditAndClassify(url, options)` from `@the-unseen/core` returns a `ClassifiedAudit`, built by the classifier run. Read `packages/core/src/index.ts` and `src/classifier/` once they exist, and read `.kiro/specs/haunting-classifier/design.md` for the `ClassifiedAudit`/`Haunting` types (`wcag[]`, `guidance`, `speech`, `speechNote`, `soundCue`, `secondary`, `detectedCountsByType`, `needsManualCheck`). The séance stages need an `onProgress` callback in `AuditOptions`. Specify it as a small additive task in this spec (`runner` emits: loading → tree → walking → classifying).
+5. **Hosted safety:** the server uses the default restrictive policy (the safe-fetch spec adds an in-process proxy). The API must never accept a policy from the client.
+6. **Performance budget:** the first audit result appears in ≤ 20 s for the Cursed Shop on the hosted box, and the samples render instantly from JSON.
+
+In headless spec mode, write all three files (`requirements.md`, `design.md`, `tasks.md`) in this run. The product lead approves the requirements up front. Do not ask questions; if you near a limit, stop after a completed file and say which comes next.

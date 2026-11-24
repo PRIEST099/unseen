@@ -44,7 +44,7 @@ All requirements in this document use system names defined in the Glossary below
 #### Acceptance Criteria
 
 1. WHEN `auditUrl(url, options)` is called, THE Page_Loader SHALL launch a Chromium browser context with a fixed viewport of 1280px wide and 900px tall, then navigate to `url` and wait for the network to reach an idle state (no more than 2 in-flight network connections for at least 500 milliseconds) before collecting any data.
-2. WHEN `auditHtml(html, options)` is called, THE Page_Loader SHALL serve the HTML string from a local in-process file server and load it at the same 1280×900 viewport, applying the same data collection pipeline as `auditUrl`.
+2. WHEN `auditHtml(html, options)` is called, THE Page_Loader SHALL serve the HTML string with `page.route(...).fulfill()` on a synthetic origin `http://audit-html.unseen.invalid/`, keeping relative subresources failing closed. The OriginScopedPolicy allows exactly that synthetic origin, removing the need for a loopback HTTP server
 3. WHEN the page has finished loading, THE Page_Loader SHALL take a full-page screenshot in PNG format and record each element's `BoundingBox` by querying layout geometry via CDP in the same JavaScript execution context used for the screenshot, so that pixel coordinates in the screenshot and bounding boxes are consistent.
 4. THE Page_Loader SHALL attach a `backendDOMNodeId` to every collected `BoundingBox` so that the classifier can correlate visual position with AX tree nodes and DOM elements.
 5. WHEN the page navigation does not reach idle within 30 seconds, THE Page_Loader SHALL throw `AuditTimeoutError` with operation name `"navigation"` and elapsed time in milliseconds, and SHALL close the browser context in a `finally` block before propagating the error.
