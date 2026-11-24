@@ -254,3 +254,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - PR #1 (run 09) is merged. PR #2 is retargeted to `main`; PR #3 stays stacked on it.
 - A teammate now has Kiro credits. `docs/HANDOFF.md` §2 is updated with the current state, who built what, and the decision on the Claude-written tasks 5–16.
 - Added `prompts/19-kiro-review-runs-10-11.md`: Kiro reviews, fixes and adopts tasks 5–16. Recommended before run 12.
+
+## 2026-11-24 · Run 12 · started (owner account, 4,000 hackathon credits)
+- Claimed by the owner's Claude Code session (Windows). Spec-only run: `.kiro/specs/haunting-classifier/`.
