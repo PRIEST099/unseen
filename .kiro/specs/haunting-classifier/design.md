@@ -98,15 +98,20 @@ export type Haunting = {
   type: HauntingType
   kind?: string // for ShatteredOrder: "no-h1" | "heading-skip" | "no-main"
   severity: HauntingSeverity
-  wcag: WCAGCriterion
+  wcag: WCAGCriterion // primary criterion
+  wcagAlso?: WCAGCriterion[] // additional criteria
+  guidance?: string // e.g. "2.4.13" for Invisible Wanderer
   nodeIds: number[] // backendDOMNodeId for affected elements
   box: BoundingBox | null // primary element's box; null for page-level hauntings
   speech?: string // screen-reader announcement for this element
+  speechNote?: string // e.g. "name disappears when typing"
+  soundCue?: string // e.g. "garbled-whisper", "chime"
   htmlSnippet: string // ≤ 300 chars; outerHTML of the primary element
   explanation: string // what is wrong (1-2 sentences)
   persona: string // who is affected (1 sentence starting with "As a")
   fix: HauntingFix
   isPrimary: boolean // true for primary hauntings (scored); false for secondary
+  secondary?: Haunting[] // lower-precedence hauntings on the same element
 }
 
 export type WCAGCriterion = {
@@ -122,9 +127,10 @@ export type HauntingFix = {
 }
 
 export type ClassifiedAudit = {
-  hauntings: Haunting[] // primary hauntings only (isPrimary: true)
+  hauntings: Haunting[] // primary hauntings only (isPrimary: true), with their secondary arrays
   score: number // 0-100 Haunting Score
-  countsByType: Record<HauntingType, number> // counts primary hauntings only
+  countsByType: Record<HauntingType, number> // counts primary hauntings only (for scoring)
+  detectedCountsByType: Record<HauntingType, number> // primary + secondary per element (for golden test)
   needsManualCheck: ManualCheckNode[]
   automatedCoverageNote: string
   axeCrossCheck: AxeCrossCheck
@@ -133,7 +139,7 @@ export type ClassifiedAudit = {
 
 export type ManualCheckNode = {
   backendDOMNodeId: number
-  reason: "contrast-uncertain" | "off-screen-content"
+  reason: "contrast-uncertain" | "off-screen-content" | "focus-style-unavailable"
   htmlSnippet: string
 }
 
@@ -257,13 +263,17 @@ When multiple detection rules match the same element (by `backendDOMNodeId`), as
 7. Invisible Wanderer
 8. The Fog
 
+**Precedence key:** The `backendDOMNodeId` used for precedence grouping. For Cursed Loop it is `trapRegionNodeIds[0]` (the trap region: dialog or common ancestor). Cycle members go in `nodeIds` after it but do not take part in precedence. For all other types it is `nodeIds[0]`. Each precedence key has at most one primary haunting.
+
 **Algorithm:**
-1. Group all hauntings by their primary `backendDOMNodeId` (the first element in `nodeIds`).
+1. Group all hauntings by their precedence key (nodeIds[0] for most types, trapRegionNodeIds[0] for Cursed Loop).
 2. For each group, sort by precedence order.
-3. Mark the first haunting `isPrimary: true`, and the rest `isPrimary: false`.
+3. Mark the first haunting `isPrimary: true`, attach the rest as `secondary: Haunting[]`.
 4. Return the full set (primary + secondary).
 
 **Edge case:** page-level hauntings (Silent Tongue, Shattered Order with `kind: "no-h1"` or `"no-main"`) have `nodeIds: []` and cannot collide. They are always primary.
+
+**Note:** A Cursed Loop member that is also a Whispering Field keeps the Whispering Field as a secondary of the loop, because the loop's precedence key is the region, not the cycle members.
 
 ### Severity Assignment
 
@@ -330,17 +340,18 @@ announcement = [name, role, state].filter(Boolean).join(", ")
 - Empty name + interactive role → haunting (#1 or #7), but still announce the role
 
 **State inclusion rules:**
-| Role | State to include | Format |
-|------|------------------|--------|
-| checkbox, menuitemcheckbox | checked, unchecked, mixed | "checked" / "unchecked" / "mixed" |
-| radio, menuitemradio | selected, unselected | "selected" / "unselected" |
-| switch | on, off | "on" / "off" |
-| button | pressed (if `aria-pressed=true`) | "pressed" |
-| option | selected | "selected" |
-| tab | selected | "selected" |
-| combobox, treeitem | expanded, collapsed | "expanded" / "collapsed" |
-| Any | disabled | "dimmed" |
-| Any | required | "required" |
+| Role | State to include | Source Property | Format |
+|------|------------------|----------------|--------|
+| checkbox, menuitemcheckbox | checked, unchecked, mixed | `checked` ('true'\|'false'\|'mixed') | "checked" / "unchecked" / "mixed" |
+| radio, menuitemradio | selected, unselected | `checked` ('true' → "selected", otherwise "unselected") | "selected" / "unselected" |
+| switch | on, off | `checked` | "on" / "off" |
+| button | pressed (if `aria-pressed=true`) | `pressed` | "pressed" |
+| option | selected | `selected` | "selected" |
+| tab | selected | `selected` | "selected" |
+| combobox, treeitem | expanded, collapsed | `expanded` | "expanded" / "collapsed" |
+| Any | disabled | `disabled` | "dimmed" |
+| Any | required | `required` | "required" |
+| heading | level N | `level` property | append " level N" |
 
 **Input:** `AXNode` from the `RawAudit`.
 
@@ -815,7 +826,8 @@ function detectSilentTongue(raw: RawAudit): UnclassifiedHaunting[] {
       wcag: WCAG_3_1_1,
       nodeIds: [],
       box: null,
-      speech: "garbled whisper", // metaphorical
+      speech: undefined,
+      soundCue: "garbled-whisper", // audio cue, not spoken text
       htmlSnippet: "<html>",
       explanation: "Page has no language declaration. Screen readers cannot choose the correct pronunciation rules.",
       persona: "As a screen-reader user, I hear incorrect pronunciation.",
@@ -832,7 +844,8 @@ function detectSilentTongue(raw: RawAudit): UnclassifiedHaunting[] {
       wcag: WCAG_3_1_1,
       nodeIds: [],
       box: null,
-      speech: "garbled whisper",
+      speech: undefined,
+      soundCue: "garbled-whisper",
       htmlSnippet: `<html lang="${lang}">`,
       explanation: `Language attribute "${lang}" is not a valid BCP 47 tag. Screen readers cannot interpret it.`,
       persona: "As a screen-reader user, I hear incorrect pronunciation.",
@@ -1315,6 +1328,13 @@ export const WCAG_2_4_7: WCAGCriterion = {
   level: "AA",
   title: "Focus Visible",
   url: "https://www.w3.org/WAI/WCAG22/Understanding/focus-visible",
+}
+
+export const WCAG_2_4_13: WCAGCriterion = {
+  id: "2.4.13",
+  level: "AAA",
+  title: "Focus Appearance",
+  url: "https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance",
 }
 
 export const WCAG_3_1_1: WCAGCriterion = {

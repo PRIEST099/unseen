@@ -6,13 +6,31 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
 
 ## Tasks
 
+- [ ] 0. Extend RawAudit with DOM Node Data (Runner Prerequisite)
+  - Edit `packages/core/src/runner/collectors.ts` and `types.ts`
+  - Add `RawAudit.domNodes: Record<backendDOMNodeId, DomNodeInfo>` with tag, parentId, attributes, outerHTMLSnippet
+  - Add `RawAudit.imgSrcAttributes: Record<string, string | null>`
+  - Extend `HeadingRecord` with `backendDOMNodeId: number`
+  - Extend `PageMetadata` with `htmlBackendDOMNodeId` and `bodyBackendDOMNodeId`
+  - Extend `AxeViolationNode` with `backendDOMNodeId: number | null`
+  - Report radio/menuitemradio state from CDP `checked` property
+  - _Requirements: 0.1-0.9_
+  - **Tests:** Write integration test verifying domNodes map is populated correctly
+  - **Dependency:** This task MUST be completed before Task 1
+
 - [ ] 1. Capture RawAudit fixtures from Cursed Shop
-  - Start `apps/cursed-shop` server on localhost
-  - Create `packages/core/tests/fixtures/capture.ts` script
-  - Run `auditUrl` for index.html, product.html, checkout.html
-  - Save RawAudit JSON to `packages/core/tests/fixtures/raw/{page}.json`
-  - Commit fixtures to git for use in golden tests
-  - _Requirements: 27.1, 27.2, 27.3, 27.4_
+  - **DEPENDENCY:** Task 0 must be complete, AND audit-engine fix runs 19 and 19b must have landed
+  - Run `npm run test:integration -w @the-unseen/core` and `npm run verify -w cursed-shop`; both must pass before capturing
+  - Create `packages/core/tests/fixtures/capture.mjs` (ESM, no __dirname, no tsx initially)
+  - Use `startShopServer()` from `tests/fixtures/shop-server.ts` with `{ allowPrivate: true }`
+  - Resolve paths with `fileURLToPath(new URL('./raw/', import.meta.url))`
+  - For each page, call `auditUrl` then resolve selectors to `{self, subtree}` while page is open
+  - Write JSON with recursively sorted keys and `screenshotPng: ""`
+  - Assert `collectionErrors.length === 0` and correct `endReason`
+  - Call `await getPool().close()` and `await shop.close()` in finally
+  - Set `process.exitCode = 1` on error
+  - Add `"capture:fixtures": "node --experimental-strip-types tests/fixtures/capture.mjs"` or add tsx to devDependencies
+  - _Requirements: 27.1, 27.2, 27.3, 27.4, 27.5, 27.6_
   - _Design: Testing Strategy § Fixture Capture_
   - **Tests:** Verify JSON files exist and contain valid RawAudit structure
 
@@ -27,7 +45,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
   
   - [ ] 2.2 Create WCAG criterion definitions
     - Create `packages/core/src/classifier/wcag.ts`
-    - Export constant objects for all 11 WCAG criteria referenced in hauntings
+    - Export constant objects for all 12 WCAG criteria referenced in hauntings (including 2.4.13)
     - Each includes id, level, title, url fields
     - _Requirements: 2.5, 3.8, 4.8, 5.6, 6.5, 7.5, 8.6, 9.5, 10.5, 11.6_
     - _Design: Appendix: WCAG Criterion Definitions_
@@ -39,10 +57,24 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - Create placeholder files for severity.ts, precedence.ts, score.ts, speech.ts, contrast.ts, explanation.ts, axe-cross-check.ts
     - _Design: Architecture § Module Layout_
   
-  - [ ]* 2.4 Write unit tests for type definitions
+  - [ ] 2.4 Write unit tests for type definitions
     - Test that DetectorFunction signature matches expected shape
     - Test that all WCAG constants are well-formed
     - _Requirements: 29, 30_
+
+  - [ ] 2.5 Create shared helper utilities
+    - Create `packages/core/src/classifier/util.ts`
+    - Implement `hauntingId(type, nodeId, kind)` (deterministic FNV-1a, no crypto)
+    - Implement `parseCssColor(s): {r,g,b,a}|null` plus `blend`
+    - Implement `findBox`, `axByBackendId`
+    - Implement `axAncestors(raw, id)` and `axDescendants(raw, id)` over parentId/childIds
+    - _Requirements: 5.7, Findings 23, 32, 39_
+    - **Tests:** Write property tests for each helper with fast-check
+
+  - [ ] 2.6 Create test arbitraries
+    - Create `packages/core/src/classifier/test-arbitraries.ts`
+    - Export `arbRawAudit` and `arbHaunting` for use in property tests
+    - _Requirements: 22, 23, 24, 25, 26, Finding 42_
 
 - [ ] 3. Implement contrast computation module
   - [ ] 3.1 Implement WCAG luminance and contrast ratio functions
@@ -53,34 +85,43 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 18.1, 18.2, 18.3_
     - _Design: Data Models § Contrast Computation_
   
-  - [ ]* 3.2 Write property tests for contrast invariants
+  - [ ] 3.2 Write property tests for contrast invariants
     - **Property 7: Contrast ratio is symmetric**
     - **Validates: Requirements 18.4, 23.2**
     - Generate 100+ random color pairs with fast-check
     - Verify `contrastRatio(c1, c2) === contrastRatio(c2, c1)`
     - _Requirements: 18.4, 23.1, 23.2_
   
-  - [ ]* 3.3 Write property tests for contrast bounds
+  - [ ] 3.3 Write property tests for contrast bounds
     - **Property 8: Contrast ratio is bounded**
     - **Validates: Requirements 18.6, 23.3**
     - Generate 100+ random color pairs with fast-check
     - Verify `1 <= contrastRatio(c1, c2) <= 21`
     - _Requirements: 18.6, 23.1, 23.3_
   
-  - [ ]* 3.4 Write property tests for identical colors
+  - [ ] 3.4 Write property tests for identical colors
     - **Property 9: Identical colors have ratio 1**
     - **Validates: Requirements 18.5, 23.4**
     - Generate 100+ random colors with fast-check
     - Verify `contrastRatio(c, c) === 1`
     - _Requirements: 18.5, 23.1, 23.4_
   
-  - [ ]* 3.5 Write unit tests for contrast edge cases
+  - [ ] 3.5 Write unit tests for contrast edge cases
     - Test black-on-white returns 21
     - Test white-on-black returns 21
     - Test mid-gray combinations
     - _Requirements: 18_
 
+  - [ ] 3.6 Write property test for luminance monotonicity
+    - **Property: relativeLuminance is non-decreasing in each channel**
+    - **Validates: Requirements 23.5**
+    - Generate 100+ random color pairs with fast-check
+    - Verify contrastRatio grows with |L1-L2|
+    - _Requirements: 23.5, Finding 42_
+
 - [ ] 4. Checkpoint - Ensure all tests pass
+  - Run `npm run typecheck -w @the-unseen/core`
+  - Run `npx vitest --run` in `packages/core`
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Implement speech announcement module
@@ -100,35 +141,35 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
     - _Design: Data Models § Speech Announcement Generation_
   
-  - [ ]* 5.3 Write property tests for speech invariants
+  - [ ] 5.3 Write property tests for speech invariants
     - **Property 10: Speech always includes role**
     - **Validates: Requirements 14.3, 25.3**
     - Generate 100+ random AX nodes with fast-check
     - Verify announcement contains role label (unless generic/none/presentation)
     - _Requirements: 25.1, 25.2_
   
-  - [ ]* 5.4 Write property tests for name inclusion
+  - [ ] 5.4 Write property tests for name inclusion
     - **Property 11: Speech includes name iff non-empty**
     - **Validates: Requirements 14.2, 25.2**
     - Generate 100+ random AX nodes with fast-check
     - Verify name appears iff `axNode.name.value.trim().length > 0`
     - _Requirements: 25.1, 25.2_
   
-  - [ ]* 5.5 Write property tests for no fabricated text
+  - [ ] 5.5 Write property tests for no fabricated text
     - **Property 12: Speech contains no fabricated text**
     - **Validates: Requirements 14.8, 25.3**
     - Generate 100+ random AX nodes with fast-check
     - Verify announcement does not contain "undefined", "null", or unexpected text
     - _Requirements: 25.1, 25.3_
   
-  - [ ]* 5.6 Write property test for generic node skipping
+  - [ ] 5.6 Write property test for generic node skipping
     - **Property 13: Generic nodes are skipped**
     - **Validates: Requirements 14.5, 25.4**
     - Generate 100+ AX nodes with generic/none/presentation roles
     - Verify empty string returned
     - _Requirements: 25.1, 25.4_
   
-  - [ ]* 5.7 Write unit tests for speech examples
+  - [ ] 5.7 Write unit tests for speech examples
     - Test button with name: "Add to cart, button"
     - Test button without name: "button"
     - Test checkbox checked: "Subscribe, checkbox, checked"
@@ -152,12 +193,14 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 19.3, 19.4_
     - _Design: Detector Algorithms § each detector's fix field_
   
-  - [ ]* 6.3 Write unit tests for all explanations and fixes
+  - [ ] 6.3 Write unit tests for all explanations and fixes
     - Test each of 10 haunting types generates valid explanation, persona, and fix
     - Verify code snippets use correct HTML/ARIA syntax
     - _Requirements: 19_
 
 - [ ] 7. Checkpoint - Ensure all tests pass
+  - Run `npm run typecheck -w @the-unseen/core`
+  - Run `npx vitest --run` in `packages/core`
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Implement core detectors (Part 1: Nameless Spirit, Hollow Portrait, Silent Tongue)
@@ -169,7 +212,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
     - _Design: Detector Algorithms § 1. Nameless Spirit_
   
-  - [ ]* 8.2 Write unit tests for Nameless Spirit detector
+  - [ ] 8.2 Write unit tests for Nameless Spirit detector
     - Test all 14 interactive roles are recognized
     - Test non-empty names are not flagged
     - Test node with name="  " (whitespace) is flagged
@@ -184,7 +227,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
     - _Design: Detector Algorithms § 2. Hollow Portrait_
   
-  - [ ]* 8.4 Write unit tests for Hollow Portrait detector
+  - [ ] 8.4 Write unit tests for Hollow Portrait detector
     - Test img role with empty name is flagged
     - Test image role with empty name is flagged
     - Test alt="" is not flagged
@@ -202,7 +245,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
     - _Design: Detector Algorithms § 8. Silent Tongue_
   
-  - [ ]* 8.6 Write unit tests for Silent Tongue detector
+  - [ ] 8.6 Write unit tests for Silent Tongue detector
     - Test missing lang attribute is flagged
     - Test invalid lang values are flagged
     - Test valid lang="en" is not flagged
@@ -220,7 +263,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
     - _Design: Detector Algorithms § 3. The Fog_
   
-  - [ ]* 9.2 Write unit tests for The Fog detector
+  - [ ] 9.2 Write unit tests for The Fog detector
     - Test contrast below 4.5:1 for normal text is flagged
     - Test contrast below 3:1 for large text is flagged
     - Test contrast above thresholds is not flagged
@@ -237,7 +280,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
     - _Design: Detector Algorithms § 7. Whispering Field_
   
-  - [ ]* 9.4 Write unit tests for Whispering Field detector
+  - [ ] 9.4 Write unit tests for Whispering Field detector
     - Test textbox with empty name is flagged
     - Test textbox with placeholder-only name is flagged
     - Test textbox with label is not flagged
@@ -254,7 +297,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
     - _Design: Detector Algorithms § 9. Shattered Order_
   
-  - [ ]* 9.6 Write unit tests for Shattered Order detector
+  - [ ] 9.6 Write unit tests for Shattered Order detector
     - Test page with no h1 is flagged with kind="no-h1"
     - Test h1→h3 skip is flagged with kind="heading-skip"
     - Test page with no main landmark is flagged with kind="no-main"
@@ -262,6 +305,8 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 10_
 
 - [ ] 10. Checkpoint - Ensure all tests pass
+  - Run `npm run typecheck -w @the-unseen/core`
+  - Run `npx vitest --run` in `packages/core`
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 11. Implement complex detectors (Part 3: Lost Soul, Cursed Loop, Invisible Wanderer, The Veiled)
@@ -276,7 +321,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
     - _Design: Detector Algorithms § 4. Lost Soul_
   
-  - [ ]* 11.2 Write unit tests for Lost Soul detector
+  - [ ] 11.2 Write unit tests for Lost Soul detector
     - Test div with click handler not in Tab walk is flagged
     - Test button with click handler is not flagged (native interactive)
     - Test nested clickable divs report only outermost
@@ -292,7 +337,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
     - _Design: Detector Algorithms § 5. Cursed Loop_
   
-  - [ ]* 11.4 Write unit tests for Cursed Loop detector
+  - [ ] 11.4 Write unit tests for Cursed Loop detector
     - Test non-escapable cycle is flagged
     - Test escapable cycle is not flagged
     - Test cycle including all focusables is not flagged
@@ -307,7 +352,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
     - _Design: Detector Algorithms § 6. Invisible Wanderer_
   
-  - [ ]* 11.6 Write unit tests for Invisible Wanderer detector
+  - [ ] 11.6 Write unit tests for Invisible Wanderer detector
     - Test element with no outline change is flagged
     - Test element with visible outline is not flagged
     - Test element with box-shadow change is not flagged
@@ -324,7 +369,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
     - _Design: Detector Algorithms § 10. The Veiled_
   
-  - [ ]* 11.8 Write unit tests for The Veiled detector
+  - [ ] 11.8 Write unit tests for The Veiled detector
     - Test focusable inside aria-hidden is flagged
     - Test visible text with aria-hidden is flagged
     - Test img alt="" with role=presentation is not flagged
@@ -341,7 +386,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
     - _Design: Data Models § Severity Assignment_
   
-  - [ ]* 12.2 Write unit tests for severity assignment
+  - [ ] 12.2 Write unit tests for severity assignment
     - Test checkout button with Nameless Spirit gets Wraith
     - Test 3+ instances of same type get Restless
     - Test level A criterion gets Restless
@@ -350,27 +395,37 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 12_
 
 - [ ] 13. Checkpoint - Ensure all tests pass
+  - Run `npm run typecheck -w @the-unseen/core`
+  - Run `npx vitest --run` in `packages/core`
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 14. Implement precedence resolution module
+  - [ ] 14.0 Document precedence in steering
+    - Append §Precedence to `.kiro/steering/hauntings.md`
+    - Document order: Cursed Loop > Nameless Spirit > Whispering Field > Lost Soul > Hollow Portrait > Veiled > Invisible Wanderer > Fog
+    - Explain keying on nodeIds[0] (trapRegionNodeIds[0] for Cursed Loop)
+    - Explain secondaries are attached and unscored
+    - Note: Silent Tongue and Shattered Order never collide
+    - _Requirements: 15.1, 15.2, Findings 28, 42_
+  
   - [ ] 14.1 Create precedence resolver
     - Create `packages/core/src/classifier/precedence.ts`
-    - Implement `resolvePrecedence(hauntings: Haunting[]): Haunting[]`
+    - Implement `resolvePrecedence(hauntings: UnclassifiedHaunting[]): Array<UnclassifiedHaunting & {isPrimary: boolean; secondary: UnclassifiedHaunting[]}>`
     - Define precedence order: CursedLoop > NamelessSpirit > WhisperingField > LostSoul > HollowPortrait > TheVeiled > InvisibleWanderer > TheFog
-    - Group hauntings by primary backendDOMNodeId
-    - Mark first (highest precedence) as isPrimary: true, rest as isPrimary: false
+    - Group hauntings by precedence key (nodeIds[0] for most, trapRegionNodeIds[0] for Cursed Loop)
+    - Mark first (highest precedence) as isPrimary: true, attach rest as secondary array
     - Page-level hauntings (nodeIds: []) are always primary
     - _Requirements: 15.1, 15.2, 15.3, 15.4_
     - _Design: Data Models § Precedence Model_
   
-  - [ ]* 14.2 Write property tests for primary haunting uniqueness
+  - [ ] 14.2 Write property tests for primary haunting uniqueness
     - **Property 17: Primary haunting uniqueness**
     - **Validates: Requirements 15.1**
     - Generate 100+ random haunting sets with fast-check
-    - Verify each element has at most one primary haunting
+    - Verify each precedence key has at most one primary haunting
     - _Requirements: 15.1_
   
-  - [ ]* 14.3 Write unit tests for precedence resolution
+  - [ ] 14.3 Write unit tests for precedence resolution
     - Test CursedLoop beats NamelessSpirit on same element
     - Test NamelessSpirit beats WhisperingField on same element
     - Test page-level hauntings are always primary
@@ -380,61 +435,63 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
 - [ ] 15. Implement score computation module
   - [ ] 15.1 Create score computer
     - Create `packages/core/src/classifier/score.ts`
-    - Implement `computeScore(hauntings: Haunting[]): number`
+    - Implement `computeScore(hauntings: readonly Haunting[]): number`
     - Filter to isPrimary: true only
     - Apply weights: Wraith=20, Restless=8, Banished=3
     - Use formula: `round(100 * (1 - exp(-rawScore / 120)))`
     - _Requirements: 13.1, 13.2, 13.3, 13.4_
     - _Design: Data Models § Score Computation_
   
-  - [ ]* 15.2 Write property tests for score determinism
+  - [ ] 15.2 Write property tests for score determinism
     - **Property 1: Score is deterministic**
     - **Validates: Requirements 13.5, 21.5, 22.2**
     - Generate 100+ random haunting sets with fast-check
     - Verify calling computeScore twice returns same value
     - _Requirements: 13.5, 22.1, 22.2_
   
-  - [ ]* 15.3 Write property tests for score monotonicity
+  - [ ] 15.3 Write property tests for score monotonicity
     - **Property 2: Score is monotonic non-decreasing**
     - **Validates: Requirements 13.5, 22.4**
     - Generate 100+ random haunting sets with fast-check
     - Verify adding any haunting never decreases score
     - _Requirements: 13.5, 22.1, 22.4_
   
-  - [ ]* 15.4 Write property tests for score order-independence
+  - [ ] 15.4 Write property tests for score order-independence
     - **Property 3: Score is order-independent**
     - **Validates: Requirements 13.6, 22.3**
     - Generate 100+ random haunting sets with fast-check
     - Verify all permutations produce same score
     - _Requirements: 13.6, 22.1, 22.3_
   
-  - [ ]* 15.5 Write property tests for score bounds
+  - [ ] 15.5 Write property tests for score bounds
     - **Property 4: Score is bounded**
     - **Validates: Requirements 13.4, 22.5**
     - Generate 100+ random haunting sets with fast-check
     - Verify 0 <= score <= 100
     - _Requirements: 13.4, 22.1, 22.5_
   
-  - [ ]* 15.6 Write property tests for score zero baseline
+  - [ ] 15.6 Write property tests for score zero baseline
     - **Property 5: Score zero baseline**
     - **Validates: Requirements 13.3, 22.6**
     - Verify computeScore([]) === 0
     - _Requirements: 13.3, 22.1, 22.6_
   
-  - [ ]* 15.7 Write property tests for score severity-dominance
+  - [ ] 15.7 Write property tests for score severity-dominance
     - **Property 6: Score severity-dominance**
     - **Validates: Requirements 13.7, 22.7**
     - Generate 100+ random haunting sets with fast-check
     - Verify replacing haunting with higher severity never decreases score
     - _Requirements: 13.7, 22.1, 22.7_
   
-  - [ ]* 15.8 Write unit tests for score edge cases
+  - [ ] 15.8 Write unit tests for score edge cases
     - Test empty input returns 0
     - Test single Wraith returns ≈15
     - Test five Wraiths returns ≈57
     - _Requirements: 13_
 
 - [ ] 16. Checkpoint - Ensure all tests pass
+  - Run `npm run typecheck -w @the-unseen/core`
+  - Run `npx vitest --run` in `packages/core`
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 17. Implement axe cross-check module
@@ -447,14 +504,14 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Requirements: 16.1, 16.2, 16.3_
     - _Design: Architecture § Data Flow (axe cross-checker step)_
   
-  - [ ]* 17.2 Write property tests for axe violation accounting
+  - [ ] 17.2 Write property tests for axe violation accounting
     - **Property 16: Every axe violation is accounted for**
     - **Validates: Requirements 16.2, 24.2, 24.3**
     - Generate 100+ random RawAudit inputs with fast-check
     - Verify every axe violation either maps to haunting or appears in unmapped
     - _Requirements: 16.2, 24.1, 24.2, 24.3_
   
-  - [ ]* 17.3 Write unit tests for axe cross-check
+  - [ ] 17.3 Write unit tests for axe cross-check
     - Test axe violation matching haunting by nodeId is mapped
     - Test axe violation with no haunting appears in unmapped
     - Test multiple axe rules for same element all map to haunting
@@ -464,32 +521,32 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
   - [ ] 18.1 Create main classifier entry point
     - Create `packages/core/src/classifier/classify.ts`
     - Implement `classify(raw: RawAudit): ClassifiedAudit`
-    - Call all 10 detectors in parallel (or sequentially, doesn't matter for pure functions)
-    - Call resolvePrecedence to deduplicate
-    - Call assignSeverity
-    - Call generateExplanation and generateFix for each haunting
+    - Call all 10 detectors (order does not matter for pure functions)
+    - Call resolvePrecedence to deduplicate and assign primary/secondary
+    - Call assignSeverity on primaries
     - Call computeScore
     - Call crossCheckAxe
-    - Build needsManualCheck list (contrast-uncertain nodes)
+    - Build needsManualCheck list (contrast-uncertain nodes, focus-style-unavailable)
     - Add automatedCoverageNote
     - Return ClassifiedAudit with all fields populated
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 17_
     - _Design: Architecture § Data Flow_
   
-  - [ ]* 18.2 Write unit tests for classify integration
+  - [ ] 18.2 Write unit tests for classify integration
     - Test classify returns valid ClassifiedAudit structure
     - Test classify with empty RawAudit returns score 0
     - Test classify does not mutate input
     - _Requirements: 1_
   
-  - [ ]* 18.3 Write property tests for classification purity
+  - [ ] 18.3 Write property tests for classification purity
     - **Property 14: Detector purity**
     - **Validates: Requirements 21.1, 21.5, 26.2**
     - Generate 100+ random RawAudit inputs with fast-check
-    - Verify calling classify twice returns same output
+    - Loop over all 10 detectors plus classify with deep-frozen input
+    - Verify calling twice returns same output
     - _Requirements: 21.5, 26.1, 26.2_
   
-  - [ ]* 18.4 Write property tests for input immutability
+  - [ ] 18.4 Write property tests for input immutability
     - **Property 15: Detector does not mutate input**
     - **Validates: Requirements 21.4, 26.4**
     - Generate 100+ random RawAudit inputs with fast-check
@@ -497,7 +554,7 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - Verify no mutation error occurs
     - _Requirements: 21.4, 26.3, 26.4_
   
-  - [ ]* 18.5 Write property test for score counts only primary hauntings
+  - [ ] 18.5 Write property test for score counts only primary hauntings
     - **Property 18: Score counts only primary hauntings**
     - **Validates: Requirements 15.4**
     - Generate 100+ random RawAudit inputs with fast-check
@@ -507,13 +564,15 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
 
 - [ ] 19. Implement boundary enforcement
   - [ ] 19.1 Add ESLint no-restricted-imports rule
-    - Add to `.eslintrc.json` (or create if doesn't exist)
-    - Add override for `packages/core/src/classifier/**/*.ts`
-    - Forbid patterns `**/runner/**`
+    - Add devDependencies `eslint@^9` and `typescript-eslint@^8` to root package.json
+    - Create root `eslint.config.js` (flat config)
+    - Use typescript-eslint's parser for `packages/core/src/classifier/**/*.ts`
+    - Add `no-restricted-imports: ['error', { patterns: [{ group: ['**/runner/*', '../runner/*', './runner/*'], message: 'classifier must not import runner (structure.md)' }] }]`
+    - Add `"lint": "eslint packages/core/src/classifier"` script to root package.json
     - _Requirements: 31.1, 31.2_
     - _Design: Testing Strategy § Boundary Test (ESLint rule section)_
   
-  - [ ]* 19.2 Write boundary violation test
+  - [ ] 19.2 Write boundary violation test
     - Create `packages/core/src/classifier/boundary.test.ts`
     - Grep all classifier files for import statements
     - Verify no imports resolve to `src/runner/`
@@ -521,28 +580,31 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - _Design: Testing Strategy § Boundary Test_
 
 - [ ] 20. Checkpoint - Ensure all tests pass
+  - Run `npm run typecheck -w @the-unseen/core`
+  - Run `npx vitest --run` in `packages/core`
+  - Run `npm run lint` in root
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 21. Implement golden tests against Cursed Shop fixtures
-  - [ ]* 21.1 Write golden test for index.html
+  - [ ] 21.1 Write golden test for index.html
     - Load `packages/core/tests/fixtures/raw/index.json`
     - Call `classify(raw)`
-    - Assert countsByType matches `apps/cursed-shop/expected-hauntings.json` for index.html
-    - Assert node IDs (resolved from selectors) match
+    - Assert detectedCountsByType matches `apps/cursed-shop/expected-hauntings.json` for index.html
+    - Assert node IDs (resolved from selectors via .selectors.json) match
     - _Requirements: 20.1, 20.4, 20.5_
     - _Design: Testing Strategy § Integration Tests (Golden test section)_
   
-  - [ ]* 21.2 Write golden test for product.html
+  - [ ] 21.2 Write golden test for product.html
     - Load `packages/core/tests/fixtures/raw/product.json`
     - Call `classify(raw)`
-    - Assert countsByType matches `apps/cursed-shop/expected-hauntings.json` for product.html
+    - Assert detectedCountsByType matches `apps/cursed-shop/expected-hauntings.json` for product.html
     - Assert node IDs match
     - _Requirements: 20.2, 20.4, 20.5_
   
-  - [ ]* 21.3 Write golden test for checkout.html
+  - [ ] 21.3 Write golden test for checkout.html
     - Load `packages/core/tests/fixtures/raw/checkout.json`
     - Call `classify(raw)`
-    - Assert countsByType matches `apps/cursed-shop/expected-hauntings.json` for checkout.html
+    - Assert detectedCountsByType matches `apps/cursed-shop/expected-hauntings.json` for checkout.html
     - Assert node IDs match
     - _Requirements: 20.3, 20.4, 20.5_
 
@@ -563,16 +625,20 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
     - Verify all public types are exported
     - _Requirements: 28.1_
   
-  - [ ]* 22.3 Write integration test for auditAndClassify
-    - Start cursed-shop server in test setup
-    - Call `auditAndClassify("http://localhost:3000/index.html")`
+  - [ ] 22.3 Write integration test for auditAndClassify
+    - Start cursed-shop server in test setup using startShopServer() with { allowPrivate: true }
+    - Call `auditAndClassify(shop.baseUrl + "/index.html", { allowPrivate: true })`
     - Verify returns valid ClassifiedAudit
     - Verify score > 0 (cursed shop has hauntings)
     - Verify hauntings array is non-empty
+    - Close server and getPool() in afterAll
     - _Requirements: 28_
 
 - [ ] 23. Final checkpoint - Ensure all tests pass
-  - Run full test suite: `npm test` and `npm run test:integration`
+  - Run `npm run typecheck -w @the-unseen/core`
+  - Run `npx vitest --run` in `packages/core`
+  - Run `npx playwright test` in `packages/core`
+  - Run `npm run lint` in root
   - Verify all property tests pass (100+ iterations each)
   - Verify all golden tests pass
   - Verify boundary test passes
@@ -580,7 +646,6 @@ The haunting classifier is a pure functional layer that transforms raw audit dat
 
 ## Notes
 
-- Tasks marked with `*` are optional property and unit tests that can be skipped for faster MVP, but are strongly recommended for correctness
 - Each detector task references specific requirements for traceability
 - Property tests validate universal correctness properties from the design
 - Golden tests validate exact expected results against Cursed Shop fixtures

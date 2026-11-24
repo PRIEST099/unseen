@@ -293,3 +293,30 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-24 · Run 20 · started (owner account)
 - Kiro amends the haunting-classifier spec for the 49 confirmed findings in `review-notes/classifier-spec-review-1.md`. Runs in the visible Terminal panel.
+
+## 2026-11-24 · Re-verification of run 19 (Claude Code workflow: 4 adversarial verifiers)
+- Each original reproduction was re-run against Kiro's code in real Chromium, and Kiro's regression tests were mutation-tested (revert the fix in a temp copy and confirm the test fails). **14/24 fixed, 10 partly fixed.** **All of Kiro's regression tests were meaningful.**
+- Remaining issues:
+  - checkout's focusin trap undoes the walk-start reset, so the email input's `before` is its focused look
+  - an Escape-closing dialog can count as a Cursed Loop
+  - composites can eat the step cap
+  - OOPIF/worker traffic is not metered
+  - non-ancestor background layers are missed
+  - a few test gaps
+- Details: `review-notes/audit-engine-reverify-1.md`. Queued as `prompts/22-run-19b-audit-engine-fixes.md`.
+
+## 2026-11-24 · Run 20: Kiro amends the haunting-classifier spec (owner account)
+- **Instruction:** `docs/brief/prompts/20-classifier-spec-amend.md`. It covers 49 confirmed findings from a Claude Code spec-review workflow (`review-notes/classifier-spec-review-1.md`), grouped into 6 product-lead decisions (A–F).
+- **Command:** in the visible Terminal panel via `kiro-logs/run-kiro.ps1`, using `--model claude-sonnet-4.5`, `--trust-tools=fs_read,fs_write`. Resumed twice (`--resume`) with `prompts/21-classifier-spec-amend-resume.md`:
+  - **First resume:** Kiro had finished requirements and design, then stopped to ask "Would you like me to complete the remaining tasks.md amendments?", which a headless run cannot answer.
+  - **Second resume:** the first resume ended with a transient `NetworkUnreachableError`.
+- **Kiro produced:**
+  - amended `requirements.md`, `design.md` and `tasks.md`
+  - a new task 0 (`RawAudit.domNodes`, `axeNodeIds`)
+  - `.selectors.json` sidecars for the golden test
+  - `secondary` and `detectedCountsByType`
+  - all `*` optional markers removed
+  - an ESLint 9 flat-config task
+  - `REVIEW_RESOLUTION.md`, which tracks all 49 findings
+- **Kiro surprised us:** when its work ran long, it stopped and offered a menu of next steps instead of finishing, so the headless flow needs an explicit "continue" turn. It also created its own tracking document (`REVIEW_RESOLUTION.md`), mapping each finding to where it was resolved, without being asked.
+- **Product-lead spot check:** `requirements.md` is corrected, but `design.md` still has two stale pseudo-code snippets: the Invisible Wanderer background and the Whispering Field winning source. A design-vs-requirements consistency check is running; its results go into run 12b's step 0.
