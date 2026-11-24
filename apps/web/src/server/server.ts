@@ -45,6 +45,11 @@ function isProduction(): boolean {
   return process.env.NODE_ENV === 'production'
 }
 
+/** Dev runs the SPA through Vite; production and the e2e server (`NODE_ENV=test`) serve the build. */
+function shouldServeSpa(): boolean {
+  return isProduction() || process.env.NODE_ENV === 'test'
+}
+
 function resolveLogger(option: ServerOptions['logger']): FastifyServerOptions['logger'] {
   if (option !== undefined) return option
   return isProduction() ? true : { transport: { target: 'pino-pretty' } }
@@ -124,7 +129,7 @@ export function createServer(options: ServerOptions = {}): FastifyInstance {
 
   registerApi(server, options.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY)
   registerCursedShop(server)
-  if (isProduction()) {
+  if (shouldServeSpa()) {
     registerSpa(server, options.clientDir ?? DEFAULT_CLIENT_DIR)
   }
 

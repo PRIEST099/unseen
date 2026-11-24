@@ -14,5 +14,7 @@ export default defineConfig({
   build: {
     outDir: 'dist/client',
     sourcemap: true,
+    // The CSP allows fonts from 'self' only, so no font may be inlined as a data: URI.
+    assetsInlineLimit: 0,
   },
 })

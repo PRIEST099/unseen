@@ -100,6 +100,20 @@ describe('createServer in production', () => {
     expect((await server.inject({ method: 'GET', url: '/cursed-shop/nope' })).statusCode).toBe(404)
   })
 
+  it('serves the SPA under NODE_ENV=test (the e2e server) but not under development', async () => {
+    const clientDir = mkdtempSync(path.join(tmpdir(), 'unseen-client-'))
+    tempDirs.push(clientDir)
+    writeFileSync(path.join(clientDir, 'index.html'), '<!doctype html><html lang="en"><h1>SPA shell</h1></html>')
+
+    vi.stubEnv('NODE_ENV', 'test')
+    const testServer = build({ clientDir })
+    expect((await testServer.inject({ method: 'GET', url: '/sample/x' })).body).toContain('SPA shell')
+
+    vi.stubEnv('NODE_ENV', 'development')
+    const devServer = build({ clientDir })
+    expect((await devServer.inject({ method: 'GET', url: '/sample/x' })).statusCode).toBe(404)
+  })
+
   it('still serves the cursed shop without a CSP and the API with one', async () => {
     const server = productionServer()
     const shop = await server.inject({ method: 'GET', url: '/cursed-shop/index.html' })
