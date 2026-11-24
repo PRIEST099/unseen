@@ -1,4 +1,5 @@
-import type { AXNode, RawAudit } from '../types.js'
+import type { AXNode, BoundingBox, RawAudit } from '../types.js'
+import type { SpeechLine } from './types.js'
 import { axName, axProp, axRole, fileNameFromSrc, isPlaceholderSource, winningNameSource } from './util.js'
 
 export type RoleLabel = string // human-readable role name
@@ -129,4 +130,29 @@ export function announce(node: AXNode, raw: RawAudit): string {
 export function announceNote(node: AXNode): string | undefined {
   if (!BLANK_ROLES.has(axRole(node)) || axName(node) === '') return undefined
   return isPlaceholderSource(winningNameSource(node)) ? PLACEHOLDER_NOTE : undefined
+}
+
+/**
+ * The Whisper Walk speech track: one line per non-ignored AX node, in the order of `raw.axNodes` (CDP tree order).
+ * Nodes that announce nothing (generic, none, presentation) are left out. Pure: reuses `announce` and `announceNote`.
+ */
+export function buildSpeechTrack(raw: RawAudit): SpeechLine[] {
+  const boxes = new Map<number, BoundingBox>()
+  for (const box of raw.boundingBoxes) {
+    if (!boxes.has(box.backendDOMNodeId)) boxes.set(box.backendDOMNodeId, box)
+  }
+  const lines: SpeechLine[] = []
+  for (const node of raw.axNodes) {
+    if (node.ignored === true) continue
+    const text = announce(node, raw)
+    if (text === '') continue
+    const note = announceNote(node)
+    lines.push({
+      backendDOMNodeId: node.backendDOMNodeId,
+      text,
+      ...(note !== undefined ? { note } : {}),
+      box: boxes.get(node.backendDOMNodeId) ?? null,
+    })
+  }
+  return lines
 }

@@ -220,6 +220,10 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - **Seen, not fixed (outside the findings):** `collectBoundingBoxes` in `browser.ts` pairs element rects with ids by index from two snapshots and throws on a count mismatch, so a page that adds or removes elements at load time can fail `loadPage`. A page that only reorders elements is fine.
   - **Known limits:** a trap inside a cross-origin frame or closed shadow root ends as `composite-stuck` and is never `trapDetected`. Layers with `pointer-events: none` are found by geometry only. Per-node listener CDP errors (Req 8.4) have no test of their own.- Property tests (tasks 4 and 6) use `fast-check` and must each run a minimum of 100 iterations as required by the testing strategy in the design document
 
+### Drift from spec
+
+- Task 1.0a (spirit-sight-ui): Added `buildSpeechTrack(raw): SpeechLine[]` exported by name from `src/index.ts`. This builds the AX-tree speech track for the Whisper Walk. `SpeechLine` type also exported. No breaking change; additive only.
+
 ## Task Dependency Graph
 
 ```json

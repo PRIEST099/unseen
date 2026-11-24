@@ -29,7 +29,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** `npm run typecheck -w apps/web` passes (with empty client/server stubs)
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm install` completes without peer-dependency warnings
   
-  - [-] 1.0a Add `buildSpeechTrack` to core classifier
+  - [x] 1.0a Add `buildSpeechTrack` to core classifier
     - _Requirements: Requirement 13 (Implement Whisper Walk with Web Speech) — the Whisper Walk needs AX-tree speech in reading order_
     - _Design: Section "Data Contract: Core Types to UI Needs" row "Speech", decision I from prompt 38_
     - **Acceptance Criteria:**
@@ -46,7 +46,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run test -w @the-unseen/core` passes; `buildSpeechTrack` and `SpeechLine` are exported by name from `@the-unseen/core`
     - **Note in audit-engine spec:** Add this change to `.kiro/specs/audit-engine/tasks.md` Notes section under "Drift from spec": "Task 1.0a (spirit-sight-ui): Added `buildSpeechTrack(raw): SpeechLine[]` exported by name from `src/index.ts`. This builds the AX-tree speech track for the Whisper Walk. `SpeechLine` type also exported. No breaking change; additive only."
   
-  - [~] 1.1 Add `onProgress` callback to `auditAndClassify` (additive core change)
+  - [-] 1.1 Add `onProgress` callback to `auditAndClassify` (additive core change)
     - _Requirements: Requirement 3 (Execute Audits with Progress Tracking)_
     - _Design: Section "Audit Job Queue > Job Worker" and Requirement 3 acceptance criteria 2–3_
     - **Acceptance Criteria:**
@@ -336,6 +336,10 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - Task 1.0 (scaffold): `vitest.config.ts` adds `environmentMatchGlobs: [['src/server/**', 'node']]` so server tests run in Node while client tests use jsdom. `playwright.config.ts` also sets `testMatch`, `timeout: 240000`, `workers: 1`, `channel` (`UNSEEN_CHROMIUM_CHANNEL ?? 'chromium'`), `reuseExistingServer` and `webServer.timeout: 120000` per requirement 28.
 - Task 1.0 (scaffold): `tsconfig.json` overrides the base `module`/`moduleResolution` (`NodeNext`) with `ESNext`/`bundler` as specified. Server source must therefore write relative imports with explicit `.js` extensions (as in the design snippets) so the emitted ESM runs under Node.
 - Task 1.0 (scaffold): minimal stubs `src/client/main.tsx` (renders an `h1` in `main#main`) and `src/server/main.ts` (`export {}`) were added so both tsconfigs have inputs; tasks 1.3 and 1.5 replace them. Empty directories are kept with `.gitkeep` files (`src/client/{components,views,hooks,contexts}`, `src/server/{routes,jobs}`, `e2e`, `scripts`, `samples`).
+
+- Task 1.0a (core speech track): `buildSpeechTrack` and `announce`/`announceNote` live together in `packages/core/src/classifier/speech.ts` (the task says `announce` already exists there). Like the design's code sample, `buildSpeechTrack` leaves out AX nodes whose `announce()` text is empty (generic, none, presentation), in addition to ignored nodes; the AC wording ("for each node where `ignored !== true`") would otherwise emit blank utterances. `note` is omitted from the line (not set to `undefined`) when `announceNote` returns nothing. Boxes are looked up through a `Map` keyed by `backendDOMNodeId` (first box wins, same as `find`); `box` is `null` when none is recorded.
+- Task 1.0a (existing test updated): `packages/core/src/index.test.ts` already existed and pins the exact public export list (finding 42). `buildSpeechTrack` was added to that list, and a second test imports `buildSpeechTrack` and `SpeechLine` by name. The task text says the file "exists with a test", so no new file was created.
+- Task 1.0a (design sample mismatch): the design's `WhisperWalk` code reads `speechTrack` from `buildSpeechTrack(audit.raw)` on the client, while task 1.2 also stores `speechTrack` in each sample JSON. Both are served by the same core function, so they agree.
 
 **Blocked tasks**:
 - None

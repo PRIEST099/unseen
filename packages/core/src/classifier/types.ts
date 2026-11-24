@@ -61,6 +61,14 @@ export type Haunting = {
   secondary: Haunting[] // lower-precedence hauntings on colliding nodeIds
 }
 
+/** One utterance of the Whisper Walk: what a screen reader says for a visible AX node, in tree order. */
+export type SpeechLine = {
+  backendDOMNodeId: number // 0 when the AX node has no DOM mapping
+  text: string // announce(node, raw)
+  note?: string // announceNote(node), e.g. "name disappears when typing"
+  box: BoundingBox | null // from raw.boundingBoxes; null when none is recorded
+}
+
 export type UnclassifiedHaunting = Omit<Haunting, 'severity' | 'isPrimary' | 'secondary'>
 
 export type ManualCheckNode = {

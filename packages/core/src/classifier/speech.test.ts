@@ -2,7 +2,7 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { arbAxNode, arbBlank, arbRealName, SPEECH_ROLES } from '../../tests/classifier/arbitraries.js'
 import { ax, baseRaw, BODY_ID, dom } from '../../tests/classifier/builders.js'
-import { announce, announceNote, PLACEHOLDER_NOTE, ROLE_LABEL_MAP, SKIPPED_ROLES } from './speech.js'
+import { announce, announceNote, buildSpeechTrack, PLACEHOLDER_NOTE, ROLE_LABEL_MAP, SKIPPED_ROLES } from './speech.js'
 
 const RUNS = { numRuns: 200 }
 const raw = baseRaw()
@@ -150,5 +150,42 @@ describe('speech examples (hauntings.md)', () => {
   it('unknown roles use the raw role string', () => expect(say({ id: 5, role: 'tooltip', name: 'Hint' })).toBe('Hint, tooltip'))
   it('every role in the steering table has a label', () => {
     for (const role of SPEECH_ROLES.filter((r) => ['paragraph', 'article', 'separator'].indexOf(r) === -1)) expect(ROLE_LABEL_MAP[role]).toBeDefined()
+  })
+})
+
+describe('buildSpeechTrack', () => {
+  const box = { backendDOMNodeId: 5, x: 10, y: 20, width: 100, height: 30 }
+
+  it('walks axNodes in tree order, skips ignored nodes, and attaches boxes', () => {
+    const r = baseRaw({
+      axNodes: [ax({ id: 5, role: 'button', name: 'Add to cart' }), ax({ id: 6, role: 'link' }), ax({ id: 7, role: 'button', name: 'Hidden', ignored: true })],
+      boundingBoxes: [box],
+    })
+    const track = buildSpeechTrack(r)
+    expect(track).toHaveLength(2)
+    expect(track[0]).toEqual({ backendDOMNodeId: 5, text: 'Add to cart, button', box })
+    expect(track[1]).toEqual({ backendDOMNodeId: 6, text: 'link', box: null })
+  })
+
+  it('carries the placeholder note and skips generic nodes', () => {
+    const field = ax({
+      id: 8,
+      role: 'textbox',
+      name: 'Email address',
+      sources: [{ type: 'attribute', attribute: 'placeholder', value: { type: 'computedString', value: 'Email address' } }],
+    })
+    const track = buildSpeechTrack(baseRaw({ axNodes: [ax({ id: 9, role: 'generic', name: 'x' }), field] }))
+    expect(track).toEqual([{ backendDOMNodeId: 8, text: 'Email address, edit text', note: PLACEHOLDER_NOTE, box: null }])
+  })
+
+  it('Property: every line equals announce() of a distinct non-ignored node, in the same order', () => {
+    fc.assert(
+      fc.property(fc.array(arbAxNode(), { maxLength: 12 }), (nodes) => {
+        const r = baseRaw({ axNodes: nodes })
+        const expected = nodes.filter((n) => !n.ignored && announce(n, r) !== '').map((n) => announce(n, r))
+        expect(buildSpeechTrack(r).map((l) => l.text)).toEqual(expected)
+      }),
+      RUNS
+    )
   })
 })

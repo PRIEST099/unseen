@@ -1,6 +1,7 @@
 // Audit engine entry point: the public contract, exported by name (no wildcard re-exports).
 // Internals (the pool class, the loader, collectors, the walker) are imported from their own modules.
 export { auditAndClassify, auditUrl, auditHtml, OriginScopedPolicy } from './audit.js'
+export { buildSpeechTrack } from './classifier/speech.js'
 export { getPool } from './runner/browser.js'
 export { PermissiveSafeFetchPolicy, RestrictiveSafeFetchPolicy } from './runner/safe-fetch.js'
 export {
@@ -22,6 +23,7 @@ export type {
   ManualCheckNode,
   WCAGCriterion,
 } from './classifier/types.js'
+export type { SpeechLine } from './classifier/types.js'
 export type {
   AuditOptions,
   AXNode,
