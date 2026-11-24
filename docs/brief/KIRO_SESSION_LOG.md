@@ -320,3 +320,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `REVIEW_RESOLUTION.md`, which tracks all 49 findings
 - **Kiro surprised us:** when its work ran long, it stopped and offered a menu of next steps instead of finishing, so the headless flow needs an explicit "continue" turn. It also created its own tracking document (`REVIEW_RESOLUTION.md`), mapping each finding to where it was resolved, without being asked.
 - **Product-lead spot check:** `requirements.md` is corrected, but `design.md` still has two stale pseudo-code snippets: the Invisible Wanderer background and the Whispering Field winning source. A design-vs-requirements consistency check is running; its results go into run 12b's step 0.
+
+## 2026-11-24 · Run 22 (19b) · started (owner account)
+- Kiro finishes the audit-engine adoption: the 10 partly fixed findings, then minors 25–47. Visible in the Terminal panel.
