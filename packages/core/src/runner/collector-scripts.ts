@@ -132,6 +132,7 @@ export const PICK_FN = `function (indices) { return indices.map((i) => this[i]) 
 /** `this` = a list of elements. Reads tag names, so ids and attributes come from the same snapshot. */
 export const HEADING_TAGS_FN = `function () { return this.map((h) => h.tagName.toLowerCase()) }`
 export const IMG_ALTS_FN = `function () { return this.map((i) => i.getAttribute('alt')) }`
+export const IMG_SRCS_FN = `function () { return this.map((i) => i.getAttribute('src')) }`
 
 /** `this` = a list of elements, args = (start, n). The Veiled rows for the slice. */
 export const MAPPING_ROWS_FN = `function (start, n) {

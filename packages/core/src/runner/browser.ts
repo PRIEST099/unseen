@@ -242,17 +242,32 @@ export type LoadedPage = {
 type CdpNode = {
   nodeType: number
   backendNodeId: number
+  attributes?: string[]
   children?: CdpNode[]
 }
 
-/** Element backendNodeIds in document (pre-)order, matching `querySelectorAll('*')`. */
-function elementBackendIdsInOrder(root: CdpNode): number[] {
-  const out: number[] = []
+/** Temporary attribute that pairs a rect snapshot with a CDP DOM snapshot by element identity. */
+const BOX_STAMP_ATTR = 'data-unseen-bb'
+
+/** Map stamp index -> backendNodeId for every element carrying the stamp attribute. */
+function stampedBackendIds(root: CdpNode): Map<number, number> {
+  const out = new Map<number, number>()
+  const ambiguous = new Set<number>() // a page script cloned a stamped element: drop both
   const walk = (node: CdpNode) => {
-    if (node.nodeType === 1) out.push(node.backendNodeId)
+    if (node.nodeType === 1 && node.attributes) {
+      for (let i = 0; i + 1 < node.attributes.length; i += 2) {
+        if (node.attributes[i] === BOX_STAMP_ATTR) {
+          const idx = Number(node.attributes[i + 1])
+          if (!Number.isInteger(idx)) continue
+          if (out.has(idx)) ambiguous.add(idx)
+          out.set(idx, node.backendNodeId)
+        }
+      }
+    }
     for (const child of node.children ?? []) walk(child)
   }
   walk(root)
+  for (const idx of ambiguous) out.delete(idx)
   return out
 }
 
@@ -340,18 +355,22 @@ export class PageLoader {
 }
 
 /**
- * One `page.evaluate` over `querySelectorAll('*')` for the rects, then one CDP
- * `DOM.getDocument` to pair each element with its backendDOMNodeId by document order.
+ * One `page.evaluate` stamps every element with its index and reads its rect in the same
+ * synchronous snapshot. One CDP `DOM.getDocument` then reads the stamps back, so each rect is
+ * paired with its backendDOMNodeId by element identity, not by position. Elements added or
+ * removed between the two snapshots are skipped instead of shifting the pairing. The stamp is
+ * removed before returning.
  */
 export async function collectBoundingBoxes(page: Page): Promise<BoundingBox[]> {
-  const rects = await page.evaluate(() => {
+  const rects = await page.evaluate((attr: string) => {
     const sx = window.scrollX
     const sy = window.scrollY
-    return Array.from(document.querySelectorAll('*'), (el) => {
+    return Array.from(document.querySelectorAll('*'), (el, index) => {
+      el.setAttribute(attr, String(index))
       const r = el.getBoundingClientRect()
       return { x: r.left + sx, y: r.top + sy, width: r.width, height: r.height }
     })
-  })
+  }, BOX_STAMP_ATTR)
 
   let session: CDPSession | undefined
   try {
@@ -359,13 +378,20 @@ export async function collectBoundingBoxes(page: Page): Promise<BoundingBox[]> {
     const { root } = (await session.send('DOM.getDocument', { depth: -1, pierce: false })) as {
       root: CdpNode
     }
-    const ids = elementBackendIdsInOrder(root)
-    if (ids.length !== rects.length) {
-      throw new Error(`DOM/CDP element count mismatch: ${rects.length} vs ${ids.length}`)
-    }
-    return rects.map((r, i) => normalizeBoundingBox(r, 1, ids[i]))
+    const idByStamp = stampedBackendIds(root)
+    const boxes: BoundingBox[] = []
+    rects.forEach((r, index) => {
+      const id = idByStamp.get(index)
+      if (id !== undefined) boxes.push(normalizeBoundingBox(r, 1, id))
+    })
+    return boxes
   } finally {
     await session?.detach().catch(() => undefined)
+    await page
+      .evaluate((attr: string) => {
+        for (const el of document.querySelectorAll(`[${attr}]`)) el.removeAttribute(attr)
+      }, BOX_STAMP_ATTR)
+      .catch(() => undefined)
   }
 }
 

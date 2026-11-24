@@ -1,0 +1,649 @@
+{
+ "controls": {
+  "decorativeAltNotHollow": {
+   ".product-thumbnails .product-thumb:nth-child(1)": {
+    "self": [
+     61
+    ],
+    "subtree": [
+     61
+    ]
+   },
+   ".product-thumbnails .product-thumb:nth-child(2)": {
+    "self": [
+     62
+    ],
+    "subtree": [
+     62
+    ]
+   },
+   ".product-thumbnails .product-thumb:nth-child(3)": {
+    "self": [
+     63
+    ],
+    "subtree": [
+     63
+    ]
+   }
+  },
+  "hasH1": {
+   ".product-title": {
+    "self": [
+     66
+    ],
+    "subtree": [
+     66
+    ]
+   }
+  },
+  "hasLang": {
+   "html[lang=\"en\"]": {
+    "self": [
+     11
+    ],
+    "subtree": [
+     11,
+     12,
+     13,
+     14,
+     15,
+     17,
+     18,
+     20,
+     22,
+     23,
+     24,
+     25,
+     27,
+     28,
+     30,
+     32,
+     34,
+     36,
+     38,
+     39,
+     40,
+     42,
+     43,
+     44,
+     46,
+     47,
+     48,
+     49,
+     52,
+     55,
+     9,
+     58,
+     59,
+     60,
+     61,
+     62,
+     63,
+     65,
+     66,
+     68,
+     70,
+     71,
+     73,
+     75,
+     77,
+     78,
+     80,
+     82,
+     83,
+     84,
+     86,
+     88,
+     89,
+     91,
+     93,
+     94,
+     96,
+     98,
+     99,
+     101,
+     103,
+     104,
+     106,
+     108,
+     109,
+     111,
+     112,
+     114,
+     116,
+     118,
+     119,
+     2,
+     122,
+     126,
+     129,
+     132,
+     135,
+     138,
+     139,
+     141,
+     142,
+     143,
+     145,
+     146,
+     147,
+     149,
+     150,
+     151,
+     152,
+     154,
+     156,
+     158,
+     160,
+     161,
+     162,
+     164,
+     166,
+     168,
+     170,
+     171,
+     172,
+     174,
+     176,
+     178,
+     181,
+     182,
+     183,
+     185,
+     186,
+     187,
+     188,
+     189,
+     191,
+     193,
+     194,
+     195,
+     196,
+     198,
+     200,
+     201,
+     202,
+     203,
+     205,
+     207,
+     208,
+     209,
+     210,
+     212,
+     215,
+     216,
+     217,
+     218,
+     219,
+     221,
+     223,
+     225,
+     227,
+     228,
+     229,
+     230,
+     231,
+     232,
+     233,
+     234,
+     235,
+     236,
+     237,
+     238,
+     239,
+     241,
+     242,
+     243,
+     245,
+     246,
+     248,
+     249,
+     251,
+     252,
+     254,
+     255,
+     257,
+     258,
+     259,
+     261,
+     262,
+     264,
+     265,
+     267,
+     268,
+     270,
+     271,
+     273,
+     274,
+     275,
+     277,
+     278,
+     280,
+     281,
+     283,
+     284,
+     286,
+     287,
+     289
+    ]
+   }
+  },
+  "hasMain": {
+   "main": {
+    "self": [
+     46
+    ],
+    "subtree": [
+     46,
+     47,
+     48,
+     49,
+     52,
+     55,
+     9,
+     58,
+     59,
+     60,
+     61,
+     62,
+     63,
+     65,
+     66,
+     68,
+     70,
+     71,
+     73,
+     75,
+     77,
+     78,
+     80,
+     82,
+     83,
+     84,
+     86,
+     88,
+     89,
+     91,
+     93,
+     94,
+     96,
+     98,
+     99,
+     101,
+     103,
+     104,
+     106,
+     108,
+     109,
+     111,
+     112,
+     114,
+     116,
+     118,
+     119,
+     2,
+     122,
+     126,
+     129,
+     132,
+     135,
+     138,
+     139,
+     141,
+     142,
+     143
+    ]
+   }
+  },
+  "namedField": {
+   ".quantity-select": {
+    "self": [
+     2
+    ],
+    "subtree": [
+     2,
+     122,
+     126,
+     129,
+     132,
+     135
+    ]
+   }
+  },
+  "visibleFocus": {
+   ".btn": {
+    "self": [
+     139
+    ],
+    "subtree": [
+     139
+    ]
+   },
+   ".quantity-select": {
+    "self": [
+     2
+    ],
+    "subtree": [
+     2,
+     122,
+     126,
+     129,
+     132,
+     135
+    ]
+   },
+   ".wishlist-btn": {
+    "self": [
+     141
+    ],
+    "subtree": [
+     141,
+     142,
+     143
+    ]
+   }
+  }
+ },
+ "hauntings": {
+  "CursedLoop": {},
+  "HollowPortrait": {
+   ".product-grid-related .product-card-related:nth-child(1) .product-image-related": {
+    "self": [
+     187
+    ],
+    "subtree": [
+     187
+    ]
+   },
+   ".product-grid-related .product-card-related:nth-child(2) .product-image-related": {
+    "self": [
+     194
+    ],
+    "subtree": [
+     194
+    ]
+   },
+   ".product-grid-related .product-card-related:nth-child(3) .product-image-related": {
+    "self": [
+     201
+    ],
+    "subtree": [
+     201
+    ]
+   },
+   ".product-grid-related .product-card-related:nth-child(4) .product-image-related": {
+    "self": [
+     208
+    ],
+    "subtree": [
+     208
+    ]
+   }
+  },
+  "InvisibleWanderer": {
+   ".nav .nav-link:nth-child(1)": {
+    "self": [
+     28
+    ],
+    "subtree": [
+     28
+    ]
+   },
+   ".nav .nav-link:nth-child(2)": {
+    "self": [
+     30
+    ],
+    "subtree": [
+     30
+    ]
+   },
+   ".nav .nav-link:nth-child(3)": {
+    "self": [
+     32
+    ],
+    "subtree": [
+     32
+    ]
+   },
+   ".nav .nav-link:nth-child(4)": {
+    "self": [
+     34
+    ],
+    "subtree": [
+     34
+    ]
+   },
+   ".nav-icons .icon-btn:nth-child(1)": {
+    "self": [
+     38
+    ],
+    "subtree": [
+     38,
+     39,
+     40
+    ]
+   },
+   ".nav-icons .icon-btn:nth-child(2)": {
+    "self": [
+     42
+    ],
+    "subtree": [
+     42,
+     43,
+     44
+    ]
+   },
+   ".social-links .social-link:nth-child(1)": {
+    "self": [
+     227
+    ],
+    "subtree": [
+     227,
+     228,
+     229,
+     230,
+     231
+    ]
+   },
+   ".social-links .social-link:nth-child(2)": {
+    "self": [
+     232
+    ],
+    "subtree": [
+     232,
+     233,
+     234
+    ]
+   },
+   ".social-links .social-link:nth-child(3)": {
+    "self": [
+     235
+    ],
+    "subtree": [
+     235,
+     236,
+     237
+    ]
+   }
+  },
+  "LostSoul": {
+   ".product-grid-related .product-card-related:nth-child(1)": {
+    "self": [
+     186
+    ],
+    "subtree": [
+     186,
+     187,
+     188,
+     189,
+     191
+    ]
+   },
+   ".product-grid-related .product-card-related:nth-child(2)": {
+    "self": [
+     193
+    ],
+    "subtree": [
+     193,
+     194,
+     195,
+     196,
+     198
+    ]
+   },
+   ".product-grid-related .product-card-related:nth-child(3)": {
+    "self": [
+     200
+    ],
+    "subtree": [
+     200,
+     201,
+     202,
+     203,
+     205
+    ]
+   },
+   ".product-grid-related .product-card-related:nth-child(4)": {
+    "self": [
+     207
+    ],
+    "subtree": [
+     207,
+     208,
+     209,
+     210,
+     212
+    ]
+   },
+   ".product-thumbnails .product-thumb:nth-child(1)": {
+    "self": [
+     61
+    ],
+    "subtree": [
+     61
+    ]
+   },
+   ".product-thumbnails .product-thumb:nth-child(2)": {
+    "self": [
+     62
+    ],
+    "subtree": [
+     62
+    ]
+   },
+   ".product-thumbnails .product-thumb:nth-child(3)": {
+    "self": [
+     63
+    ],
+    "subtree": [
+     63
+    ]
+   },
+   ".variant-options .variant-option:nth-child(1)": {
+    "self": [
+     112
+    ],
+    "subtree": [
+     112
+    ]
+   },
+   ".variant-options .variant-option:nth-child(2)": {
+    "self": [
+     114
+    ],
+    "subtree": [
+     114
+    ]
+   },
+   ".variant-options .variant-option:nth-child(3)": {
+    "self": [
+     116
+    ],
+    "subtree": [
+     116
+    ]
+   }
+  },
+  "NamelessSpirit": {
+   ".social-links .social-link:nth-child(1)": {
+    "self": [
+     227
+    ],
+    "subtree": [
+     227,
+     228,
+     229,
+     230,
+     231
+    ]
+   },
+   "header .nav-icons .icon-btn:nth-child(1)": {
+    "self": [
+     38
+    ],
+    "subtree": [
+     38,
+     39,
+     40
+    ]
+   },
+   "header .nav-icons .icon-btn:nth-child(2)": {
+    "self": [
+     42
+    ],
+    "subtree": [
+     42,
+     43,
+     44
+    ]
+   }
+  },
+  "ShatteredOrder": {
+   ".product-info h4.details-heading": {
+    "self": [
+     68
+    ],
+    "subtree": [
+     68
+    ]
+   }
+  },
+  "SilentTongue": {},
+  "TheFog": {
+   ".footer-bottom p": {
+    "self": [
+     287
+    ],
+    "subtree": [
+     287
+    ]
+   },
+   ".reviews-grid .review:nth-child(1) .review-date": {
+    "self": [
+     158
+    ],
+    "subtree": [
+     158
+    ]
+   },
+   ".reviews-grid .review:nth-child(2) .review-date": {
+    "self": [
+     168
+    ],
+    "subtree": [
+     168
+    ]
+   },
+   ".reviews-grid .review:nth-child(3) .review-date": {
+    "self": [
+     178
+    ],
+    "subtree": [
+     178
+    ]
+   }
+  },
+  "TheVeiled": {},
+  "WhisperingField": {}
+ }
+}

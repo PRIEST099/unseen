@@ -392,3 +392,22 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Instruction:** `prompts/14-spec-spirit-sight-ui.md`, plus the 2026-11-24 addendum (judges' guidance: one obvious path, the demo slice first, the app self-audits to zero hauntings, the real `auditAndClassify` API, an `onProgress` callback, a never-client-supplied policy, performance budgets). Mode `spec`, model `claude-sonnet-4.5`, run in parallel with run 25.
 - **Kiro produced:** `.kiro/specs/spirit-sight-ui/`: `requirements.md` (about 30 KB), `design.md` (about 77 KB) and `tasks.md` (32 tasks ordered for demo impact; the self-audit test is task 28). This time Kiro wrote all three files in one headless spec run, because the instruction pre-approved the requirements. Compare run 12, which stopped at the approval gate.
 - **Next:** independent spec review (UX/design, the app's own accessibility, feasibility), then the build in the Kiro IDE with Playwright MCP.
+
+## 2026-11-24 · Run 25 (12b): Kiro builds the haunting classifier (owner account)
+- **Instruction:** `prompts/25-impl-haunting-classifier.md`. It covers every task of the twice-reviewed and synced classifier spec, plus step 0: the `collectBoundingBoxes` pairing defect Kiro itself had reported in run 22. Model `auto`, run in the visible Terminal panel.
+- **Kiro produced:**
+  - **Engine:** the box-pairing fix (element identity stamps in one snapshot, plus a churn regression test) and task 0 (`RawAudit.domNodes`, `axeNodeIds`, html/body/heading node ids, `imgSrcAttributes`).
+  - **Fixtures:** browser-free fixtures plus `.selectors.json` sidecars (`tests/fixtures/capture.mjs`).
+  - **`src/classifier/`:** 10 detectors, precedence with secondaries, severity (a blocking table), score, speech, explanations and fixes, the axe cross-check, and `classify`.
+  - **Boundary:** an ESLint 9 boundary plus a grep test.
+  - **Golden tests** for all 3 shop pages, and `auditAndClassify` exported.
+  - **Steering:** it added §Severity and §Precedence to `hauntings.md`, as the spec required.
+- **Golden result (Kiro's report, confirmed by the passing golden test):** `detectedCountsByType` matches `expected-hauntings.json` for every page × type, including the node-id unions, the Cursed Loop subtree and controls. Scores: index **98**, product **85**, checkout **70**.
+- **Spec deviations:** Kiro recorded them in `tasks.md` Notes. Examples: The Veiled roots are read from the DOM, because CDP omits aria-hidden nodes; a `role=presentation` root is flagged only when its content is not exposed.
+- **Claude Code verification:**
+  - `npm run typecheck`: exit 0
+  - `npm run lint` (root script): exit 0
+  - `vitest --run`: **439/439** (29 files)
+  - `playwright test`: **84/84**
+  - Cursed Shop `npm run verify`: VERIFY PASSED
+  - An anti-overfitting check on fresh, unseen pages is running next.

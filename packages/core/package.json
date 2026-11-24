@@ -14,7 +14,8 @@
     "test": "vitest --run",
     "test:unit": "vitest --run",
     "test:integration": "playwright test",
-    "typecheck": "tsc -p . --noEmit && tsc -p tsconfig.test.json --noEmit"
+    "typecheck": "tsc -p . --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "capture:fixtures": "npm run build && node --experimental-strip-types tests/fixtures/capture.mjs"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.0",

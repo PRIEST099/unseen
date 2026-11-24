@@ -14,6 +14,7 @@ describe('public API of @the-unseen/core (finding 42)', () => {
       'PermissiveSafeFetchPolicy',
       'RestrictiveSafeFetchPolicy',
       'SsrfBlockedError',
+      'auditAndClassify',
       'auditHtml',
       'auditUrl',
       'getPool',

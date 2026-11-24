@@ -281,3 +281,33 @@ Include state only when it is relevant to the role:
 2. **Name included iff non-empty:** the name appears in the announcement if and only if `axNode.name.value.trim().length > 0`.
 3. **No extra content:** the announcement contains only name, role, and state — no fabricated text, no element IDs, no HTML snippets.
 4. **Generic nodes skipped:** a node with role `generic`, `none`, or `presentation` returns an empty string (do not speak it).
+
+---
+
+## Severity: which hauntings can block a task
+
+Added by the haunting-classifier spec (requirement 12.6) for sign-off. A haunting can be a **Wraith** only when its type can make a core task impossible for assistive-technology users **and** the element is part of a core task flow (see "Rule for core task flow" above, applied with the element's ancestry in the DOM: a `<form>`, a dialog, or an `id`/`class` containing "checkout" or "cart").
+
+| Type | Can block a task? |
+|------|------------------|
+| Cursed Loop | Yes |
+| Nameless Spirit | Yes, when the control is a `button`, `menuitem`, `menuitemcheckbox`, `menuitemradio` or `tab` |
+| Whispering Field | Yes |
+| Lost Soul | Yes |
+| Hollow Portrait, The Fog, Invisible Wanderer, The Veiled, Shattered Order, Silent Tongue | No (never Wraith) |
+
+The three severity rules still apply in the order given above (Wraith, then Restless, then Banished). "≥3 instances of the same type" counts primary hauntings only (see Precedence).
+
+---
+
+## Precedence
+
+When more than one haunting covers the same element, only one of them is scored. The classifier resolves this as follows.
+
+**Order (highest first):** Cursed Loop > Nameless Spirit > Whispering Field > Lost Soul > Hollow Portrait > The Veiled > Invisible Wanderer > The Fog.
+
+1. **Grouping is by every `backendDOMNodeId` in a haunting's `nodeIds`**, not only the first. The nodeIds of a Cursed Loop are `trapRegionNodeIds`: the trap region (first) plus the members of the focus cycle. The nodeIds of The Veiled are the hidden root plus its focusable descendants.
+2. Hauntings are taken in precedence order. A haunting whose `nodeIds` share no id with an earlier **primary** becomes a primary and claims all of its ids.
+3. A haunting that shares any id with an earlier primary becomes a **secondary** of that primary (of the highest-precedence owner when it touches several). Example: a Whispering Field input inside a keyboard trap is a secondary of the Cursed Loop.
+4. **Secondaries are unscored.** They are excluded from the Haunting Score and from the "≥3 instances" severity count, but they are kept on the primary (`secondary[]`) and counted in `detectedCountsByType`, which lists each element once per type.
+5. **Silent Tongue and Shattered Order never take part.** They use the `html` element, the `body` element or a heading as their node, and are always primary.

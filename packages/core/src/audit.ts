@@ -1,11 +1,19 @@
 import { createServer } from 'node:http'
 import type { Browser, BrowserContext, Page } from 'playwright'
-import type { AuditOptions, AXNode, CollectionError, RawAudit, SafeFetchPolicy, TabWalkResult } from './types.js'
+import type { AuditOptions, AXNode, CollectionError, DomNodeInfo, RawAudit, SafeFetchPolicy, TabWalkResult } from './types.js'
 import { AuditTimeoutError, HtmlSizeError, SsrfBlockedError } from './types.js'
 import { AuditGuard } from './audit-guard.js'
+import { classify } from './classifier/classify.js'
+import type { ClassifiedAudit } from './classifier/types.js'
 import { DEFAULT_VIEWPORT, PageLoader, getPool } from './runner/browser.js'
 import type { LoadedPage } from './runner/browser.js'
-import { buildDomAxMapping, collectEventListeners, collectPageMetadata, collectTextNodeStyles } from './runner/collectors.js'
+import {
+  buildDomAxMapping,
+  collectDomNodes,
+  collectEventListeners,
+  collectPageMetadata,
+  collectTextNodeStyles,
+} from './runner/collectors.js'
 import { collectAxTree } from './runner/ax-tree.js'
 import { runAxe } from './runner/axe.js'
 import { walkTabsWithErrors } from './runner/tab-walker.js'
@@ -43,11 +51,18 @@ export type AuditHooks = {
   onPageCreated?: (page: Page) => void
   /** Replaces the Tab walk (to test the failure path). */
   walk?: (page: Page) => Promise<{ walk: TabWalkResult; errors: CollectionError[] }>
+  /** Awaited after the audit is assembled and before the context closes, with the page still open. */
+  beforeClose?: (page: Page, raw: RawAudit) => Promise<void>
 }
 
 /** Audit a live URL and return the raw evidence the classifier needs. */
 export async function auditUrl(url: string, options: AuditOptions = {}): Promise<RawAudit> {
   return auditUrlWithHooks(url, options, {})
+}
+
+/** Audit a live URL and classify the evidence: hauntings, severity, score. Errors from the audit propagate unchanged. */
+export async function auditAndClassify(url: string, options: AuditOptions = {}): Promise<ClassifiedAudit> {
+  return classify(await auditUrl(url, options))
 }
 
 export async function auditUrlWithHooks(url: string, options: AuditOptions, hooks: AuditHooks): Promise<RawAudit> {
@@ -161,7 +176,9 @@ async function collectAudit(
   try {
     const collectionErrors: CollectionError[] = []
     const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks)
-    return assemble(url, options, loaded, meter, evidence, collectionErrors)
+    const raw = assemble(url, options, loaded, meter, evidence, collectionErrors)
+    await parts.hooks.beforeClose?.(loaded.page, raw)
+    return raw
   } finally {
     // Not awaited: on a crashed renderer a CDP detach never settles. Closing the context drops the session anyway.
     void meter.detach()
@@ -175,6 +192,7 @@ type Evidence = {
   meta: Awaited<ReturnType<typeof collectPageMetadata>>
   mapping: Awaited<ReturnType<typeof buildDomAxMapping>>
   styles: Awaited<ReturnType<typeof collectTextNodeStyles>>
+  domNodes: Record<string, DomNodeInfo>
   tabWalkResult: TabWalkResult
 }
 
@@ -227,8 +245,14 @@ async function collectEvidence(
   const styles = await guard.race(collectTextNodeStyles(page, listeners.signals))
   if (axe.error) collectionErrors.push(axe.error)
   collectionErrors.push(...listeners.errors, ...mapping.errors, ...styles.errors)
+  // Two snapshots, one before and one after the Tab walk: the walk can open or remove elements.
+  const referenced = new Set(axNodes.map((n) => n.backendDOMNodeId).filter((id) => id > 0))
+  const before = await guard.race(collectDomNodes(page, referenced))
   const tabWalkResult = await walkOrRecord(page, guard, collectionErrors, hooks)
-  return { axNodes, axe, listeners, meta, mapping, styles, tabWalkResult }
+  const after = await guard.race(collectDomNodes(page, referenced))
+  collectionErrors.push(...before.errors, ...after.errors)
+  const domNodes = { ...after.domNodes, ...before.domNodes }
+  return { axNodes, axe, listeners, meta, mapping, styles, domNodes, tabWalkResult }
 }
 
 function assemble(
@@ -254,6 +278,8 @@ function assemble(
     textNodeStyles: ev.styles.textNodeStyles,
     elementCursorStyles: ev.styles.elementCursorStyles,
     imgAltAttributes: ev.meta.imgAltAttributes,
+    imgSrcAttributes: ev.meta.imgSrcAttributes,
+    domNodes: ev.domNodes,
     eventListenerSignals: ev.listeners.signals,
     tabWalkResult: ev.tabWalkResult,
     pageMetadata: ev.meta.metadata,

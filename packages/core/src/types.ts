@@ -16,6 +16,8 @@ export type RawAudit = {
   textNodeStyles: Record<string, TextNodeStyle> // keyed by backendDOMNodeId (string)
   elementCursorStyles: Record<string, string> // keyed by backendDOMNodeId (string)
   imgAltAttributes: Record<string, string | null> // keyed by backendDOMNodeId; null = absent
+  imgSrcAttributes: Record<string, string | null> // keyed by backendDOMNodeId of every <img>; null = no src attribute
+  domNodes: Record<string, DomNodeInfo> // keyed by backendDOMNodeId (string)
   eventListenerSignals: EventListenerSignal[]
   tabWalkResult: TabWalkResult
   pageMetadata: PageMetadata
@@ -24,6 +26,20 @@ export type RawAudit = {
   blockedRequests: Array<{ url: string; reason: string }>
   abortedResources: string[]
   collectionErrors: CollectionError[]
+}
+
+// The attributes the classifier may read from a DOM node (nothing else is recorded)
+export const DOM_ATTR_NAMES = [
+  'id', 'class', 'role', 'href', 'src', 'alt', 'type', 'tabindex', 'aria-hidden', 'aria-label', 'placeholder', 'disabled',
+] as const
+export type DomAttrName = (typeof DOM_ATTR_NAMES)[number]
+
+// One DOM node, as the classifier needs it for ancestry, snippets and attribute checks
+export type DomNodeInfo = {
+  tag: string // lower-case local name; '#text' and '#document' for those node types
+  parentId: number | null // backendDOMNodeId of the parent element (the host for shadow roots and frames)
+  attrs: Partial<Record<DomAttrName, string>> // present attributes only; a bare attribute is ''
+  outerHTMLSnippet: string // at most 300 characters
 }
 
 // AX node from CDP Accessibility.getFullAXTree
@@ -155,12 +171,15 @@ export type PageMetadata = {
   headings: HeadingRecord[]
   landmarkRoles: string[]
   hasMainLandmark: boolean // <main> or role="main" present
+  htmlBackendDOMNodeId: number // the <html> element
+  bodyBackendDOMNodeId: number | null // the <body> element; null when the page has none
 }
 
 export type HeadingRecord = {
   tagName: string // "h1" – "h6"
   accessibleName: string
   domOrderIndex: number // 0-based position among all headings
+  backendDOMNodeId: number // 0 when the id could not be read
 }
 
 // Network resource usage counters
@@ -173,7 +192,7 @@ export type ResourceUsage = {
 
 // Non-fatal collection error recorded in RawAudit
 export type CollectionError = {
-  step: "ax-tree" | "axe" | "event-listeners" | "text-styles" | "dom-ax-mapping" | "tab-walk"
+  step: "ax-tree" | "axe" | "event-listeners" | "text-styles" | "dom-ax-mapping" | "tab-walk" | "dom-nodes"
   message: string
   backendDOMNodeId?: number
 }
@@ -191,6 +210,7 @@ export type AxeViolation = {
 export type AxeViolationNode = {
   html: string
   target: string[] // CSS selector path
+  backendDOMNodeId: number | null // null for multi-part (iframe/shadow) targets or when the element cannot be found
   failureSummary: string
 }
 

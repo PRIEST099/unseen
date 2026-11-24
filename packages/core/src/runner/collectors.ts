@@ -3,15 +3,18 @@ import type {
   AXNode,
   CollectionError,
   DomAxMapping,
+  DomNodeInfo,
   EventListenerSignal,
   HeadingRecord,
   PageMetadata,
   TextNodeStyle,
 } from '../types.js'
-import { backendIdsOfObject, callByValue, callToObject, evaluateToObject, openCdp, releaseObject } from './cdp.js'
+import { DOM_ATTR_NAMES } from '../types.js'
+import { backendIdOfObject, backendIdsOfObject, callByValue, callToObject, evaluateToObject, openCdp, releaseObject } from './cdp.js'
 import {
   HEADING_TAGS_FN,
   IMG_ALTS_FN,
+  IMG_SRCS_FN,
   MAPPING_ROWS_FN,
   PICK_FN,
   SLICE_FN,
@@ -237,10 +240,26 @@ async function readList<T>(cdp: CDPSession, expression: string, attributesFn: st
   }
 }
 
-export async function collectPageMetadata(
-  page: Page,
-  axNodes: AXNode[]
-): Promise<{ metadata: PageMetadata; imgAltAttributes: Record<string, string | null> }> {
+/** backendDOMNodeId of the element an expression evaluates to, or null when it is null or unreadable. */
+async function backendIdOfExpression(cdp: CDPSession, expression: string): Promise<number | null> {
+  const { result } = (await cdp.send('Runtime.evaluate', { expression, returnByValue: false })) as {
+    result: { objectId?: string; subtype?: string }
+  }
+  if (!result.objectId || result.subtype === 'null') return null
+  try {
+    return await backendIdOfObject(cdp, result.objectId)
+  } finally {
+    await releaseObject(cdp, result.objectId)
+  }
+}
+
+export type PageMetadataResult = {
+  metadata: PageMetadata
+  imgAltAttributes: Record<string, string | null>
+  imgSrcAttributes: Record<string, string | null>
+}
+
+export async function collectPageMetadata(page: Page, axNodes: AXNode[]): Promise<PageMetadataResult> {
   const nameById = new Map<number, string>()
   for (const n of axNodes) {
     if (n.backendDOMNodeId > 0) nameById.set(n.backendDOMNodeId, String(n.name.value ?? ''))
@@ -249,13 +268,22 @@ export async function collectPageMetadata(
   try {
     const headingList = await readList<string>(cdp, `Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6'))`, HEADING_TAGS_FN)
     const imgList = await readList<string | null>(cdp, `Array.from(document.querySelectorAll('img'))`, IMG_ALTS_FN)
+    const imgSrcList = await readList<string | null>(cdp, `Array.from(document.querySelectorAll('img'))`, IMG_SRCS_FN)
+    const htmlId = await backendIdOfExpression(cdp, 'document.documentElement')
+    if (htmlId === null) throw new Error('could not read the <html> element id')
+    const bodyId = await backendIdOfExpression(cdp, 'document.body')
     const dom = await page.evaluate(() => ({
       lang: document.documentElement.getAttribute('lang'),
       hasMain: document.querySelector('main, [role="main"]') !== null,
     }))
     const headings: HeadingRecord[] = headingList.values.map((tagName, i) => {
       const id = headingList.ids[i]
-      return { tagName, accessibleName: id != null ? nameById.get(id) ?? '' : '', domOrderIndex: i }
+      return {
+        tagName,
+        accessibleName: id != null ? nameById.get(id) ?? '' : '',
+        domOrderIndex: i,
+        backendDOMNodeId: id ?? 0,
+      }
     })
     const roles = new Set<string>()
     for (const n of axNodes) {
@@ -267,14 +295,22 @@ export async function collectPageMetadata(
       const id = imgList.ids[i]
       if (id != null) imgAltAttributes[String(id)] = alt
     })
+    const imgSrcAttributes: Record<string, string | null> = {}
+    imgSrcList.values.forEach((src, i) => {
+      const id = imgSrcList.ids[i]
+      if (id != null) imgSrcAttributes[String(id)] = src
+    })
     return {
       metadata: {
         htmlLang: dom.lang,
         headings,
         landmarkRoles: LANDMARK_ROLES.filter((r) => roles.has(r)),
         hasMainLandmark: dom.hasMain || roles.has('main'),
+        htmlBackendDOMNodeId: htmlId,
+        bodyBackendDOMNodeId: bodyId,
       },
       imgAltAttributes,
+      imgSrcAttributes,
     }
   } finally {
     await cdp.detach().catch(() => undefined)
@@ -359,3 +395,114 @@ export async function buildDomAxMapping(
 }
 
 const MAPPING_EXPR = `Array.from(document.querySelectorAll('body, body *'))`
+
+// ---------------------------------------------------------------------------
+// Task 0 (haunting-classifier): DOM node snapshot (ancestry, attributes, snippets)
+// ---------------------------------------------------------------------------
+
+export const SNIPPET_MAX_CHARS = 300
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'])
+const DOM_ATTR_SET: ReadonlySet<string> = new Set<string>(DOM_ATTR_NAMES)
+
+type CdpDomNode = {
+  nodeType: number
+  nodeName: string
+  localName?: string
+  nodeValue?: string
+  backendNodeId: number
+  attributes?: string[]
+  children?: CdpDomNode[]
+  shadowRoots?: CdpDomNode[]
+  contentDocument?: CdpDomNode
+}
+
+const escText = (s: string): string => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+const escAttr = (s: string): string => s.replaceAll('&', '&amp;').replaceAll('"', '&quot;')
+
+function startTag(tag: string, attributes: string[] | undefined): string {
+  let out = `<${tag}`
+  for (let i = 0; i + 1 < (attributes?.length ?? 0); i += 2) {
+    out += ` ${attributes![i]}="${escAttr(attributes![i + 1] ?? '')}"`
+  }
+  return `${out}>`
+}
+
+/** Serialise a node into `out`, stopping as soon as the budget is spent. */
+function serialize(node: CdpDomNode, out: { s: string }, budget: number): void {
+  if (out.s.length >= budget) return
+  if (node.nodeType === 3) {
+    out.s += escText(node.nodeValue ?? '')
+    return
+  }
+  if (node.nodeType !== 1) return
+  const tag = node.localName ?? node.nodeName.toLowerCase()
+  out.s += startTag(tag, node.attributes)
+  if (VOID_TAGS.has(tag)) return
+  for (const child of node.children ?? []) {
+    if (out.s.length >= budget) return
+    serialize(child, out, budget)
+  }
+  if (out.s.length < budget) out.s += `</${tag}>`
+}
+
+function snippetOf(node: CdpDomNode): string {
+  const out = { s: '' }
+  if (node.nodeType === 1) serialize(node, out, SNIPPET_MAX_CHARS)
+  else out.s = escText((node.nodeValue ?? '').trim())
+  return out.s.length > SNIPPET_MAX_CHARS ? out.s.slice(0, SNIPPET_MAX_CHARS) : out.s
+}
+
+function pickAttrs(attributes: string[] | undefined): DomNodeInfo['attrs'] {
+  const attrs: Record<string, string> = {}
+  for (let i = 0; i + 1 < (attributes?.length ?? 0); i += 2) {
+    const name = attributes![i]!
+    if (DOM_ATTR_SET.has(name)) attrs[name] = attributes![i + 1] ?? ''
+  }
+  return attrs
+}
+
+/** Every element, plus the non-element nodes (text, document) whose ids are in `referenced`. */
+function addNode(node: CdpDomNode, parentId: number | null, referenced: ReadonlySet<number>, out: Record<string, DomNodeInfo>): void {
+  const isElement = node.nodeType === 1
+  const isDocument = node.nodeType === 9
+  const wanted = isElement || ((isDocument || node.nodeType === 3) && referenced.has(node.backendNodeId))
+  if (wanted) {
+    out[String(node.backendNodeId)] = {
+      tag: isElement ? (node.localName ?? node.nodeName.toLowerCase()) : isDocument ? '#document' : '#text',
+      parentId,
+      attrs: isElement ? pickAttrs(node.attributes) : {},
+      outerHTMLSnippet: snippetOf(node),
+    }
+  }
+  // Shadow roots and frame documents are transparent: their children hang off the host element.
+  const nextParent = isElement ? node.backendNodeId : parentId
+  for (const child of node.children ?? []) addNode(child, nextParent, referenced, out)
+  for (const root of node.shadowRoots ?? []) {
+    for (const child of root.children ?? []) addNode(child, nextParent, referenced, out)
+  }
+  if (node.contentDocument) {
+    for (const child of node.contentDocument.children ?? []) addNode(child, nextParent, referenced, out)
+  }
+}
+
+/**
+ * One atomic `DOM.getDocument` snapshot (piercing shadow roots and same-process frames) turned into
+ * `domNodes`. Ids and parents come from the same tree, so they cannot drift apart.
+ */
+export async function collectDomNodes(
+  page: Page,
+  referenced: ReadonlySet<number> = new Set()
+): Promise<{ domNodes: Record<string, DomNodeInfo>; errors: CollectionError[] }> {
+  const domNodes: Record<string, DomNodeInfo> = {}
+  let cdp: CDPSession | undefined
+  try {
+    cdp = await openCdp(page)
+    const { root } = (await cdp.send('DOM.getDocument', { depth: -1, pierce: true })) as { root: CdpDomNode }
+    addNode(root, null, referenced, domNodes)
+    return { domNodes, errors: [] }
+  } catch (e) {
+    return { domNodes, errors: [{ step: 'dom-nodes', message: msg(e) }] }
+  } finally {
+    await cdp?.detach().catch(() => undefined)
+  }
+}

@@ -1,0 +1,988 @@
+{
+ "controls": {
+  "accessibleCardLinks": {
+   ".product-grid .product-card:nth-child(3) .card-link": {
+    "self": [
+     104
+    ],
+    "subtree": [
+     104,
+     105,
+     106,
+     107,
+     109,
+     111
+    ]
+   },
+   ".product-grid .product-card:nth-child(5) .card-link": {
+    "self": [
+     140
+    ],
+    "subtree": [
+     140,
+     141,
+     142,
+     143,
+     145,
+     147
+    ]
+   }
+  },
+  "cookieBanner": {
+   "#cookieBanner": {
+    "self": [
+     205
+    ],
+    "subtree": [
+     205,
+     206,
+     207,
+     209,
+     211
+    ]
+   },
+   "#cookieBanner .btn-close": {
+    "self": [
+     209
+    ],
+    "subtree": [
+     209
+    ]
+   }
+  },
+  "decorativeIcons": {
+   ".features-grid .feature:nth-child(1) .feature-icon": {
+    "self": [
+     179
+    ],
+    "subtree": [
+     179,
+     180,
+     181
+    ]
+   },
+   ".features-grid .feature:nth-child(2) .feature-icon": {
+    "self": [
+     187
+    ],
+    "subtree": [
+     187,
+     188,
+     189,
+     190
+    ]
+   },
+   ".features-grid .feature:nth-child(3) .feature-icon": {
+    "self": [
+     196
+    ],
+    "subtree": [
+     196,
+     197,
+     198,
+     199
+    ]
+   }
+  },
+  "decorativeImages": {
+   ".product-grid .product-card:nth-child(3) .product-image": {
+    "self": [
+     105
+    ],
+    "subtree": [
+     105
+    ]
+   },
+   ".product-grid .product-card:nth-child(5) .product-image": {
+    "self": [
+     141
+    ],
+    "subtree": [
+     141
+    ]
+   }
+  },
+  "hasH1": {
+   ".hero h1": {
+    "self": [
+     50
+    ],
+    "subtree": [
+     50
+    ]
+   }
+  },
+  "hasLang": {
+   "html[lang=\"en\"]": {
+    "self": [
+     11
+    ],
+    "subtree": [
+     11,
+     12,
+     13,
+     14,
+     15,
+     17,
+     18,
+     20,
+     22,
+     23,
+     24,
+     25,
+     27,
+     28,
+     30,
+     32,
+     34,
+     36,
+     38,
+     39,
+     40,
+     42,
+     43,
+     44,
+     46,
+     48,
+     50,
+     52,
+     9,
+     56,
+     57,
+     59,
+     62,
+     63,
+     65,
+     67,
+     68,
+     69,
+     70,
+     71,
+     73,
+     75,
+     77,
+     79,
+     80,
+     81,
+     82,
+     83,
+     85,
+     86,
+     87,
+     88,
+     89,
+     91,
+     93,
+     95,
+     97,
+     98,
+     99,
+     100,
+     101,
+     103,
+     104,
+     105,
+     106,
+     107,
+     109,
+     111,
+     113,
+     115,
+     116,
+     117,
+     118,
+     119,
+     121,
+     122,
+     123,
+     124,
+     125,
+     127,
+     129,
+     131,
+     133,
+     134,
+     135,
+     136,
+     137,
+     139,
+     140,
+     141,
+     142,
+     143,
+     145,
+     147,
+     149,
+     151,
+     152,
+     153,
+     154,
+     155,
+     157,
+     158,
+     159,
+     160,
+     161,
+     163,
+     165,
+     167,
+     169,
+     170,
+     171,
+     172,
+     173,
+     174,
+     175,
+     177,
+     178,
+     179,
+     180,
+     181,
+     182,
+     184,
+     186,
+     187,
+     188,
+     189,
+     190,
+     191,
+     193,
+     195,
+     196,
+     197,
+     198,
+     199,
+     200,
+     202,
+     205,
+     206,
+     207,
+     209,
+     211,
+     214,
+     215,
+     216,
+     217,
+     218,
+     220,
+     222,
+     224,
+     226,
+     227,
+     228,
+     229,
+     230,
+     231,
+     232,
+     233,
+     234,
+     235,
+     236,
+     237,
+     238,
+     240,
+     241,
+     242,
+     244,
+     245,
+     247,
+     248,
+     250,
+     251,
+     253,
+     254,
+     256,
+     257,
+     258,
+     260,
+     261,
+     263,
+     264,
+     266,
+     267,
+     269,
+     270,
+     272,
+     273,
+     274,
+     276,
+     277,
+     279,
+     280,
+     282,
+     283,
+     285,
+     286,
+     289,
+     290,
+     291,
+     293,
+     295,
+     297,
+     299
+    ]
+   }
+  },
+  "hasMain": {
+   "main": {
+    "self": [
+     62
+    ],
+    "subtree": [
+     62,
+     63,
+     65,
+     67,
+     68,
+     69,
+     70,
+     71,
+     73,
+     75,
+     77,
+     79,
+     80,
+     81,
+     82,
+     83,
+     85,
+     86,
+     87,
+     88,
+     89,
+     91,
+     93,
+     95,
+     97,
+     98,
+     99,
+     100,
+     101,
+     103,
+     104,
+     105,
+     106,
+     107,
+     109,
+     111,
+     113,
+     115,
+     116,
+     117,
+     118,
+     119,
+     121,
+     122,
+     123,
+     124,
+     125,
+     127,
+     129,
+     131,
+     133,
+     134,
+     135,
+     136,
+     137,
+     139,
+     140,
+     141,
+     142,
+     143,
+     145,
+     147,
+     149,
+     151,
+     152,
+     153,
+     154,
+     155,
+     157,
+     158,
+     159,
+     160,
+     161,
+     163,
+     165,
+     167,
+     169,
+     170,
+     171,
+     172,
+     173,
+     174,
+     175,
+     177,
+     178,
+     179,
+     180,
+     181,
+     182,
+     184,
+     186,
+     187,
+     188,
+     189,
+     190,
+     191,
+     193,
+     195,
+     196,
+     197,
+     198,
+     199,
+     200,
+     202
+    ]
+   }
+  },
+  "namedQuickView": {
+   ".product-grid .product-card:nth-child(3) .quick-view": {
+    "self": [
+     113
+    ],
+    "subtree": [
+     113
+    ]
+   },
+   ".product-grid .product-card:nth-child(5) .quick-view": {
+    "self": [
+     149
+    ],
+    "subtree": [
+     149
+    ]
+   }
+  },
+  "namedSocialLinks": {
+   ".social-links .social-link:nth-child(2)": {
+    "self": [
+     231
+    ],
+    "subtree": [
+     231,
+     232,
+     233
+    ]
+   },
+   ".social-links .social-link:nth-child(3)": {
+    "self": [
+     234
+    ],
+    "subtree": [
+     234,
+     235,
+     236
+    ]
+   }
+  },
+  "visibleFocus": {
+   ".hero .btn": {
+    "self": [
+     9
+    ],
+    "subtree": [
+     9
+    ]
+   },
+   ".logo": {
+    "self": [
+     25
+    ],
+    "subtree": [
+     25
+    ]
+   },
+   ".product-grid .product-card:nth-child(1) .add-to-cart-btn": {
+    "self": [
+     81
+    ],
+    "subtree": [
+     81,
+     82,
+     83
+    ]
+   },
+   ".promo-strip-link": {
+    "self": [
+     59
+    ],
+    "subtree": [
+     59
+    ]
+   }
+  }
+ },
+ "hauntings": {
+  "CursedLoop": {},
+  "HollowPortrait": {
+   ".product-grid .product-card:nth-child(1) .product-image.no-alt": {
+    "self": [
+     69
+    ],
+    "subtree": [
+     69
+    ]
+   },
+   ".product-grid .product-card:nth-child(2) .product-image.no-alt": {
+    "self": [
+     87
+    ],
+    "subtree": [
+     87
+    ]
+   },
+   ".product-grid .product-card:nth-child(4) .product-image.no-alt": {
+    "self": [
+     123
+    ],
+    "subtree": [
+     123
+    ]
+   },
+   ".product-grid .product-card:nth-child(6) .product-image.no-alt": {
+    "self": [
+     159
+    ],
+    "subtree": [
+     159
+    ]
+   }
+  },
+  "InvisibleWanderer": {
+   ".footer-content > .footer-col:nth-child(2) li:nth-child(1) a": {
+    "self": [
+     242
+    ],
+    "subtree": [
+     242
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(2) li:nth-child(2) a": {
+    "self": [
+     245
+    ],
+    "subtree": [
+     245
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(2) li:nth-child(3) a": {
+    "self": [
+     248
+    ],
+    "subtree": [
+     248
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(2) li:nth-child(4) a": {
+    "self": [
+     251
+    ],
+    "subtree": [
+     251
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(3) li:nth-child(1) a": {
+    "self": [
+     258
+    ],
+    "subtree": [
+     258
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(3) li:nth-child(2) a": {
+    "self": [
+     261
+    ],
+    "subtree": [
+     261
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(3) li:nth-child(3) a": {
+    "self": [
+     264
+    ],
+    "subtree": [
+     264
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(3) li:nth-child(4) a": {
+    "self": [
+     267
+    ],
+    "subtree": [
+     267
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(4) li:nth-child(1) a": {
+    "self": [
+     274
+    ],
+    "subtree": [
+     274
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(4) li:nth-child(2) a": {
+    "self": [
+     277
+    ],
+    "subtree": [
+     277
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(4) li:nth-child(3) a": {
+    "self": [
+     280
+    ],
+    "subtree": [
+     280
+    ]
+   },
+   ".footer-content > .footer-col:nth-child(4) li:nth-child(4) a": {
+    "self": [
+     283
+    ],
+    "subtree": [
+     283
+    ]
+   },
+   ".nav .nav-link:nth-child(1)": {
+    "self": [
+     28
+    ],
+    "subtree": [
+     28
+    ]
+   },
+   ".nav .nav-link:nth-child(2)": {
+    "self": [
+     30
+    ],
+    "subtree": [
+     30
+    ]
+   },
+   ".nav .nav-link:nth-child(3)": {
+    "self": [
+     32
+    ],
+    "subtree": [
+     32
+    ]
+   },
+   ".nav .nav-link:nth-child(4)": {
+    "self": [
+     34
+    ],
+    "subtree": [
+     34
+    ]
+   },
+   ".nav-icons .icon-btn:nth-child(1)": {
+    "self": [
+     38
+    ],
+    "subtree": [
+     38,
+     39,
+     40
+    ]
+   },
+   ".nav-icons .icon-btn:nth-child(2)": {
+    "self": [
+     42
+    ],
+    "subtree": [
+     42,
+     43,
+     44
+    ]
+   },
+   ".social-links .social-link:nth-child(1)": {
+    "self": [
+     226
+    ],
+    "subtree": [
+     226,
+     227,
+     228,
+     229,
+     230
+    ]
+   },
+   ".social-links .social-link:nth-child(2)": {
+    "self": [
+     231
+    ],
+    "subtree": [
+     231,
+     232,
+     233
+    ]
+   },
+   ".social-links .social-link:nth-child(3)": {
+    "self": [
+     234
+    ],
+    "subtree": [
+     234,
+     235,
+     236
+    ]
+   }
+  },
+  "LostSoul": {
+   ".product-grid .product-card:nth-child(1) .card-link": {
+    "self": [
+     68
+    ],
+    "subtree": [
+     68,
+     69,
+     70,
+     71,
+     73,
+     75
+    ]
+   },
+   ".product-grid .product-card:nth-child(1) .quick-view": {
+    "self": [
+     77
+    ],
+    "subtree": [
+     77
+    ]
+   },
+   ".product-grid .product-card:nth-child(2) .card-link": {
+    "self": [
+     86
+    ],
+    "subtree": [
+     86,
+     87,
+     88,
+     89,
+     91,
+     93
+    ]
+   },
+   ".product-grid .product-card:nth-child(2) .quick-view": {
+    "self": [
+     95
+    ],
+    "subtree": [
+     95
+    ]
+   },
+   ".product-grid .product-card:nth-child(4) .card-link": {
+    "self": [
+     122
+    ],
+    "subtree": [
+     122,
+     123,
+     124,
+     125,
+     127,
+     129
+    ]
+   },
+   ".product-grid .product-card:nth-child(4) .quick-view": {
+    "self": [
+     131
+    ],
+    "subtree": [
+     131
+    ]
+   },
+   ".product-grid .product-card:nth-child(6) .card-link": {
+    "self": [
+     158
+    ],
+    "subtree": [
+     158,
+     159,
+     160,
+     161,
+     163,
+     165
+    ]
+   },
+   ".product-grid .product-card:nth-child(6) .quick-view": {
+    "self": [
+     167
+    ],
+    "subtree": [
+     167
+    ]
+   }
+  },
+  "NamelessSpirit": {
+   ".product-grid .product-card:nth-child(1) .add-to-cart-btn": {
+    "self": [
+     81
+    ],
+    "subtree": [
+     81,
+     82,
+     83
+    ]
+   },
+   ".product-grid .product-card:nth-child(2) .add-to-cart-btn": {
+    "self": [
+     99
+    ],
+    "subtree": [
+     99,
+     100,
+     101
+    ]
+   },
+   ".product-grid .product-card:nth-child(3) .add-to-cart-btn": {
+    "self": [
+     117
+    ],
+    "subtree": [
+     117,
+     118,
+     119
+    ]
+   },
+   ".product-grid .product-card:nth-child(4) .add-to-cart-btn": {
+    "self": [
+     135
+    ],
+    "subtree": [
+     135,
+     136,
+     137
+    ]
+   },
+   ".product-grid .product-card:nth-child(5) .add-to-cart-btn": {
+    "self": [
+     153
+    ],
+    "subtree": [
+     153,
+     154,
+     155
+    ]
+   },
+   ".product-grid .product-card:nth-child(6) .add-to-cart-btn": {
+    "self": [
+     171
+    ],
+    "subtree": [
+     171,
+     172,
+     173
+    ]
+   },
+   ".social-links .social-link:nth-child(1)": {
+    "self": [
+     226
+    ],
+    "subtree": [
+     226,
+     227,
+     228,
+     229,
+     230
+    ]
+   },
+   "header .nav-icons .icon-btn:nth-child(1)": {
+    "self": [
+     38
+    ],
+    "subtree": [
+     38,
+     39,
+     40
+    ]
+   },
+   "header .nav-icons .icon-btn:nth-child(2)": {
+    "self": [
+     42
+    ],
+    "subtree": [
+     42,
+     43,
+     44
+    ]
+   }
+  },
+  "ShatteredOrder": {},
+  "SilentTongue": {},
+  "TheFog": {
+   ".footer-bottom p": {
+    "self": [
+     286
+    ],
+    "subtree": [
+     286
+    ]
+   },
+   ".product-grid .product-card:nth-child(1) .product-note": {
+    "self": [
+     75
+    ],
+    "subtree": [
+     75
+    ]
+   },
+   ".product-grid .product-card:nth-child(2) .product-note": {
+    "self": [
+     93
+    ],
+    "subtree": [
+     93
+    ]
+   },
+   ".product-grid .product-card:nth-child(3) .product-note": {
+    "self": [
+     111
+    ],
+    "subtree": [
+     111
+    ]
+   },
+   ".product-grid .product-card:nth-child(4) .product-note": {
+    "self": [
+     129
+    ],
+    "subtree": [
+     129
+    ]
+   },
+   ".product-grid .product-card:nth-child(5) .product-note": {
+    "self": [
+     147
+    ],
+    "subtree": [
+     147
+    ]
+   },
+   ".product-grid .product-card:nth-child(6) .product-note": {
+    "self": [
+     165
+    ],
+    "subtree": [
+     165
+    ]
+   }
+  },
+  "TheVeiled": {
+   ".promo-strip": {
+    "self": [
+     56
+    ],
+    "subtree": [
+     56,
+     57,
+     59
+    ]
+   }
+  },
+  "WhisperingField": {}
+ }
+}

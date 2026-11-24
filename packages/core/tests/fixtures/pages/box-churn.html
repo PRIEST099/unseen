@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Box churn</title></head>
+<body>
+<main>
+  <h1>Box churn</h1>
+  <div id="stable-a" style="width:101px;height:11px">a</div>
+  <div id="stable-b" style="width:102px;height:12px">b</div>
+  <div id="stable-c" style="width:103px;height:13px">c</div>
+  <div id="churn-host"></div>
+</main>
+<script>
+  // Adds an element before the stable ones and removes another, every millisecond, so the
+  // DOM changes between any two round trips that collectBoundingBoxes makes.
+  const host = document.getElementById('churn-host')
+  const main = document.querySelector('main')
+  setInterval(() => {
+    const added = document.createElement('span')
+    added.textContent = 'x'
+    main.insertBefore(added, main.firstChild)
+    if (host.firstChild) host.removeChild(host.firstChild)
+    host.appendChild(document.createElement('i'))
+    host.appendChild(document.createElement('i'))
+    if (main.children.length > 60) main.removeChild(main.firstChild)
+  }, 1)
+</script>
+</body>
+</html>
