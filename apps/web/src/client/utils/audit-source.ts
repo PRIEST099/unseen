@@ -91,6 +91,11 @@ export function loadAudit(source: AuditSource): Promise<AuditLoadResult> {
   return request
 }
 
+/** Stores an audit the séance already downloaded, so Spirit Sight does not fetch it again. */
+export function primeAudit(source: AuditSource, audit: ClassifiedAudit): void {
+  settled.set(cacheKey(source), { status: 'ok', audit })
+}
+
 export function hostnameOf(audit: ClassifiedAudit): string {
   try {
     return new URL(audit.raw.auditedUrl).hostname

@@ -31,6 +31,11 @@ export function lensFromPath(pathname: string, basePath: string): LensRoute {
   return 'unknown'
 }
 
+/** Router state that the séance sets when it hands over to Spirit Sight. */
+function isFromSeance(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && 'fromSeance' in state && state.fromSeance === true
+}
+
 function useAuditResult(source: AuditSource | null): AuditLoadResult | 'loading' {
   const [result, setResult] = useState<AuditLoadResult | 'loading'>(() => (source === null ? 'loading' : (cachedAudit(source) ?? 'loading')))
   const kind = source?.kind
@@ -69,7 +74,8 @@ function StateMessage({ heading, message }: StateMessageProps): ReactElement {
 
 export function AuditResultView({ source: kind }: AuditResultViewProps): ReactElement {
   const params = useParams()
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
   const id = (kind === 'job' ? params.jobId : params.sampleId) ?? ''
   const source: AuditSource = { kind, id }
   const basePath = `/${kind === 'job' ? 'audit' : 'sample'}/${encodeURIComponent(id)}`
@@ -82,6 +88,12 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
   else if (result.status === 'ok' && lens !== 'unknown') title = LENS_TITLES[lens]
   useDocumentTitle(title)
   useFocusMain()
+  const arrivedFromSeance = isFromSeance(location.state)
+  const loaded = result !== 'loading' && result.status === 'ok'
+  useEffect(() => {
+    // Arriving from the séance: the new view's h1 takes focus (requirement 7.9).
+    if (arrivedFromSeance && loaded && lens === 'spirit') document.getElementById('spirit-sight-heading')?.focus()
+  }, [arrivedFromSeance, loaded, lens])
 
   if (lens === 'unknown') return <NotFoundView />
   if (result === 'loading') {
@@ -107,7 +119,9 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
     <main id="main" tabIndex={-1} className="view view-wide" data-source={kind}>
       {lens === 'spirit' ? (
         <>
-          <h1>Spirit Sight: {hostname}</h1>
+          <h1 id="spirit-sight-heading" tabIndex={-1}>
+            Spirit Sight: {hostname}
+          </h1>
           <SpiritSightView source={source} audit={result.audit} basePath={basePath} />
         </>
       ) : lens === 'daylight' ? (

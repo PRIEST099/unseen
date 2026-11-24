@@ -1,0 +1,153 @@
+import type { ClassifiedAudit } from '@the-unseen/core'
+import { isClassifiedAudit } from './audit-source'
+
+export const POLL_INTERVAL_MS = 500
+/** Consecutive unreachable polls before the séance gives up. */
+export const MAX_UNREACHABLE_POLLS = 3
+
+export type StageName = 'loading' | 'tree' | 'walking' | 'classifying'
+/** A job status that is still running. The worker reports a stage when it has been reached. */
+export type RunningStatus = 'queued' | StageName
+
+/** Epoch-millisecond timestamps recorded by the server for each stage. */
+export type JobStages = {
+  queued?: number
+  loading?: number
+  tree?: number
+  walking?: number
+  classifying?: number
+  done?: number
+}
+
+export type JobPoll =
+  | { kind: 'running'; status: RunningStatus; stages: JobStages }
+  | { kind: 'done'; audit: ClassifiedAudit; stages: JobStages }
+  | { kind: 'error'; code: string; message: string }
+  | { kind: 'not-found' }
+  | { kind: 'unreachable' }
+
+export const STAGE_LABELS: Record<StageName, string> = {
+  loading: 'Loading page…',
+  tree: 'Reading accessibility tree…',
+  walking: 'Walking the keyboard path…',
+  classifying: 'Classifying hauntings…',
+}
+
+export const SESSION_ENDED_MESSAGE = 'This séance has ended (results expire after 1 hour or when the server restarts).'
+export const UNREACHABLE_MESSAGE = 'Could not reach the server. Check your connection and try again.'
+
+const ERROR_MESSAGES: Record<string, string> = {
+  TIMEOUT: 'The audit took too long (60s limit). The page may be too large or slow to load.',
+  SSRF_BLOCKED: 'Cannot audit private or internal URLs for security reasons.',
+  RESOURCE_LIMIT: 'The page is too large to audit (50MB limit).',
+  NETWORK_ERROR: 'Could not load the page. Check the URL and try again.',
+}
+
+const FALLBACK_ERROR_MESSAGE = 'The audit could not be completed. Please try another URL.'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+/**
+ * The stage being worked on while the job has `status`. The worker reports a stage once it has
+ * been reached, and does not report that a job left the queue, so `queued` means "loading".
+ */
+export function activeStage(status: RunningStatus): StageName {
+  switch (status) {
+    case 'queued':
+      return 'loading'
+    case 'loading':
+      return 'tree'
+    case 'tree':
+      return 'walking'
+    case 'walking':
+    case 'classifying':
+      return 'classifying'
+  }
+}
+
+export function activeStageLabel(status: RunningStatus): string {
+  return STAGE_LABELS[activeStage(status)]
+}
+
+export type CompletedStage = { stage: StageName; label: string; elapsedMs: number }
+
+/** Where each stage begins and ends on the server timeline: queued, loading, tree, walking, classifying, done. */
+const STAGE_SPANS: ReadonlyArray<{ stage: StageName; from: keyof JobStages; to: keyof JobStages }> = [
+  { stage: 'loading', from: 'queued', to: 'loading' },
+  { stage: 'tree', from: 'loading', to: 'tree' },
+  { stage: 'walking', from: 'tree', to: 'walking' },
+  { stage: 'classifying', from: 'classifying', to: 'done' },
+]
+
+/** The stages that have finished, in order, with how long each took. */
+export function completedStages(stages: JobStages): CompletedStage[] {
+  const result: CompletedStage[] = []
+  for (const { stage, from, to } of STAGE_SPANS) {
+    const start = stages[from]
+    const end = stages[to]
+    if (start === undefined || end === undefined) continue
+    result.push({ stage, label: STAGE_LABELS[stage], elapsedMs: Math.max(0, end - start) })
+  }
+  return result
+}
+
+export function formatElapsed(ms: number): string {
+  return `${(Math.max(0, ms) / 1000).toFixed(1)}s`
+}
+
+export function describeJobError(code: string, serverMessage: string): string {
+  const known = ERROR_MESSAGES[code]
+  if (known !== undefined) return known
+  return serverMessage === '' ? FALLBACK_ERROR_MESSAGE : serverMessage
+}
+
+function parseStages(value: unknown): JobStages {
+  if (!isRecord(value)) return {}
+  const stages: JobStages = {}
+  for (const key of ['queued', 'loading', 'tree', 'walking', 'classifying', 'done'] as const) {
+    const entry = value[key]
+    if (typeof entry === 'number' && Number.isFinite(entry)) stages[key] = entry
+  }
+  return stages
+}
+
+function isRunningStatus(value: unknown): value is RunningStatus {
+  return value === 'queued' || value === 'loading' || value === 'tree' || value === 'walking' || value === 'classifying'
+}
+
+/** Turns a `GET /api/audit/:id` 200 body into a poll result. Anything unrecognised counts as unreachable. */
+export function parseJobPoll(body: unknown): JobPoll {
+  if (!isRecord(body)) return { kind: 'unreachable' }
+  const { status } = body
+  if (isRunningStatus(status)) return { kind: 'running', status, stages: parseStages(body.stages) }
+  if (status === 'done') {
+    return isClassifiedAudit(body.result)
+      ? { kind: 'done', audit: body.result, stages: parseStages(body.stages) }
+      : { kind: 'not-found' }
+  }
+  if (status === 'error') {
+    const code = typeof body.error === 'string' ? body.error : ''
+    const message = typeof body.message === 'string' ? body.message : ''
+    return { kind: 'error', code, message: describeJobError(code, message) }
+  }
+  return { kind: 'unreachable' }
+}
+
+export async function fetchJobPoll(id: string, signal?: AbortSignal, fetchFn: typeof fetch = fetch): Promise<JobPoll> {
+  try {
+    const response = await fetchFn(`/api/audit/${encodeURIComponent(id)}`, { signal })
+    if (response.status === 404) return { kind: 'not-found' }
+    if (!response.ok) return { kind: 'unreachable' }
+    const body: unknown = await response.json()
+    return parseJobPoll(body)
+  } catch {
+    return { kind: 'unreachable' }
+  }
+}
+
+/** The text for the app-level announcer on arrival at Spirit Sight. */
+export function completionAnnouncement(audit: ClassifiedAudit): string {
+  return `Audit complete: ${audit.hauntings.length} hauntings found, Haunting Score ${audit.score}`
+}
