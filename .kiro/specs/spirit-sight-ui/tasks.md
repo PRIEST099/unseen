@@ -194,7 +194,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index/daylight`, Verifies the h1 "Daylight report: cursed-shop.the-unseen.app", Verifies that the first criterion row contains "1.1.1", Clicks "Export as Markdown", Verifies that a file download is triggered (by checking for a `download` attribute or a Blob URL), Downloads the file and verifies it contains the Haunting Score and criterion groups
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/sample/cursed-shop-index/daylight` without error; clicking "Export as Markdown" downloads a file; the file contains the Haunting Score and criterion groups
   
-  - [-] 1.8 Self-audit test on Landing, Spirit Sight, and Daylight views
+  - [x] 1.8 Self-audit test on Landing, Spirit Sight, and Daylight views
     - _Requirements: Requirement 22 (Ensure App Self-Accessibility)_
     - _Design: Section "Accessibility Self-Audit", decision F from prompt 38_
     - **Acceptance Criteria:**
@@ -220,7 +220,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Posts a demo URL, Navigates to `/seance/:id`, Waits for the Séance view to display "Loading page…", Waits for auto-navigation to `/audit/:id`, Verifies that the Spirit Sight view is rendered
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; posting a demo URL and navigating to `/seance/:id` shows real stage updates and auto-navigates to Spirit Sight when done
   
-  - [x] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
+  - [ ] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
     - _Requirements: Requirement 13 (Implement Whisper Walk with Web Speech)_
     - _Design: Section "WhisperWalk"_
     - **Acceptance Criteria:**
@@ -238,7 +238,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index/whisper`, Clicks Play, Waits for the first utterance to complete, Verifies that the caption updates, Clicks Pause, Clicks Step forward, Verifies that the caption advances
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; loading `/sample/cursed-shop-index/whisper` and clicking Play speaks the first utterance and highlights the corresponding element
   
-  - [~] 2.3 Implement Keyboard Walk with ghost animation and Lost Soul reveals
+  - [ ] 2.3 Implement Keyboard Walk with ghost animation and Lost Soul reveals
     - _Requirements: Requirement 14 (Animate Keyboard Walk)_
     - _Design: Section "KeyboardWalk"_
     - **Acceptance Criteria:**
@@ -258,7 +258,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - [ ] 3. Phase 3: Haunting Detail, Takes Form, Ambient Drone, and Product States
   - Phase 3 adds the haunting detail dialog, the "takes form" celebration animation, the optional ambient drone, all product states, and the final self-audit proof.
   
-  - [~] 3.1 Implement Haunting Detail Dialog
+  - [ ] 3.1 Implement Haunting Detail Dialog
     - _Requirements: Requirement 15 (Display Haunting Detail Dialog)_
     - _Design: Section "Haunting Detail Dialog"_
     - **Acceptance Criteria:**
@@ -277,7 +277,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index`, Clicks "Open Spirit Sight", Clicks an overlay button (the first Nameless Spirit), Verifies that the dialog opens (detected by `role="dialog"`), Verifies that the h2 contains "Nameless Spirit", Presses Escape, Verifies that the dialog closes and focus returns to the overlay button
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; clicking an overlay button opens the dialog; pressing Escape closes it and returns focus
   
-  - [~] 3.2 Implement "Takes Form" celebration animation
+  - [ ] 3.2 Implement "Takes Form" celebration animation
     - _Requirements: Requirement 18 (Animate "Takes Form" on Fix)_
     - _Design: Section "Product States > Fixed Haunting"_
     - **Acceptance Criteria:**
@@ -288,7 +288,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Manual test (no automated test for now): Load a sample with hauntings, Manually edit the sample JSON to remove one haunting, Re-audit, Verify that the fixed haunting animates from red to green
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; the "takes form" animation is implemented and can be triggered by editing a sample
   
-  - [~] 3.3 Implement optional ambient drone (Web Audio)
+  - [ ] 3.3 Implement optional ambient drone (Web Audio)
     - _Requirements: Requirement 19 (Play Ambient Drone)_
     - _Design: Section "Product States > Ambient Drone"_
     - **Acceptance Criteria:**
@@ -300,7 +300,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Manual test (no automated test for Web Audio): Enable sound, Open Spirit Sight, Verify that a low drone is audible (use headphones), Disable sound, Verify that the drone stops
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; the ambient drone plays when sound is enabled and Spirit Sight is open
   
-  - [~] 3.4 Implement all product states
+  - [ ] 3.4 Implement all product states
     - _Requirements: Requirement 20 (Handle All Product States)_
     - _Design: Section "Product States"_
     - **Acceptance Criteria:**
@@ -312,7 +312,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e tests for each state (already covered in previous tasks)
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; all product states are implemented and testable
   
-  - [~] 3.5 Final self-audit on all routes
+  - [ ] 3.5 Final self-audit on all routes
     - _Requirements: Requirement 22 (Ensure App Self-Accessibility)_
     - _Design: Section "Accessibility Self-Audit", decision F from prompt 38_
     - **Acceptance Criteria:**
