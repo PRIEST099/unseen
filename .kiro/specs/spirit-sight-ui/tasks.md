@@ -84,7 +84,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Run `npm run build-samples -w apps/web` manually; verify `samples/index.json`, `samples/cursed-shop-index.json`, `samples/cursed-shop-index.png`, and `samples/cursed-shop-index-thumb.jpg` are created; start the dev API server and verify `GET /api/samples` returns 3 samples with correct scores
     - **Checkpoint:** `npm run build-samples -w apps/web` completes without error; `samples/index.json` exists and contains 3 samples; `GET /api/samples` returns the cached metadata
   
-  - [-] 1.3 Implement Fastify server with security, rate limit, and static serving
+  - [x] 1.3 Implement Fastify server with security, rate limit, and static serving
     - _Requirements: Requirement 1 (Serve the Spirit Sight UI Application), Requirement 2 (Accept Audit Requests)_
     - _Design: Section "API Layer Design > Fastify Server Factory", "Entry Point", and decision H from prompt 38_
     - **Acceptance Criteria:**
@@ -105,7 +105,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Vitest integration test that starts the server, calls `GET /api/health`, and asserts `200 { "status": "ok" }`; test that setting `UNSEEN_DEV_ALLOW_PRIVATE=1` and `NODE_ENV=production` throws the expected error
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run dev:api -w apps/web` starts without error; `GET /api/health` returns 200; `GET /cursed-shop/index.html` serves the Cursed Shop HTML
   
-  - [~] 1.4 Implement job queue, store, and worker with stage tracking
+  - [-] 1.4 Implement job queue, store, and worker with stage tracking
     - _Requirements: Requirement 3 (Execute Audits with Progress Tracking), Requirement 4 (Return Audit Status and Results)_
     - _Design: Section "Audit Job Queue > Job Store", "Job Queue", and "Job Worker", decision N from prompt 38_
     - **Acceptance Criteria:**
@@ -352,6 +352,15 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - Task 1.2 (samples route): `samplesRoutes` is a `FastifyPluginAsync<{ samplesDir?: string }>`. It reads and validates `index.json` synchronously when the plugin registers (before `listen`) and keeps it in a closure rather than a module-level variable, so tests can point it at a temp directory. `:id` is only used if it appears in the `index.json` id set, which blocks path traversal. Unknown ids return `404 { "error": "NOT_FOUND" }`. Routes are declared as `/samples...` and get the `/api` prefix when registered (task 1.3). The vitest file `src/server/routes/samples.test.ts` uses `fastify.inject` against a temp directory.
 - Task 1.2 (thumbnail URL): the design's `SampleMetadata` example says `thumbnail.png`; the task and the implementation use `/api/samples/:id/thumbnail.jpg`.
 - Task 1.2 (sample scores): generated scores are index 98, product 85, checkout 70. `samples/*.json` is committed; `*.png` and `*.jpg` are ignored via `samples/.gitignore`.
+
+- Task 1.3 (audit routes stub): `routes/audit.ts` did not exist, so a compile-safe placeholder `auditRoutes: FastifyPluginAsync<{ maxConcurrency: number }>` (registers no routes) and the `AuditRoutesOptions` type were added. Task 1.4 replaces the file wholesale and should keep the `{ maxConcurrency }` option shape.
+- Task 1.3 (route paths): `health.ts` declares `/health` and `samplesRoutes` declares `/samples...`; `auditRoutes` (1.4) must declare `/audit...`. All are registered inside one plugin with `{ prefix: '/api' }`, so the final paths are `/api/...`. The `/api` plugin has an `onRequest` hook calling `reply.helmet()`, which is how helmet is applied per scope while `global: false`.
+- Task 1.3 (helmet CSP): helmet is registered with `useDefaults: false` and exactly the ten directives in the AC. With defaults on, helmet adds `upgrade-insecure-requests` and `script-src-attr 'none'`; the former would break plain-http test/e2e runs. Header output was checked against the live dev server.
+- Task 1.3 (static registration): the design nests the cursed-shop registration in a plugin with `{ prefix: '/cursed-shop' }` and also passes `prefix: '/cursed-shop/'`, which would serve it at `/cursed-shop/cursed-shop/`. The plugin has no prefix; only the static `prefix: '/cursed-shop/'` applies. The SPA registration does NOT use `decorateReply: false` (the AC), because `reply.sendFile` is needed by the not-found handler; each `@fastify/static` instance lives in its own encapsulated plugin, so the cursed-shop one (`decorateReply: false`) and the SPA one do not collide.
+- Task 1.3 (SPA fallback): the SPA plugin applies helmet through an `onRequest` hook and sets the not-found handler inside the same plugin. It serves `index.html` (200) only for GET/HEAD requests whose last path segment has no `.`, and returns `404 { "error": "NOT_FOUND" }` JSON for `/api/*`, `/cursed-shop/*`, other methods, and missing assets (`/assets/missing.js`). Without that, a mistyped API path would return HTML.
+- Task 1.3 (ServerOptions): `logger` is typed `FastifyServerOptions['logger']` (still accepts `boolean`, plus pino options or a logger) because `object` does not type-check against `fastify()`. An optional `clientDir?: string` was added (default `dist/client`) so the production SPA fallback can be tested with a temp directory. `main.ts` passes `logger: true` as the AC says, so the dev server logs JSON; the pino-pretty default only applies when `logger` is omitted.
+- Task 1.3 (env check): the production refusal is `assertSafeEnvironment()`, called first in `createServer`, so it throws before any plugin registers. The exact message is exported as `PRODUCTION_PRIVATE_FLAG_ERROR`.
+- Task 1.3 (tests): `src/server/server.test.ts` (9 tests, `fastify.inject`): health 200 + CSP, `/api/samples`, cursed-shop HTML without CSP, `/api/nope` 404, production refusal of the flag, flag allowed outside production, and three production SPA tests (fallback with CSP, asset 404s and backend-path 404s, cursed shop without CSP next to API with CSP).
 
 **Blocked tasks**:
 - None
