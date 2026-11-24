@@ -64,7 +64,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w @the-unseen/core`, `npm run test -w @the-unseen/core` pass
     - **Note in audit-engine spec:** Add this change to `.kiro/specs/audit-engine/tasks.md` Notes section under "Drift from spec": "Task 1.1 (spirit-sight-ui): Added optional `onProgress` callback to `auditAndClassify` for real-time stage reporting. Stages emitted: loading, tree, walking, classifying. No breaking change; additive only."
   
-  - [-] 1.2 Generate sample data with `build-samples.mjs` and serve sample endpoints
+  - [x] 1.2 Generate sample data with `build-samples.mjs` and serve sample endpoints
     - _Requirements: Requirement 5 (Provide Pre-Audited Samples)_
     - _Design: Section "Sample Generation" and "API Layer Design > Route: GET /api/samples"_
     - **Acceptance Criteria:**
@@ -84,7 +84,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Run `npm run build-samples -w apps/web` manually; verify `samples/index.json`, `samples/cursed-shop-index.json`, `samples/cursed-shop-index.png`, and `samples/cursed-shop-index-thumb.jpg` are created; start the dev API server and verify `GET /api/samples` returns 3 samples with correct scores
     - **Checkpoint:** `npm run build-samples -w apps/web` completes without error; `samples/index.json` exists and contains 3 samples; `GET /api/samples` returns the cached metadata
   
-  - [~] 1.3 Implement Fastify server with security, rate limit, and static serving
+  - [-] 1.3 Implement Fastify server with security, rate limit, and static serving
     - _Requirements: Requirement 1 (Serve the Spirit Sight UI Application), Requirement 2 (Accept Audit Requests)_
     - _Design: Section "API Layer Design > Fastify Server Factory", "Entry Point", and decision H from prompt 38_
     - **Acceptance Criteria:**
@@ -345,6 +345,13 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - Task 1.1 (onProgress, where the calls live): callbacks are in the audit layer, not `classifier/`. A new `packages/core/src/progress.ts` exports `emitProgress(onProgress, stage, now = Date.now)`, which no-ops when the callback is absent and wraps the call in try/catch that logs with `console.error` and does not rethrow. `audit.ts` calls it after `loadPage` (loading), after `collectAxTree` (tree), after the Tab walk (walking), and in `auditAndClassify` between `auditUrl` and `classify(raw)` (classifying). `auditUrl` and `auditHtml` report the first three stages through the same `options.onProgress`; `classifying` is only reported by `auditAndClassify`.
 - Task 1.1 (onProgress, test fixture): the task says the property test uses `auditHtml`, but `auditHtml` returns a `RawAudit` and never reaches `classify`, so it cannot show the `classifying` stage. The ordering property in `packages/core/tests/progress.int.spec.ts` therefore calls `auditAndClassify` against a minimal HTML page served by `startTestServer` (`allowPrivate: true`). A separate test checks that `auditHtml` reports exactly `loading, tree, walking`. The property is an integration spec (Playwright Test), because each run is a real browser audit (about 3 s). It uses `numRuns: 5`, below the usual 100, for that reason. It generates a random subset of stages whose callback throws, and asserts each stage is called once, in order, with strictly increasing `atMs`, and the audit still resolves. The pure emitter has its own fast-check suite (100 runs) in `packages/core/src/progress.test.ts`, which runs under `npm run test -w @the-unseen/core`.
 - Task 1.1 (audit-engine spec note): the note was appended under "### Drift from spec" in `.kiro/specs/audit-engine/tasks.md`, below the 1.0a entry.
+
+- Task 1.2 (sample server): the task says to start a Vite dev server for `apps/cursed-shop`. The shop is static and has no Vite dependency, so `scripts/build-samples.mjs` serves it with a small `node:http` static server on an ephemeral port (`server.listen(0, '127.0.0.1')`, path-traversal guarded). The design's `startShopServer` from `@the-unseen/core` does not exist, so the same helper lives inside the script.
+- Task 1.2 (script teardown): after writing the samples the script closes the shop server and calls `getPool().close()` (exported by core). Without that the Playwright browser pool keeps the Node process alive. The script takes about 38 s and exits.
+- Task 1.2 (sample names and URLs): names use the task's "Cursed Shop — Home/Product/Checkout" form (the design uses a colon). Display URLs are `https://the-unseen.app/cursed-shop/<page>` per the task (the design sample uses `cursed-shop.the-unseen.app`). The task wins; note that the requirements and e2e text in later tasks mention both hostnames (`cursed-shop.the-unseen.app` in 1.7, `the-unseen.app` in 1.8), so those tests must be reconciled when written.
+- Task 1.2 (samples route): `samplesRoutes` is a `FastifyPluginAsync<{ samplesDir?: string }>`. It reads and validates `index.json` synchronously when the plugin registers (before `listen`) and keeps it in a closure rather than a module-level variable, so tests can point it at a temp directory. `:id` is only used if it appears in the `index.json` id set, which blocks path traversal. Unknown ids return `404 { "error": "NOT_FOUND" }`. Routes are declared as `/samples...` and get the `/api` prefix when registered (task 1.3). The vitest file `src/server/routes/samples.test.ts` uses `fastify.inject` against a temp directory.
+- Task 1.2 (thumbnail URL): the design's `SampleMetadata` example says `thumbnail.png`; the task and the implementation use `/api/samples/:id/thumbnail.jpg`.
+- Task 1.2 (sample scores): generated scores are index 98, product 85, checkout 70. `samples/*.json` is committed; `*.png` and `*.jpg` are ignored via `samples/.gitignore`.
 
 **Blocked tasks**:
 - None
