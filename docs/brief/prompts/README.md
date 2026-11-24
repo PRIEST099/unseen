@@ -16,6 +16,9 @@ kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_w
 | 05 | Cursed Shop (vibe) | Built, but most hauntings were wrong |
 | 06 | Steering review 2 | Rules tightened from the Chromium evidence |
 | 07–08 | Cursed Shop fixes | SVGs and Lost Souls partly fixed; stopped at the monthly limit |
+| 09 | Cursed Shop finish (Kiro) | All 30 golden counts match; `verify.mjs` works (merged, #1) |
+| 10 | Audit engine 5–8 + Step 0 | Kiro did Step 0.1–0.4, then hit the limit. **Claude Code finished it by hand** (#2) |
+| 11 | Audit engine 9–16 | **Written by Claude Code, no Kiro credits** (#3); 62 unit + 20 integration tests |
 
 ## Queue (once credits arrive)
 | # | Prompt | Mode / model | Rough credits | Product-lead check before the next run |
@@ -34,6 +37,7 @@ kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_w
 | 16 | `16-deploy.md` | auto | 15–30 | Smoke test passes locally; **the owner picks Fly or Render and deploys** |
 | 17 | `17-night-shift-crew.md` (separate repo) | spec then implement, auto | 60–120 | Demo patrol runs; the Exorcist rejects a bad fix |
 | 18 | `18-run-10-resume.md` (resume run 10 after the usage limit) | auto | 25–45 | Same gate as run 10 |
+| 19 | `19-kiro-review-runs-10-11.md` (Kiro reviews and adopts the Claude-written tasks 5–16) | claude-sonnet-4.5 | 30–60 | Full test suite; every change logged; nothing weakened to pass |
 
 **Estimated total: about 500–1,000 credits**, leaving headroom for review-driven fix passes. Each spec gets an independent review (as the audit engine did) before implementation.
 
