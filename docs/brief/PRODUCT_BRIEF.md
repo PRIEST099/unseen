@@ -160,6 +160,19 @@ Use Kiro the way judges want to see it, **for real**, not bolted on:
 | Dec 2–3 | Video, write-up, README, blog draft (user writes the social post) | — |
 | Dec 4 | Buffer; submit by noon PT | — |
 
+## 11b. What the judges told us (organizer email, 2026-11-24)
+
+All five criteria carry **equal weight**: Potential Impact, Technological Implementation, Design, Innovation/Idea and Presentation. What named judges said they look for:
+- Something creative that **actually works**, and **how specs, steering and hooks got us there**. There are bonus points for moments where **Kiro surprised us**.
+- **Simple, focused** solutions to a real problem, with a **clean interface and intuitive UX**.
+- **Breadth across Kiro surfaces**, and a demo video that states the problem and shows a **working solution end to end**.
+
+**Consequences for the plan:**
+1. Design is a full fifth of the score, so polish and UX for spirit-sight-ui come before extra features. If time runs short, cut features, never polish.
+2. Make every Kiro surface visible in the repo and the video: steering, specs, hooks, Power, MCP, custom agent and Crew.
+3. Log every "Kiro surprised us" moment in the session log.
+4. The video runs the real product end to end: paste a URL, see the hauntings, hear the walk, get the Kiro fix.
+
 ## 12. Prize strategy
 
 - **Main:** Overall 1st–3rd. Fallback: **Costume Contest** category (one or the other, never both).
