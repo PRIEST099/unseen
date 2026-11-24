@@ -7,7 +7,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useFocusMain } from '../hooks/useFocusMain'
 import { cachedAudit, hostnameOf, loadAudit } from '../utils/audit-source'
 import type { AuditLoadResult, AuditSource } from '../utils/audit-source'
-import { LensPlaceholderPanel } from './LensPlaceholderPanel'
+import { KeyboardWalk } from './KeyboardWalk'
 import { NotFoundView } from './NotFoundView'
 import { WhisperWalk } from './WhisperWalk'
 
@@ -130,7 +130,7 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
       ) : lens === 'whisper' ? (
         <WhisperWalk source={source} audit={result.audit} hostname={hostname} basePath={basePath} />
       ) : (
-        <LensPlaceholderPanel lens={lens} hostname={hostname} basePath={basePath} />
+        <KeyboardWalk source={source} audit={result.audit} hostname={hostname} basePath={basePath} />
       )}
     </main>
   )

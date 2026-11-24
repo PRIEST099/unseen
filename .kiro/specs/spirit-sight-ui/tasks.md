@@ -220,7 +220,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Posts a demo URL, Navigates to `/seance/:id`, Waits for the Séance view to display "Loading page…", Waits for auto-navigation to `/audit/:id`, Verifies that the Spirit Sight view is rendered
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; posting a demo URL and navigating to `/seance/:id` shows real stage updates and auto-navigates to Spirit Sight when done
   
-  - [ ] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
+  - [x] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
     - _Requirements: Requirement 13 (Implement Whisper Walk with Web Speech)_
     - _Design: Section "WhisperWalk"_
     - **Acceptance Criteria:**
@@ -238,7 +238,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index/whisper`, Clicks Play, Waits for the first utterance to complete, Verifies that the caption updates, Clicks Pause, Clicks Step forward, Verifies that the caption advances
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; loading `/sample/cursed-shop-index/whisper` and clicking Play speaks the first utterance and highlights the corresponding element
   
-  - [ ] 2.3 Implement Keyboard Walk with ghost animation and Lost Soul reveals
+  - [x] 2.3 Implement Keyboard Walk with ghost animation and Lost Soul reveals
     - _Requirements: Requirement 14 (Animate Keyboard Walk)_
     - _Design: Section "KeyboardWalk"_
     - **Acceptance Criteria:**
@@ -258,7 +258,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - [ ] 3. Phase 3: Haunting Detail, Takes Form, Ambient Drone, and Product States
   - Phase 3 adds the haunting detail dialog, the "takes form" celebration animation, the optional ambient drone, all product states, and the final self-audit proof.
   
-  - [ ] 3.1 Implement Haunting Detail Dialog
+  - [-] 3.1 Implement Haunting Detail Dialog
     - _Requirements: Requirement 15 (Display Haunting Detail Dialog)_
     - _Design: Section "Haunting Detail Dialog"_
     - **Acceptance Criteria:**
@@ -277,7 +277,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index`, Clicks "Open Spirit Sight", Clicks an overlay button (the first Nameless Spirit), Verifies that the dialog opens (detected by `role="dialog"`), Verifies that the h2 contains "Nameless Spirit", Presses Escape, Verifies that the dialog closes and focus returns to the overlay button
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; clicking an overlay button opens the dialog; pressing Escape closes it and returns focus
   
-  - [ ] 3.2 Implement "Takes Form" celebration animation
+  - [~] 3.2 Implement "Takes Form" celebration animation
     - _Requirements: Requirement 18 (Animate "Takes Form" on Fix)_
     - _Design: Section "Product States > Fixed Haunting"_
     - **Acceptance Criteria:**
@@ -288,7 +288,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Manual test (no automated test for now): Load a sample with hauntings, Manually edit the sample JSON to remove one haunting, Re-audit, Verify that the fixed haunting animates from red to green
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; the "takes form" animation is implemented and can be triggered by editing a sample
   
-  - [ ] 3.3 Implement optional ambient drone (Web Audio)
+  - [~] 3.3 Implement optional ambient drone (Web Audio)
     - _Requirements: Requirement 19 (Play Ambient Drone)_
     - _Design: Section "Product States > Ambient Drone"_
     - **Acceptance Criteria:**
@@ -300,7 +300,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Manual test (no automated test for Web Audio): Enable sound, Open Spirit Sight, Verify that a low drone is audible (use headphones), Disable sound, Verify that the drone stops
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; the ambient drone plays when sound is enabled and Spirit Sight is open
   
-  - [ ] 3.4 Implement all product states
+  - [~] 3.4 Implement all product states
     - _Requirements: Requirement 20 (Handle All Product States)_
     - _Design: Section "Product States"_
     - **Acceptance Criteria:**
@@ -312,7 +312,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e tests for each state (already covered in previous tasks)
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; all product states are implemented and testable
   
-  - [ ] 3.5 Final self-audit on all routes
+  - [~] 3.5 Final self-audit on all routes
     - _Requirements: Requirement 22 (Ensure App Self-Accessibility)_
     - _Design: Section "Accessibility Self-Audit", decision F from prompt 38_
     - **Acceptance Criteria:**
@@ -429,6 +429,27 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - Task 2.1 (app-level announcer): new `contexts/AnnouncerContext.tsx` (`AnnouncerProvider`, `useAnnouncer`) renders one persistent `<div id="app-announcer" role="status" aria-live="polite" class="sr-only">` after the app shell, wrapped around `App`'s content in `App.tsx`. The text is "Audit complete: {n} hauntings found, Haunting Score {score}" ("hauntings" always, as in the Spirit Sight status line). New `.sr-only` class in `global.css`. Announcing the identical text twice in a row is not re-read; accepted. The "Try another URL" control is a `<button>` that calls `navigate('/')`.
 - Task 2.1 (not done): requirement 31.1's "Cancel" link and the numbered step bar on the séance, and requirement 7.9 focusing the h1 on routes other than Spirit Sight, are left to later tasks.
 - Task 2.1 (tests): `utils/seance.test.ts` (12 Vitest tests incl. one fast-check property on `completedStages` order and non-negative durations); `e2e/seance.spec.ts` (4 Playwright tests: real demo audit from `/seance/:id` to Spirit Sight with h1 focus, announcer text and Back behaviour; live region empty on mount then text-only changes on the same node, with the completed-stage list; error in the assertive region, polling stops, "Try another URL" returns to `/`; 404 job). Results: `npm run typecheck -w apps/web` clean; `npx playwright test` 23/23 pass; `npx vitest --run` 210/211 on the full run. The one failure was `routes/audit.int.test.ts` (the Chromium-backed Cursed Shop audit) in the parallel full run; it passes 2/2 when run alone, so it is a load/timing flake in a file this task did not touch.
+
+- Task 2.2 (requirement numbers): the task text cites requirement 13; in requirements.md the Whisper walk is requirement 14.
+- Task 2.2 (import path): `WhisperWalk.tsx` imports `buildSpeechTrack` from `@the-unseen/core/speech` (the `./speech` subpath in `packages/core/package.json`, pointing at `dist/classifier/speech.js`), not from the `@the-unseen/core` root. The root entry also pulls in Playwright, which must not enter the client bundle. Types still come from `import type ... from '@the-unseen/core'`. The speech track is computed on the client from `audit.raw` (`useMemo`), not read from the sample JSON's `speechTrack`; both come from the same core function.
+- Task 2.2 (speed control): the speed control is a labelled `<select>` ("Speed": 0.5×, 0.75×, 1×), not a row of buttons. Rate is `whisperRate(speed) = clamp(0.85 * speed, 0.4, 0.85)`, pitch 0.8; the pause between utterances is `round(400 / speed)` ms, so faster speeds shorten pauses only. Speeds above 1× are not offered.
+- Task 2.2 (highlight colour): the highlight is an amber (`--color-candle`) box with 25% fill, 4 px stroke and an ink halo, instead of "yellow". It sits in an `aria-hidden` SVG with the same `viewBox` as the screenshot (shared `ScreenshotStage`), so it scales with the image. It is padded 4 px (PNG space) so very small elements stay visible. Lines with `box: null` show no highlight. The highlighted element scrolls into view only after the user has used Play or a step button (smooth, instant under reduced motion).
+- Task 2.2 (playback): `hooks/useWhisperPlayback.ts` keeps `index` in app state. Each utterance is queued in an effect; it advances on `onend`, `onerror`, or after `2 x` the estimated duration, whichever is first. Cancelling on pause or step marks the utterance settled first, so the `onerror` that `speechSynthesis.cancel()` fires does not skip a line. Pause and step while paused change the caption without speaking. Reaching the end sets "End of the walk: N announcements." in a polite status line; Play then restarts from the first line.
+- Task 2.2 (sound and captions only): Play turns sound on (`toggleSound`) only when audio will play; captions-only Play leaves sound as it was. When the browser has no `speechSynthesis`, captions-only is forced and the checkbox is disabled, with a sentence explaining why. Caption timing in captions-only mode is `max(1500 ms, 60 ms x characters)`. The caption has `aria-live="off"` while audio plays and `"polite"` otherwise (paused, captions-only, manual step). The walk never starts on its own and does not call `speechSynthesis` on mount.
+- Task 2.2 (not covered): the voice dropdown is populated from `getVoices()` and updates on `voiceschanged`, but the e2e stub returns no voices, so voice selection itself is not tested. Real audio output cannot be asserted in Chromium; the e2e tests replace `window.speechSynthesis` with a stub that records pitch, rate and text and fires `onend` (requirement 28.6).
+- Task 2.2 (tests): Vitest `utils/whisper-walk.test.ts` (8, fast-check properties on rate clamp and monotonicity, caption delay, timeout >= 2x delay, pause shortens with speed, index clamp) and `utils/whisper-speech.test.ts` (4). `e2e/whisper-walk.spec.ts` has 5 tests: Play whispers (pitch <= 0.8, rate <= 0.85), turns sound on, advances the caption, Pause holds, Step forward/back move the caption without speaking; highlight position matches the track box at the screenshot scale; `aria-live` off during audio and a 0.5× speed gives rate 0.425; captions-only advances with no speech and sound stays off; no autoplay and all controls labelled. Results: `npm run typecheck -w apps/web` clean; `npx vitest --run src/client` 121/121; `npx playwright test` 28/28 (the full suite, including the four self-audit routes and the post-activation axe scan).
+- Task 2.2 (status): the implementation was already committed (e316db6) when this run started; this run re-verified it, ran the full suites, and recorded the notes above and ticked the task. The 2.3 to 3.5 markers changed from `[ ]` to `[~]` in the working tree before this run; they were left as they were.
+
+- Task 2.3 (requirement numbers): the task text cites requirement 14; in requirements.md the Keyboard walk is requirement 15.
+- Task 2.3 (structure): pure model in `utils/keyboard-walk.ts` (`buildWalkModel`, `planSoulReveals`, `revealedSoulIds`, `ghostBoxAt`, `stepCaption`, `frameEvents`, `stepIntervalMs`), playback in `hooks/useKeyboardWalkPlayback.ts`, view in `views/KeyboardWalk.tsx`, styles in `styles/keyboard-walk.css` (imported by `main.tsx`). `views/LensPlaceholderPanel.tsx` had only the keyboard entry left, so it was deleted. `HauntingOverlay.tsx` now exports `LostSoulGlass` (the existing Lost Soul glass treatment) and the walk reuses it with `OverlayDefs`. The speech for "Step i of n: {speech}" comes from `buildSpeechTrack` (imported from `@the-unseen/core/speech`, as in the Whisper walk), not from the AX name as in the design sketch; a node with no speech line reads "element".
+- Task 2.3 (frames, not raw steps): the ghost visits "frames" built from the recorded steps. An escapable cycle is recorded as one lap (first member, the rest, first member again), and the walk adds exactly one more lap, so the members are circled twice and the ghost then continues with the next recorded step. The added frames keep the closing step's number, so the caption reads "Step 22 of 38" for the last three frames of the cycle, with the event line "Escapable cycle: lap 2 of 2, then breaking free". A cycle whose first member is never revisited in the recorded steps is left unchanged.
+- Task 2.3 (trap laps): the AC says the ghost "circles at most 3 times". The Checkout sample records only one lap (3, 228, 3), so cutting at three would show one. The walk therefore shows three laps (extra frames are added when fewer were recorded, and recorded frames after the closing step are dropped when more were), then the last frame is marked trapped and nothing follows it: Step forward cannot leave the trap and Play stops. The design's "or manually step forward to continue" was not built, because the audited walk never leaves a trap. A Cursed Loop haunting counts as a trap only when none of its nodes belong to an escapable cycle (the same test Spirit Sight uses for its pulse). If no recorded cycle matches the trap, the walk stops after the last recorded step inside the trap's nodes.
+- Task 2.3 (Lost Soul reveals): the rule is "revealed at the first frame whose step box is at or after the soul in reading order (y, then x)". For a walk in reading order that equals "between the previous and the new step box"; it also handles ties (a soul sharing a corner with a step box) and jumps backwards, which "strictly between" would leave unrevealed. Beyond the AC, when a walk that is not trapped reaches its last frame, every soul still hidden is revealed (souls below the last step), so all Lost Souls Tab skipped end up shown (8 of 8 on the Home sample). Reveal state is derived from the current frame, so Step back un-reveals. The announcement "Lost Soul skipped: {labels}" uses the same element label as the overlay buttons. The glass fade is 600 ms `ease-out` on `opacity`, `none` under reduced motion.
+- Task 2.3 (reduced motion): step interval stays 300 ms / speed under reduced motion (never 0). Only the ghost's CSS transition (`transform`, min(300 ms, step interval), `ease-in-out`) and the soul fade are removed, both inline (`none`) and by the global rule. Speeds offered: 0.5x, 1x, 2x (design); the transition is capped at the step interval so the ghost keeps up at 2x.
+- Task 2.3 (live regions): the AC wants the step caption in a polite live region. A 300 ms update rate would flood a screen reader, so the caption has `aria-live="off"` while the walk plays and `"polite"` when paused or stepping by hand (same pattern as the Whisper walk). The events (Lost Soul skipped, cycle lap, Cursed Loop trapped, "End of the Tab walk: N steps.") are in a separate `role="status"` region that is always polite and empty on mount, so they are announced during playback. A trap prints both "Cursed Loop: trapped" and "Trapped: keyboard users cannot leave this dialog".
+- Task 2.3 (Play button): one button, visible and accessible name "Play" (fixed), `aria-pressed` true while playing, per the AC. The design sketch changed the label and also set `aria-pressed`, which double-announces the state. Visual state is the existing `.button-primary[aria-pressed='true']` style. Step back and Step forward are never disabled (they clamp), and both pause the walk. Restart goes to the first frame and stops.
+- Task 2.3 (drawing): everything is in one `aria-hidden` SVG with the screenshot's `viewBox` (shared `ScreenshotStage`): revealed Lost Souls, the ember ring (Cursed Loop box, `cursed-loop-glow`, 2 s x 2, no animation under reduced motion), a ghost-coloured box on the current element (ecto on an ink halo, scrolled into view only after the user has used a control) and the `<g class="tab-ghost">`. The ghost is drawn about 28 CSS px across at any scale (its group is scaled by `1 / scaleFactor`). The ring appears from the first trapped frame and stays. The design's `announceStatus` DOM mutation was replaced by rendering the status from state.
+- Task 2.3 (tests): Vitest `utils/keyboard-walk.test.ts` (22 tests: fast-check properties for the timing, one frame per step without cycles, exactly one extra lap per escapable cycle with the surrounding steps preserved, three trap laps for any recorded count with nothing after the trap, each soul revealed once and all by the end, `hasPassed` monotonic; examples for the real Home and Checkout samples, the fallbacks, captions and events). `e2e/keyboard-walk.spec.ts` (7 tests: Play/Pause/step/restart with `aria-pressed` and `aria-live`; ghost centre equals the step box at the screenshot scale; Lost Souls revealed, announced and all shown at the end; escapable cycle laps and break-free on the Home sample; Cursed Loop trap on the Checkout sample with ring, finite 2 s x 2 animation and stop; reduced motion; labelled controls and no autoplay). Results: `npm run typecheck -w apps/web` clean; `npx vitest --run` 241/241 (26 files); `npx playwright test` 35/35. A throwaway `auditAndClassify` run on `/sample/cursed-shop-index/keyboard` and `/sample/cursed-shop-checkout/keyboard`, plus an axe scan of both at the end of the walk (souls revealed, ring shown), gave 0 hauntings, 0 unmapped axe violations, 0 manual-check nodes, 0 axe violations and 0 incomplete items; the script was deleted. Adding the keyboard routes to `self-audit.spec.ts` is left to task 3.5. One unrelated existing type error exists in `utils/export-filename.test.ts(22,58)` (test files are excluded from `npm run typecheck`).
 
 **Blocked tasks**:
 - None

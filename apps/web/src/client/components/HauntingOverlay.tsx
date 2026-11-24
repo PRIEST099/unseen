@@ -80,7 +80,8 @@ function TheFog({ box, haunting, reducedMotion, fogOpacity }: VisualProps): Reac
   )
 }
 
-function LostSoul({ box }: VisualProps): ReactElement {
+/** The Lost Soul treatment: frosted glass with a cross. Shared with the Keyboard walk, which reveals it. */
+export function LostSoulGlass({ box }: { box: Rect }): ReactElement {
   return (
     <>
       <rect x={box.x} y={box.y} width={box.width} height={box.height} fill={`url(#${GLASS_GRADIENT_ID})`} />
@@ -88,6 +89,10 @@ function LostSoul({ box }: VisualProps): ReactElement {
       <line x1={box.x + box.width} y1={box.y} x2={box.x} y2={box.y + box.height} className="v-mist-stroke" />
     </>
   )
+}
+
+function LostSoul({ box }: VisualProps): ReactElement {
+  return <LostSoulGlass box={box} />
 }
 
 function CursedLoop({ box, reducedMotion, escapable }: VisualProps): ReactElement {

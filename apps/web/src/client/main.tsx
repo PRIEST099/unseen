@@ -6,6 +6,7 @@ import './styles/global.css'
 import './styles/spirit-sight.css'
 import './styles/daylight.css'
 import './styles/whisper-walk.css'
+import './styles/keyboard-walk.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
