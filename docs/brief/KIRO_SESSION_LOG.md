@@ -548,3 +548,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Run 41:** converted the tasks to Kiro's checkbox task-list format, so the IDE shows "Start task" (21 checkbox items), and fixed `workspace:*` (not supported by npm workspaces). **Its summary claimed "all acceptance criteria are preserved", but tasks 1.6–3.5 had been compressed to one-liners.** That is the third time a Kiro summary did not match the files.
 - **Run 43:** restored the full acceptance criteria for 1.6–3.5 from the pre-conversion text, correcting the stale criteria (verbatim coverage note, no reduced-motion redirect to Daylight). Verified by grep.
 - **Product-lead one-line edit (Claude Code):** the e2e `webServer` used `cross-env NODE_ENV=test UNSEEN_DEV_ALLOW_PRIVATE=1 npm run build && npm run start`. `cross-env` only applies to the first command, and `start` forces production, which refuses the dev flag. Added a `start:test` script, and the webServer is now `npm run build && npm run start:test`.
+
+## 2026-11-24 · UI build in the Kiro IDE · started (owner, Kiro IDE)
+- The owner drives `.kiro/specs/spirit-sight-ui/tasks.md` from the Kiro IDE (Specs panel, "Start task"). Claude Code verifies each task. Branch `kiro/ui-build-ide`.
