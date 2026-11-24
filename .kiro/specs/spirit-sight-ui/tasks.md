@@ -46,7 +46,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run test -w @the-unseen/core` passes; `buildSpeechTrack` and `SpeechLine` are exported by name from `@the-unseen/core`
     - **Note in audit-engine spec:** Add this change to `.kiro/specs/audit-engine/tasks.md` Notes section under "Drift from spec": "Task 1.0a (spirit-sight-ui): Added `buildSpeechTrack(raw): SpeechLine[]` exported by name from `src/index.ts`. This builds the AX-tree speech track for the Whisper Walk. `SpeechLine` type also exported. No breaking change; additive only."
   
-  - [-] 1.1 Add `onProgress` callback to `auditAndClassify` (additive core change)
+  - [x] 1.1 Add `onProgress` callback to `auditAndClassify` (additive core change)
     - _Requirements: Requirement 3 (Execute Audits with Progress Tracking)_
     - _Design: Section "Audit Job Queue > Job Worker" and Requirement 3 acceptance criteria 2–3_
     - **Acceptance Criteria:**
@@ -64,7 +64,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w @the-unseen/core`, `npm run test -w @the-unseen/core` pass
     - **Note in audit-engine spec:** Add this change to `.kiro/specs/audit-engine/tasks.md` Notes section under "Drift from spec": "Task 1.1 (spirit-sight-ui): Added optional `onProgress` callback to `auditAndClassify` for real-time stage reporting. Stages emitted: loading, tree, walking, classifying. No breaking change; additive only."
   
-  - [~] 1.2 Generate sample data with `build-samples.mjs` and serve sample endpoints
+  - [-] 1.2 Generate sample data with `build-samples.mjs` and serve sample endpoints
     - _Requirements: Requirement 5 (Provide Pre-Audited Samples)_
     - _Design: Section "Sample Generation" and "API Layer Design > Route: GET /api/samples"_
     - **Acceptance Criteria:**
@@ -340,6 +340,11 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - Task 1.0a (core speech track): `buildSpeechTrack` and `announce`/`announceNote` live together in `packages/core/src/classifier/speech.ts` (the task says `announce` already exists there). Like the design's code sample, `buildSpeechTrack` leaves out AX nodes whose `announce()` text is empty (generic, none, presentation), in addition to ignored nodes; the AC wording ("for each node where `ignored !== true`") would otherwise emit blank utterances. `note` is omitted from the line (not set to `undefined`) when `announceNote` returns nothing. Boxes are looked up through a `Map` keyed by `backendDOMNodeId` (first box wins, same as `find`); `box` is `null` when none is recorded.
 - Task 1.0a (existing test updated): `packages/core/src/index.test.ts` already existed and pins the exact public export list (finding 42). `buildSpeechTrack` was added to that list, and a second test imports `buildSpeechTrack` and `SpeechLine` by name. The task text says the file "exists with a test", so no new file was created.
 - Task 1.0a (design sample mismatch): the design's `WhisperWalk` code reads `speechTrack` from `buildSpeechTrack(audit.raw)` on the client, while task 1.2 also stores `speechTrack` in each sample JSON. Both are served by the same core function, so they agree.
+
+- Task 1.1 (onProgress, option type location): the task says `packages/core/src/index.ts` amends `AuditOptions`, but `AuditOptions` is defined in `packages/core/src/types.ts` (`index.ts` only re-exports types by name). `onProgress?: OnProgressCallback` was added to `AuditOptions` in `types.ts`, and `OnProgressCallback` is defined there as the task specifies. `index.ts` also exports the types `OnProgressCallback` and `ProgressStage` (a named alias of the four-stage union, added so the emitter has a type for its stage argument; `OnProgressCallback` keeps the literal union from the task).
+- Task 1.1 (onProgress, where the calls live): callbacks are in the audit layer, not `classifier/`. A new `packages/core/src/progress.ts` exports `emitProgress(onProgress, stage, now = Date.now)`, which no-ops when the callback is absent and wraps the call in try/catch that logs with `console.error` and does not rethrow. `audit.ts` calls it after `loadPage` (loading), after `collectAxTree` (tree), after the Tab walk (walking), and in `auditAndClassify` between `auditUrl` and `classify(raw)` (classifying). `auditUrl` and `auditHtml` report the first three stages through the same `options.onProgress`; `classifying` is only reported by `auditAndClassify`.
+- Task 1.1 (onProgress, test fixture): the task says the property test uses `auditHtml`, but `auditHtml` returns a `RawAudit` and never reaches `classify`, so it cannot show the `classifying` stage. The ordering property in `packages/core/tests/progress.int.spec.ts` therefore calls `auditAndClassify` against a minimal HTML page served by `startTestServer` (`allowPrivate: true`). A separate test checks that `auditHtml` reports exactly `loading, tree, walking`. The property is an integration spec (Playwright Test), because each run is a real browser audit (about 3 s). It uses `numRuns: 5`, below the usual 100, for that reason. It generates a random subset of stages whose callback throws, and asserts each stage is called once, in order, with strictly increasing `atMs`, and the audit still resolves. The pure emitter has its own fast-check suite (100 runs) in `packages/core/src/progress.test.ts`, which runs under `npm run test -w @the-unseen/core`.
+- Task 1.1 (audit-engine spec note): the note was appended under "### Drift from spec" in `.kiro/specs/audit-engine/tasks.md`, below the 1.0a entry.
 
 **Blocked tasks**:
 - None

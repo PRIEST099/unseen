@@ -1,11 +1,21 @@
 import type { Browser, BrowserContext, Page } from 'playwright'
-import type { AuditOptions, AXNode, CollectionError, DomNodeInfo, RawAudit, SafeFetchPolicy, TabWalkResult } from './types.js'
+import type {
+  AuditOptions,
+  AXNode,
+  CollectionError,
+  DomNodeInfo,
+  OnProgressCallback,
+  RawAudit,
+  SafeFetchPolicy,
+  TabWalkResult,
+} from './types.js'
 import { AuditTimeoutError, HtmlSizeError, NonHtmlContentError, SsrfBlockedError } from './types.js'
 import { SsrfGuardProxy } from './runner/ssrf-guard-proxy.js'
 import type { BlockedEntry, DialFn } from './runner/ssrf-guard-proxy.js'
 import type { LookupFn } from './runner/dns-resolver.js'
 import type { ContextProxy } from './runner/browser.js'
 import { AuditGuard } from './audit-guard.js'
+import { emitProgress } from './progress.js'
 import { classify } from './classifier/classify.js'
 import type { ClassifiedAudit } from './classifier/types.js'
 import { DEFAULT_VIEWPORT, PageLoader, getPool } from './runner/browser.js'
@@ -98,7 +108,9 @@ export async function auditUrl(url: string, options: AuditOptions = {}): Promise
 
 /** Audit a live URL and classify the evidence: hauntings, severity, score. Errors from the audit propagate unchanged. */
 export async function auditAndClassify(url: string, options: AuditOptions = {}): Promise<ClassifiedAudit> {
-  return classify(await auditUrl(url, options))
+  const raw = await auditUrl(url, options)
+  emitProgress(options.onProgress, 'classifying')
+  return classify(raw)
 }
 
 export async function auditUrlWithHooks(url: string, options: AuditOptions, hooks: AuditHooks): Promise<RawAudit> {
@@ -218,9 +230,10 @@ async function collectAudit(
     })
   )
   loaded.page.on('close', () => guard.fail(parts.crashed()))
+  emitProgress(options.onProgress, 'loading')
   try {
     const collectionErrors: CollectionError[] = []
-    const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks)
+    const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks, options.onProgress)
     const raw = assemble(url, options, loaded, meter, evidence, collectionErrors, parts.blockedLog)
     await parts.hooks.beforeClose?.(loaded.page, raw)
     return raw
@@ -275,9 +288,11 @@ async function collectEvidence(
   page: Page,
   guard: AuditGuard,
   collectionErrors: CollectionError[],
-  hooks: AuditHooks
+  hooks: AuditHooks,
+  onProgress: OnProgressCallback | undefined
 ): Promise<Evidence> {
   const axNodes = await guard.race(collectAxTree(page))
+  emitProgress(onProgress, 'tree')
   const [axe, listeners, meta, mapping] = await guard.race(
     Promise.all([
       runAxe(page),
@@ -294,6 +309,7 @@ async function collectEvidence(
   const referenced = new Set(axNodes.map((n) => n.backendDOMNodeId).filter((id) => id > 0))
   const before = await guard.race(collectDomNodes(page, referenced))
   const tabWalkResult = await walkOrRecord(page, guard, collectionErrors, hooks)
+  emitProgress(onProgress, 'walking')
   const after = await guard.race(collectDomNodes(page, referenced))
   collectionErrors.push(...before.errors, ...after.errors)
   const domNodes = { ...after.domNodes, ...before.domNodes }

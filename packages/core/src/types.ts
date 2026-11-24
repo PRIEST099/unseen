@@ -216,6 +216,12 @@ export type AxeViolationNode = {
   failureSummary: string
 }
 
+// Audit stages reported through `onProgress`, in the order they complete
+export type ProgressStage = 'loading' | 'tree' | 'walking' | 'classifying'
+
+// Called once per stage as it completes; `atMs` is epoch milliseconds. A throwing callback never fails the audit.
+export type OnProgressCallback = (stage: 'loading' | 'tree' | 'walking' | 'classifying', atMs: number) => void
+
 // Public API options
 export type AuditOptions = {
   allowPrivate?: boolean // default false
@@ -223,6 +229,7 @@ export type AuditOptions = {
   navigationTimeoutMs?: number // default 30000
   safeFetchPolicy?: SafeFetchPolicy // override for testing
   viewport?: { width: number; height: number } // default 1280×900
+  onProgress?: OnProgressCallback // optional stage reporting; absent means no callbacks
 }
 
 // SSRF guard interface

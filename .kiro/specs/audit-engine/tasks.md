@@ -223,6 +223,7 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
 ### Drift from spec
 
 - Task 1.0a (spirit-sight-ui): Added `buildSpeechTrack(raw): SpeechLine[]` exported by name from `src/index.ts`. This builds the AX-tree speech track for the Whisper Walk. `SpeechLine` type also exported. No breaking change; additive only.
+- Task 1.1 (spirit-sight-ui): Added optional `onProgress` callback to `auditAndClassify` for real-time stage reporting. Stages emitted: loading, tree, walking, classifying. No breaking change; additive only.
 
 ## Task Dependency Graph
 

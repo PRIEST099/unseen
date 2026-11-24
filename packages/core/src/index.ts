@@ -26,6 +26,8 @@ export type {
 export type { SpeechLine } from './classifier/types.js'
 export type {
   AuditOptions,
+  OnProgressCallback,
+  ProgressStage,
   AXNode,
   AXProperty,
   AXValue,
