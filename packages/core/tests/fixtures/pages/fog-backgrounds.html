@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>effective backgrounds for The Fog</title>
+<style>
+  body { margin: 0; background: #fff; }
+  .case { padding: 8px; }
+  #pseudo { position: relative; background: #333; color: #ddd; }
+  #pseudo::before { content: ''; position: absolute; inset: 0; background: linear-gradient(#111, #666); z-index: 0; }
+  #pseudo p { position: relative; z-index: 1; margin: 0; }
+  #invisible-opacity { opacity: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Backgrounds</h1>
+  <div class="case" style="background:#000">
+    <p id="oklch" style="background-color: oklch(0.95 0.02 100); color: rgb(51, 51, 51)">oklch background on black</p>
+  </div>
+  <div class="case" style="background: color-mix(in srgb, white 50%, white)">
+    <p id="colormix" style="color: rgb(0, 0, 0)">color-mix white background</p>
+  </div>
+  <div class="case" style="background: rgba(0, 0, 0, 0.5)">
+    <p id="translucent">translucent layer</p>
+  </div>
+  <div class="case" style="background: linear-gradient(#222, #eee)">
+    <p id="gradient">gradient layer</p>
+  </div>
+  <div class="case" id="pseudo">
+    <p id="pseudo-text">text over a pseudo-element gradient</p>
+  </div>
+  <div class="case" style="background: rgb(10, 20, 30)">
+    <div><p id="chain" style="color: rgb(240, 240, 240)">transparent chain to an opaque ancestor</p></div>
+  </div>
+  <p id="invisible-opacity">opacity zero text</p>
+  <p id="invisible-display" style="display: none">display none text</p>
+  <div id="bulk"></div>
+</main>
+<script>
+  const bulk = document.getElementById('bulk')
+  for (let i = 0; i < 150; i++) {
+    const p = document.createElement('p')
+    p.className = 'bulk'
+    p.textContent = 'bulk paragraph ' + i
+    bulk.appendChild(p)
+  }
+</script>
+</body>
+</html>

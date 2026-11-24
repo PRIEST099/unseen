@@ -74,13 +74,9 @@ export async function collectAxTree(page: Page): Promise<AXNode[]> {
   try {
     const { nodes } = (await session.send('Accessibility.getFullAXTree')) as { nodes: CdpAxNode[] }
 
-    const missing = nodes.filter((n) => n.backendDOMNodeId === undefined && !isInlineTextBox(n))
-    if (missing.length > 0) {
-      throw new AuditCollectionError(
-        'ax-tree',
-        new Error(`${missing.length} AX node(s) lack backendDOMNodeId (first: ${missing[0]!.nodeId})`)
-      )
-    }
+    // Chromium emits AX nodes with no DOM node behind them (list markers, ::before/::after
+    // generated text, <details> internals, InlineTextBox runs). They are kept with
+    // backendDOMNodeId 0, which consumers read as "no DOM node" (Req 5.2 as amended).
     if (nodes.length === 0) {
       const childCount = await page.evaluate(() => document.body?.children.length ?? 0)
       if (childCount > 0) {

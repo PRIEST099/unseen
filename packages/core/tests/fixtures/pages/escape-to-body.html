@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>focus cycle that swallows Shift+Tab</title></head>
+<body>
+<main>
+  <h1>Cycle</h1>
+  <button id="a">A</button>
+  <button id="b">B</button>
+  <a href="#after">after</a>
+</main>
+<script>
+  // Tab on the last button wraps to the first. Escape drops focus to the body
+  // and Shift+Tab is swallowed, so keyboard focus cannot leave.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); return }
+    if (e.key === 'Escape') { document.activeElement.blur(); return }
+    if (e.key === 'Tab' && document.activeElement === document.getElementById('b')) {
+      e.preventDefault()
+      document.getElementById('a').focus()
+    }
+  })
+</script>
+</body>
+</html>

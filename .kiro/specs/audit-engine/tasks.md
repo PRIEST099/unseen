@@ -199,6 +199,16 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - Per-resource bytes over 10 MB are recorded in `abortedResources` from `content-length`; mid-stream aborting is left to the safe-fetch spec.
   - The determinism test also normalises `walkStartedAtMs` and Chromium-allocated ids (DOM and AX), which differ per renderer. A screenshot SHA mismatch is recorded, not failed (amendment 6).
   - `safe-fetch.ts` aborted with the invalid code `'blocked'`, so a blocked request threw "Route is already handled". It now uses `'blockedbyclient'`.
+- Implementation notes from run 19 (2026-11-24, Kiro adopting tasks 5–16; findings refer to `docs/brief/review-notes/audit-engine-review-1.md`):
+  - Req 5.2 is amended: AX nodes with no DOM node (list markers, generated text, `<details>` internals, `InlineTextBox`) are kept with `backendDOMNodeId: 0` instead of failing the audit (finding 4).
+  - Req 11.8 stands as written: no focused element after the escape test is a trap (finding 7). A walk that cannot run (`focusableIds`, repeated Tab failures, a failed escape test) ends with `endReason: 'cdp-error'` and never invents a trap.
+  - The walk resets focus before it starts: it blurs the focused element at every level and parks the Tab starting point at the top of the document, then reads the unfocused `before` styles (findings 5, 6). The "no-transition" rule is applied through CDP `CSS.createStyleSheet`, which a page's CSP cannot block (findings 2, 17).
+  - The deepest focused element is read through open shadow roots and same-origin frames. When focus stays on an iframe or shadow host across Tab presses it is treated as moving inside it, not as a cycle (finding 1). `TabDriver` gains `prepare()` and `isComposite()`.
+  - The element focused by the escape test's `Shift+Tab` is recorded as a step and counts toward the cap (findings 8, 18). A failed Tab press is recorded as a step with `backendDOMNodeId: ''` and `cdpError: true`.
+  - `adjacent-background-color` accepts any serialized colour (oklch, lab, color()); alpha is read from the `/ a` component (finding 9).
+  - `auditUrl` races every stage against an `AuditGuard` (`src/audit-guard.ts`). A timeout, a renderer crash (`crash`/`close` events), a browser disconnect or a resource limit rejects the waiting stage, so the context is always closed and the pool slot always released (findings 3, 15). A walk failure becomes `CollectionError { step: 'tab-walk' }`.
+  - Resource limits are enforced by `runner/resource-limits.ts`: bytes come from CDP `Network.dataReceived`, so chunked bodies count; requests are counted before they leave the policy wrapper, and every request after a breach is blocked (finding 16). A navigation that never reaches network idle throws `AuditTimeoutError('navigation')`.
+  - Test seam: `auditUrlWithHooks(url, options, { onPageCreated })` is exported from `audit.ts` for crash tests only; `index.ts` does not export it.
 - Property tests (tasks 4 and 6) use `fast-check` and must each run a minimum of 100 iterations as required by the testing strategy in the design document
 
 ## Task Dependency Graph

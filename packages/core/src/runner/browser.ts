@@ -1,4 +1,4 @@
-import { chromium } from 'playwright'
+import { chromium, errors } from 'playwright'
 import type { Browser, BrowserContext, CDPSession, Page } from 'playwright'
 import type { AuditOptions, BoundingBox, SafeFetchPolicy } from '../types.js'
 import { AuditContextError, AuditTimeoutError, NonHtmlContentError } from '../types.js'
@@ -271,10 +271,10 @@ export class PageLoader {
     url: string,
     policy: SafeFetchPolicy,
     options: AuditOptions = {},
-    onPageCreated?: (page: Page) => void
+    onPageCreated?: (page: Page) => void | Promise<void>
   ): Promise<LoadedPage> {
     const page = await context.newPage()
-    onPageCreated?.(page)
+    await onPageCreated?.(page)
     const started = Date.now()
     let onCrash: () => void = () => undefined
     const crashed = new Promise<never>((_, reject) => {
@@ -301,10 +301,15 @@ export class PageLoader {
   ): Promise<LoadedPage> {
     await installSafeFetchPolicy(page, policy)
 
-    const response = await page.goto(url, {
-      waitUntil: 'networkidle',
-      timeout: options.navigationTimeoutMs ?? DEFAULT_NAVIGATION_TIMEOUT_MS,
-    })
+    const timeout = options.navigationTimeoutMs ?? DEFAULT_NAVIGATION_TIMEOUT_MS
+    let response
+    try {
+      response = await page.goto(url, { waitUntil: 'networkidle', timeout })
+    } catch (err) {
+      // Req 1.5: a navigation that never reaches network idle is a typed timeout.
+      if (err instanceof errors.TimeoutError) throw new AuditTimeoutError('navigation', timeout)
+      throw err
+    }
     if (response) {
       const contentType = (response.headers()['content-type'] ?? '').toLowerCase()
       const mime = contentType.split(';')[0]!.trim()

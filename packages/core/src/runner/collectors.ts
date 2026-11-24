@@ -83,11 +83,41 @@ export async function collectTextNodeStyles(
         const batch = await withTimeout(
           page.evaluate(
             ([s, n]) => {
-              const parse = (c: string) => {
-                const m = c.match(/rgba?\(([^)]+)\)/)
-                if (!m) return null
-                const p = m[1]!.split(/[\s,/]+/).filter(Boolean).map(Number)
-                return { a: p.length > 3 ? p[3]! : 1 }
+              // Resolve any CSS colour (rgb, oklch, lab, color-mix results, ...) to RGBA by painting
+              // it on a 1x1 canvas. Returns null when the browser cannot parse it.
+              const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true })
+              const cache = new Map<string, { r: number; g: number; b: number; a: number } | null>()
+              const resolve = (c: string) => {
+                if (cache.has(c)) return cache.get(c)!
+                let out: { r: number; g: number; b: number; a: number } | null = null
+                if (ctx) {
+                  ctx.fillStyle = '#010203'
+                  ctx.fillStyle = c
+                  if (ctx.fillStyle !== '#010203' || c.replace(/\s/g, '') === 'rgb(1,2,3)') {
+                    ctx.clearRect(0, 0, 1, 1)
+                    ctx.fillRect(0, 0, 1, 1)
+                    const d = ctx.getImageData(0, 0, 1, 1).data
+                    out = { r: d[0]!, g: d[1]!, b: d[2]!, a: d[3]! / 255 }
+                  }
+                }
+                cache.set(c, out)
+                return out
+              }
+              const rgbString = (c: { r: number; g: number; b: number }) => `rgb(${c.r}, ${c.g}, ${c.b})`
+              // Keep rgb()/rgba() strings as the browser serialised them; normalise everything else.
+              const normalise = (c: string) => {
+                if (/^rgba?\(/.test(c)) return c
+                const rgba = resolve(c)
+                return rgba && rgba.a === 1 ? rgbString(rgba) : c
+              }
+              // A ::before/::after box that paints an image, gradient or (when overlaid) a colour.
+              const paintsPseudo = (el: Element, which: '::before' | '::after') => {
+                const p = getComputedStyle(el, which)
+                if (p.content === 'none' || p.content === 'normal') return false
+                if (p.backgroundImage !== 'none') return true
+                const col = resolve(p.backgroundColor)
+                const overlay = p.position === 'absolute' || p.position === 'fixed'
+                return overlay && (col === null || col.a > 0)
               }
               const els = ((window as unknown as { __unseenTextEls: Element[] }).__unseenTextEls ?? []).slice(s, s + n)
               return els.map((el) => {
@@ -97,17 +127,23 @@ export async function collectTextNodeStyles(
                 for (let cur: Element | null = el; cur; cur = cur.parentElement) {
                   const c = getComputedStyle(cur)
                   if (c.backgroundImage && c.backgroundImage !== 'none') uncertain = true
-                  const col = parse(c.backgroundColor)
-                  if (!col || col.a === 0) continue
+                  if (paintsPseudo(cur, '::before') || paintsPseudo(cur, '::after')) uncertain = true
+                  const col = resolve(c.backgroundColor)
+                  if (col === null) {
+                    // A colour the browser cannot resolve is never treated as transparent.
+                    uncertain = true
+                    continue
+                  }
+                  if (col.a === 0) continue
                   if (col.a < 1) {
                     uncertain = true
                     continue
                   }
-                  bg = c.backgroundColor
+                  bg = normalise(c.backgroundColor)
                   break
                 }
                 return {
-                  color: cs.color,
+                  color: normalise(cs.color),
                   backgroundColor: bg,
                   fontSize: cs.fontSize,
                   fontWeight: cs.fontWeight,
@@ -294,7 +330,9 @@ export async function buildDomAxMapping(
         'a[href], area[href], button, input:not([type="hidden"]), select, textarea, iframe, summary, [contenteditable=""], [contenteditable="true"], [tabindex]'
       const isFocusable = (el: Element) => {
         if (!el.matches(FOCUSABLE)) return false
-        if ((el as HTMLButtonElement).disabled) return false
+        // A control that is not rendered, or is disabled (itself or via a fieldset), cannot take focus.
+        if (el.matches(':disabled')) return false
+        if (!el.checkVisibility({ visibilityProperty: true })) return false
         const ti = el.getAttribute('tabindex')
         return ti === null || Number(ti) >= 0
       }

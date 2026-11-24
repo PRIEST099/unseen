@@ -270,3 +270,23 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-24 · Run 19 · started (owner account)
 - Claimed by the owner's Claude Code session (Windows). Kiro reviews and adopts the Claude-written audit-engine tasks 5–16, starting with confirmed findings 1–24 from `review-notes/audit-engine-review-1.md`. Branched from `kiro/run-12-classifier-spec` (stacked, so the session log does not conflict).
+
+## 2026-11-24 · Run 19: Kiro reviews and adopts audit-engine tasks 5–16, fixing findings 1–24 (owner account)
+- **Instruction:** `docs/brief/prompts/19-kiro-review-runs-10-11.md`, plus the owner's addendum pointing at `review-notes/audit-engine-review-1.md`. That note holds 47 confirmed findings from a Claude Code review workflow; 4 blockers, including false Cursed Loops on iframe and shadow-DOM pages and the audit crashing under a strict CSP.
+- **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_write,execute_bash,execute_pwsh --model auto` (prompt via stdin), with `UNSEEN_CHROMIUM_CHANNEL=chromium`.
+- **Kiro produced:**
+  - Fixes for findings 1–24 (overlapping pairs fixed once).
+  - A rewrite of the Tab-walk core: deep active element through shadow roots and iframes, composite-host handling, a CSP-proof CDP inspector stylesheet instead of `addStyleTag`, a start-of-document reset, and unfocused baselines.
+  - New `audit-guard.ts` (first-failure guard; the timeout now really frees the context and the pool slot).
+  - New `runner/resource-limits.ts` (bytes from CDP `Network.dataReceived`).
+  - Colour parsing for CSS Color 4, and pseudo-element background layers.
+  - About 10 new regression specs, with fixture pages under `tests/fixtures/pages/`.
+  - It listed the files it reviewed and accepted unchanged.
+- **Kiro surprised us:** it chose to fix by file rather than in numeric order, and said so, because the tab-walker findings shared one rewrite. It also noticed the untracked product-lead files and said explicitly that it had not created them.
+- **Claude Code verification (independent):**
+  - `npm run typecheck` (src + tests) is clean
+  - `vitest --run`: **89/89**
+  - `playwright test`: **44/44**
+  - Cursed Shop `npm run verify`: VERIFY PASSED
+  - Re-running the original reproductions is in progress (see the next entry).
+- **Next:** run 19b (findings 25–47 plus checklist items 1–6), and run 20 (amend the classifier spec).

@@ -3,6 +3,7 @@ import { BrowserPool } from '../src/runner/browser.js'
 import { walkTabs } from '../src/runner/tab-walker.js'
 import { startShopServer, type ShopServer } from './fixtures/shop-server.js'
 import { withPage } from './fixtures/load.js'
+import { backendIdOf } from './fixtures/dom.js'
 
 let shop: ShopServer
 let pool: BrowserPool
@@ -56,5 +57,14 @@ test('index: the cookie banner cycle is escapable and the walk reaches the foote
     for (const k of ['outline-style', 'outline-width', 'outline-color', 'box-shadow', 'border-color', 'background-color', 'text-decoration', 'adjacent-background-color']) {
       expect(step.focusSnapshot.after).toHaveProperty(k)
     }
+    // finding 23: `before` is read too, has the same keys as `after`, and shows the real focus change
+    for (const s of r.steps.filter((x) => !x.cdpError)) {
+      expect(Object.keys(s.focusSnapshot.before).sort()).toEqual(Object.keys(s.focusSnapshot.after).sort())
+    }
+    const logoId = await backendIdOf(page, '.logo')
+    const logo = r.steps.find((s) => s.backendDOMNodeId === logoId)
+    expect(logo).toBeDefined()
+    expect(logo!.focusSnapshot.before['outline-style']).toBe('none')
+    expect(logo!.focusSnapshot.after['outline-style']).not.toBe('none')
   })
 })

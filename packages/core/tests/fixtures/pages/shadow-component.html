@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>shadow component</title></head>
+<body>
+<main>
+  <h1>Shadow</h1>
+  <a href="#one">one</a>
+  <my-toolbar></my-toolbar>
+  <a href="#two">two</a>
+  <a href="#three">three</a>
+</main>
+<script>
+  class MyToolbar extends HTMLElement {
+    constructor() {
+      super()
+      const root = this.attachShadow({ mode: 'open' })
+      root.innerHTML = '<button>Bold</button><button>Italic</button><button>Underline</button>'
+    }
+  }
+  customElements.define('my-toolbar', MyToolbar)
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>many links (a long Tab walk)</title></head>
+<body>
+<main>
+  <h1>Many links</h1>
+  <nav id="links"></nav>
+</main>
+<script>
+  const nav = document.getElementById('links')
+  for (let i = 0; i < 300; i++) {
+    const a = document.createElement('a')
+    a.href = '#l' + i
+    a.textContent = 'link ' + i
+    a.style.display = 'block'
+    nav.appendChild(a)
+  }
+</script>
+</body>
+</html>

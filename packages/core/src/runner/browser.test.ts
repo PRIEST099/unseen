@@ -5,12 +5,32 @@ import {
   BrowserPool,
   MAX_QUEUE_DEPTH,
   MAX_SESSIONS_PER_BROWSER,
+  PageLoader,
   PoolQueueFullError,
   WEBRTC_LEAK_FLAGS,
   buildLaunchArgs,
   normalizeBoundingBox,
 } from './browser.js'
-import { AuditTimeoutError } from '../types.js'
+import { AuditContextError, AuditTimeoutError } from '../types.js'
+
+describe('PageLoader.createContext (Req 14.5)', () => {
+  it('wraps a failing newContext in AuditContextError', async () => {
+    const cause = new Error('no context for you')
+    const browser = { newContext: vi.fn(async () => { throw cause }) } as unknown as Browser
+    const err: unknown = await new PageLoader().createContext(browser).then(() => null, (e: unknown) => e)
+    expect(err).toBeInstanceOf(AuditContextError)
+    expect((err as AuditContextError).cause).toBe(cause)
+  })
+
+  it('creates the context with CSP enforced, service workers blocked and a fixed viewport', async () => {
+    const newContext = vi.fn(async () => ({}))
+    const browser = { newContext } as unknown as Browser
+    await new PageLoader().createContext(browser)
+    expect(newContext).toHaveBeenCalledWith(
+      expect.objectContaining({ bypassCSP: false, serviceWorkers: 'block', viewport: { width: 1280, height: 900 } })
+    )
+  })
+})
 
 function fakeBrowser(connected = true): Browser {
   return {

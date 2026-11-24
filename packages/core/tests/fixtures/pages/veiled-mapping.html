@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>DOM-to-AX mapping cases for The Veiled</title>
+<style>
+  .box { width: 200px; height: 24px; }
+  #offscreen { position: absolute; left: -9999px; top: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Veiled</h1>
+  <div id="real" class="box" aria-hidden="true"><button>visible control</button></div>
+  <div id="none" class="box" aria-hidden="true">decorative <button style="display: none">gone</button></div>
+  <div id="hidden-link" class="box" aria-hidden="true">decorative <a href="#x" style="visibility: hidden">gone</a></div>
+  <div id="fieldset" class="box" aria-hidden="true">decorative <fieldset disabled><input aria-label="off"></fieldset></div>
+  <div id="offscreen" aria-hidden="true">text parked off screen</div>
+  <svg id="icon" role="presentation" width="16" height="16"><rect width="16" height="16"></rect></svg>
+</main>
+</body>
+</html>

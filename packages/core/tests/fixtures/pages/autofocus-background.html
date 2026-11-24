@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>autofocused field with a background focus style</title>
+<style>
+  input { background: rgb(255, 255, 255); border: 1px solid rgb(200, 200, 200); }
+  input:focus { outline: none; background: rgb(0, 0, 0); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Autofocus style</h1>
+  <input id="field" aria-label="field">
+  <a href="#next">next</a>
+</main>
+<script>document.getElementById('field').focus()</script>
+</body>
+</html>

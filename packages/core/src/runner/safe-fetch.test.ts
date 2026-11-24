@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { RestrictiveSafeFetchPolicy, PermissiveSafeFetchPolicy } from './safe-fetch.js'
 
 describe('RestrictiveSafeFetchPolicy', () => {
@@ -103,18 +103,8 @@ describe('RestrictiveSafeFetchPolicy', () => {
       expect(result.block).toBe(true)
     })
 
-    it('blocks Google Cloud metadata hostname', async () => {
-      // Mock DNS resolution
-      vi.mock('dns/promises', () => ({
-        default: {
-          resolve4: vi.fn().mockResolvedValue(['169.254.169.254']),
-          resolve6: vi.fn().mockResolvedValue([]),
-        },
-      }))
-
-      const { RestrictiveSafeFetchPolicy } = await import('./safe-fetch.js')
-      const p = new RestrictiveSafeFetchPolicy()
-      const result = await p.shouldBlock('http://metadata.google.internal')
+    it('blocks the Google Cloud metadata hostname without a DNS lookup', async () => {
+      const result = await policy.shouldBlock('http://metadata.google.internal')
       expect(result.block).toBe(true)
     })
   })

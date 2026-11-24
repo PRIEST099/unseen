@@ -23,7 +23,8 @@ test('task 9: text styles, uncertain backgrounds and large text', async () => {
     expect(entries.length).toBeGreaterThan(10)
     expect(entries.some((s) => /^rgba?\(/.test(s.color) && /^rgba?\(/.test(s.backgroundColor))).toBe(true)
     expect(entries.some((s) => s.isLargeText)).toBe(true)
-    expect(entries.every((s) => typeof s.backgroundUncertain === 'boolean')).toBe(true)
+    expect(entries.some((s) => s.backgroundUncertain)).toBe(true)
+    expect(entries.some((s) => !s.backgroundUncertain)).toBe(true)
   })
 })
 

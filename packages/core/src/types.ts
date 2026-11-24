@@ -81,7 +81,7 @@ export type TabWalkResult = {
   stepCapReached: boolean
   cycles: TabCycle[]
   walkStartedAtMs: number // epoch ms when the walk started (after the settle window)
-  endReason: "body" | "trap" | "step-cap" | "cycle-includes-all" | "no-focusables" | "no-focus"
+  endReason: "body" | "trap" | "step-cap" | "cycle-includes-all" | "no-focusables" | "no-focus" | "cdp-error"
 }
 
 export type TabStep = {
