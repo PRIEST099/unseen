@@ -323,3 +323,12 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-24 · Run 22 (19b) · started (owner account)
 - Kiro finishes the audit-engine adoption: the 10 partly fixed findings, then minors 25–47. Visible in the Terminal panel.
+
+## 2026-11-24 · Run 23: Kiro syncs the classifier design and tasks with the amended requirements (owner account)
+- **Why:** a Claude Code consistency workflow (2 finders plus a verifier) found **80 confirmed contradictions** after run 20. The requirements were corrected, but `design.md` pseudo-code and `tasks.md` still described the old rules: `nodeIds: []`, a single WCAG criterion, `find(!superseded)`, the element's own background, legacy `.eslintrc`, `tsx`/`__dirname`, and others. Evidence: `review-notes/classifier-spec-consistency-1.md`.
+- **Instruction:** `prompts/23-classifier-design-tasks-sync.md`, then `prompts/24-continue.md` twice (a reusable "continue, don't ask" message). Model `claude-sonnet-4.5`, fs tools only, run in the visible Terminal panel.
+- **Kiro surprised us (twice):**
+  1. **It still stops to ask.** It again stopped after about 11 items with a menu ("Continue systematically / Prioritize / Generate a changelist"). With the standing "continue, don't ask; if near a limit stop and name the next item" message, it worked through design items 12–44, stopped cleanly at "Next continuation point: Item 45", then finished 45–80.
+  2. **Plain `--resume` picked the wrong conversation.** It means "the most recent conversation in this folder", which was the concurrent run 22. Kiro refused with `SessionHeldElsewhereError` instead of hijacking it. Since then, resumes use `--resume-id <session>` from `kiro-cli chat --list-sessions`.
+- **Kiro produced:** rewritten Data Flow, types (`wcag: WCAGCriterion[]` plus `guidance`), Precedence (collide on any shared id), Severity (a blocks-the-task table and a `domNodes` core-task predicate), all 10 detector algorithms, fixture capture (`capture.mjs`, same-page selectors), ESLint 9 flat config, and Correctness Properties. Also the `tasks.md` rewrites (full task 0, dependency graph) plus the matching `requirements.md` and `REVIEW_RESOLUTION.md` corrections.
+- **Product-lead check:** the stale-string grep is clean apart from legitimate uses: `nodeIds[0]` as the trap-region element, and "no `__dirname`" in instructions.

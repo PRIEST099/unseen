@@ -1,0 +1,1 @@
+Continue: option 1. Work systematically through **all** remaining items of the current instruction, in order, without asking any more questions. Save after each item. If you approach a limit, stop after a completed item and state the next item number. Do not offer a menu. When everything is done, run the instruction's "Done means" checks and give the final table.

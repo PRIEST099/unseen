@@ -10,71 +10,73 @@ This document tracks the resolution of all 49 findings from `docs/brief/review-n
 
 | Finding | Group | Resolved In | Section/Line | Status |
 |---------|-------|-------------|--------------|--------|
-| 1 | A | requirements.md | Req 15.5, 30.8 | ✅ DONE |
-| 2 | B | requirements.md | Req 7.2 | ✅ DONE |
-| 3 | C | requirements.md | Req 8.3 | ✅ DONE |
-| 4 | C | requirements.md | Req 11.2-11.3 | ✅ DONE |
-| 5 | C | requirements.md | Req 11.1, 11.7 | ✅ DONE |
-| 6 | C | requirements.md | Req 15.1 | ✅ DONE |
-| 7 | C | requirements.md | Req 10.2, 10.3 | ✅ DONE |
-| 8 | A | requirements.md | Req 15.5, 30.8 | ✅ DONE |
-| 9 | B | requirements.md | Req 20.5, 27.5 | ✅ DONE |
-| 10 | A | requirements.md | Req 20.4 | ✅ DONE |
-| 11 | C | requirements.md | Req 8.3 | ✅ DONE |
-| 12 | C | requirements.md | Req 11.1-11.3 | ✅ DONE |
-| 13 | A | requirements.md | Req 15.5, 30.8 | ✅ DONE |
-| 14 | A | requirements.md | Req 20.4 | ✅ DONE |
-| 15 | B | requirements.md, tasks.md | Req 20.5, 27.5, Task 1 | ✅ DONE |
-| 16 | C | requirements.md | Req 7.2, 7.6 | ✅ DONE |
-| 17 | C | requirements.md | Req 8.3 | ✅ DONE |
-| 18 | C | requirements.md | Req 11.1-11.3 | ✅ DONE |
-| 19 | C | requirements.md | Req 10.2, 10.6 | ✅ DONE |
+| 1 | A | requirements.md (Req 15.5, 30.8); design.md types (secondary, detectedCountsByType) | PARTIAL: design.md 1053 still asserts countsByType; tasks 18.1 and 21.x lack detectedCountsByType construction and the node-id union assertion | ⚠️ PARTIAL |
+| 2 | B | requirements.md | Req 7.2 | ⚠️ PARTIAL |
+| 3 | C | requirements.md | Req 8.3 | ⚠️ PARTIAL |
+| 4 | C | requirements.md | Req 11.2-11.3 | ⚠️ PARTIAL |
+| 5 | C | requirements.md | Req 11.1, 11.7 | ⚠️ PARTIAL |
+| 6 | C | requirements.md | Req 15.1 | ⚠️ PARTIAL |
+| 7 | C | requirements.md | Req 10.2, 10.3 | ⚠️ PARTIAL |
+| 8 | A | requirements.md (Req 15.5, 30.8); design.md types (secondary, detectedCountsByType) | PARTIAL: design.md 1053 still asserts countsByType; tasks 18.1 and 21.x lack detectedCountsByType construction and the node-id union assertion | ⚠️ PARTIAL |
+| 9 | B | requirements.md | Req 20.5, 27.5 | ⚠️ PARTIAL |
+| 10 | A | requirements.md | Req 20.4 | ⚠️ PARTIAL |
+| 11 | C | requirements.md | Req 8.3 | ⚠️ PARTIAL |
+| 12 | C | requirements.md | Req 11.1-11.3 | ⚠️ PARTIAL |
+| 13 | A | requirements.md (Req 15.5, 30.8); design.md types (secondary, detectedCountsByType) | PARTIAL: design.md 1053 still asserts countsByType; tasks 18.1 and 21.x lack detectedCountsByType construction and the node-id union assertion | ⚠️ PARTIAL |
+| 14 | A | requirements.md (Req 20.4); design.md golden-test section; tasks 21.x | PARTIAL: neither design.md 1050-1055 nor tasks 21.1-21.3 contain a control assertion | ⚠️ PARTIAL |
+| 15 | B | requirements.md, tasks.md | Req 20.5, 27.5, Task 1 | ⚠️ PARTIAL |
+| 16 | C | requirements.md | Req 7.2, 7.6 | ⚠️ PARTIAL |
+| 17 | C | requirements.md | Req 8.3 | ⚠️ PARTIAL |
+| 18 | C | requirements.md | Req 11.1-11.3 | ⚠️ PARTIAL |
+| 19 | C | requirements.md | Req 10.2, 10.6 | ⚠️ PARTIAL |
 | 20 | F | tasks.md | Removed all * markers | ✅ DONE |
-| 21 | C | requirements.md | Req 7.6 | ✅ DONE |
-| 22 | C | requirements.md | Req 3.4 | ✅ DONE |
-| 23 | D | requirements.md | Req 0 (new) | ✅ DONE |
-| 24 | C | requirements.md | Req 5.3, 5.7 | ✅ DONE |
-| 25 | E | requirements.md | Req 14.9-14.10 | ✅ DONE |
-| 26 | E | requirements.md | Req 12.1, 12.6 | ✅ DONE |
-| 27 | E | requirements.md, design.md | Req 2.5, 29.2, WCAG appendix | ✅ DONE |
+| 21 | C | requirements.md | Req 7.6 | ⚠️ PARTIAL |
+| 22 | C | requirements.md | Req 3.4 | ⚠️ PARTIAL |
+| 23 | D | requirements.md | Req 0 (new) | ⚠️ PARTIAL |
+| 24 | C | requirements.md | Req 5.3, 5.7 | ⚠️ PARTIAL |
+| 25 | E | requirements.md | Req 14.9-14.10 | ⚠️ PARTIAL |
+| 26 | E | requirements.md | Req 12.1, 12.6 | ⚠️ PARTIAL |
+| 27 | E | requirements.md, design.md | Req 2.5, 29.2, WCAG appendix | ⚠️ PARTIAL |
 | 28 | F | tasks.md | Task 14.0, removed * | ✅ DONE |
-| 29 | C | requirements.md | Req 7.2 | ✅ DONE |
-| 30 | C | requirements.md | Req 6.4, 20.6 | ✅ DONE |
-| 31 | C | requirements.md | Req 10.2, Req 0 | ✅ DONE |
-| 32 | D | requirements.md | Req 0, 5.7 | ✅ DONE |
+| 29 | C | requirements.md | Req 7.2 | ⚠️ PARTIAL |
+| 30 | C | requirements.md | Req 6.4, 20.6 | ⚠️ PARTIAL |
+| 31 | C | requirements.md | Req 10.2, Req 0 | ⚠️ PARTIAL |
+| 32 | D | requirements.md | Req 0, 5.7 | ⚠️ PARTIAL |
 | 33 | D | requirements.md | Req 16.1 | ✅ DONE |
-| 34 | D | requirements.md | Req 0, 3.9, 29.4 | ✅ DONE |
-| 35 | C | requirements.md | Req 6.4, 15.1, 20.6 | ✅ DONE |
-| 36 | B | requirements.md, tasks.md | Req 27.5, Task 1 | ✅ DONE |
+| 34 | D | requirements.md | Req 0, 3.9, 29.4 | ⚠️ PARTIAL |
+| 35 | C | requirements.md | Req 6.4, 15.1, 20.6 | ⚠️ PARTIAL |
+| 36 | B | requirements.md, tasks.md | Req 27.5, Task 1 | ⚠️ PARTIAL |
 | 37 | B | tasks.md | Task 1 dependency note | ✅ DONE |
 | 38 | F | tasks.md | Task 18.1 pipeline order | ✅ DONE |
 | 39 | F | tasks.md | Tasks 2.5, 2.6 | ✅ DONE |
 | 40 | F | tasks.md | Tasks 4,7,10,13,16,20,23 | ✅ DONE |
-| 41 | F | tasks.md | Task 19.1 ESLint flat config | ✅ DONE |
+| 41 | F | tasks.md | Task 19.1 ESLint flat config | ⚠️ PARTIAL |
 | 42 | F | tasks.md | Task 14.0, 2.6, 3.6 | ✅ DONE |
 | 43 | E | tasks.md | Task 15.1 readonly signature | ✅ DONE |
 | 44 | E | design.md | Silent Tongue soundCue | ✅ DONE |
-| 45 | C | requirements.md | Req 7.6 | ✅ DONE |
+| 45 | C | requirements.md | Req 7.6 | ⚠️ PARTIAL |
 | 46 | D | requirements.md, design.md | Req 14.4, design table | ✅ DONE |
-| 47 | C | requirements.md | Req 5.3 | ✅ DONE |
-| 48 | E | requirements.md | Req 14.10, 29.4 | ✅ DONE |
-| 49 | E | requirements.md | Req 12.1 | ✅ DONE |
+| 47 | C | requirements.md | Req 5.3 | ⚠️ PARTIAL |
+| 48 | E | requirements.md | Req 14.10, 29.4 | ⚠️ PARTIAL |
+| 49 | E | requirements.md | Req 12.1 | ⚠️ PARTIAL |
 
 ## Summary by Group
 
 ### Group A: Golden counting (findings 1, 8, 10, 13, 14)
-**Status:** ✅ COMPLETE
+**Status:** ⚠️ PARTIAL
 - Added `secondary?: Haunting[]` to Haunting type
 - Added `detectedCountsByType` to ClassifiedAudit
 - Updated golden test assertions to use `detectedCountsByType`
 - Rewrote control-group matching rules
+- **Pending:** design.md §Golden test still asserts countsByType; tasks 18.1 and 21.x lack detectedCountsByType construction and node-id union; control-guard assertions missing from design golden test and tasks 21.x
 
-### Group B: Selectors in browser-free test (findings 2, 9, 15, 36, 37)
-**Status:** ✅ COMPLETE
+### Group B: Selectors in browser-free test (findings 9, 15, 36, 37)
+**Status:** ⚠️ PARTIAL
 - Added Req 27.5 for `.selectors.json` sidecar files
 - Specified capture process with document-order validation
 - Updated Task 1 with dependency notes and script details
 - Added runs 19/19b dependency note to Task 1
+- **Pending:** design.md §Golden test; tasks 21.x node-id union assertion
 
 ### Group C: Detector rule corrections (21 findings)
 **Status:** ✅ COMPLETE
@@ -115,33 +117,22 @@ This document tracks the resolution of all 49 findings from `docs/brief/review-n
 
 ## Next Steps
 
-1. **Design.md amendments** (Group D, E):
-   - Add source property column to speech state table (finding 46)
-   - Change Silent Tongue speech from "garbled whisper" to `undefined` with `soundCue` (finding 44)
-   - Update all detector algorithms with corrected rules
-   - Add precedence section documenting the order
-   - Update WCAG appendix with 12 criteria
+**Remaining work to bring design.md and tasks.md into full compliance:**
 
-2. **Tasks.md amendments** (Groups B, F):
-   - Add Task 0 for runner changes (before Task 1)
-   - Update Task 1 with runner dependency, capture script details
-   - Remove `*` from tasks 3.2-3.4, 5.3-5.6, 14.2, 15.2-15.7, 17.2, 18.3-18.5, 19.2, 21.1-21.3
-   - Add task 2.5 for shared helpers
-   - Add task 2.6 for test arbitraries
-   - Add task 3.6 for luminance monotonicity property
-   - Add task 14.0 for steering precedence documentation
-   - Rewrite task 19.1 for ESLint flat config
-   - Fix pipeline order in task 18.1
-   - Fix checkpoint commands (tasks 4, 7, 10, 23)
-   - Update Task 15.1 signature to use `readonly`
+1. **design.md detector pseudo-code** (§4-§10): Rewrite all 10 detector algorithms to match the corrected requirements and decisions
+2. **design.md §Precedence**: Document collision on any shared backendDOMNodeId (CursedLoop nodeIds = trapRegionNodeIds)
+3. **design.md §Severity**: Add blocking-type table (CursedLoop always, NamelessSpirit if button/menuitem*/tab, etc.)
+4. **design.md §Speech**: Correct announcement construction (name, role, state; role-label map; state rules)
+5. **design.md §Testing Strategy**: Update golden test assertions (detectedCountsByType, per-type node-id union, CursedLoop subtree, page-level kind, control-guard); capture beforeClose hook and UNSEEN_CHROMIUM_CHANNEL; ESLint 9 flat config; Windows checkpoint commands
+6. **tasks.md**: Update task 0 (page-open hook, determinism normalise), task 1 (beforeClose, selectors resolution), tasks 8.3/8.5/9.3-9.6/11.x/12.x/14.x/17.1/18.1/21.x/22.3 per consistency check items 51-64, plus dependency graph
 
 ## Validation Checklist
 
 - [x] All 49 findings have been addressed
 - [x] Requirements.md is consistent with hauntings.md
-- [x] Design.md algorithms match requirements exactly
+- [ ] Design.md algorithms match requirements exactly
 - [x] Tasks.md creates everything requirements and design specify
-- [x] No contradictions between the three files
+- [ ] No contradictions between the three files
 - [x] All runner prerequisites are listed in Task 0
 - [x] Golden test logic matches the sidecar file approach
 - [x] Precedence rules are documented in steering (Task 14.0)

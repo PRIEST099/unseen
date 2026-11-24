@@ -29,10 +29,9 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 3. THE Runner SHALL add `RawAudit.imgSrcAttributes: Record<string, string | null>` for every image element
 4. THE Runner SHALL extend `HeadingRecord` with `backendDOMNodeId: number` (from `headingIds[i]`)
 5. THE Runner SHALL extend `PageMetadata` with `htmlBackendDOMNodeId: number` and `bodyBackendDOMNodeId: number | null`
-6. THE Runner SHALL extend `AxeViolationNode` with `backendDOMNodeId: number | null`, resolved via `document.querySelector(target.join(' '))` and DOM.describeNode
-7. THE Runner SHALL extend `AxeViolationNode` to keep `target` selectors AND resolve each axe node to `backendDOMNodeId` at collection time (`axeNodeIds`), so the cross-check is by node id
-8. THE Runner SHALL report radio and menuitemradio state from the CDP `checked` property
-9. This is task 0 in `haunting-classifier/tasks.md` that edits `packages/core/src/runner/` and `types.ts`, with its own integration test
+6. THE Runner SHALL extend `AxeViolationNode` to keep `target` selectors AND gain `backendDOMNodeId: number | null` (the axeNodeIds resolution) at collection time, resolved via `document.querySelector(target.join(' '))` and DOM.describeNode, so the cross-check is by node id
+7. THE Runner SHALL report radio and menuitemradio state from the CDP `checked` property
+8. This is task 0 in `haunting-classifier/tasks.md` that edits `packages/core/src/runner/` and `types.ts`, with its own integration test
 
 ### Requirement 1: Classify Raw Audit Data
 
@@ -56,7 +55,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 2. THE Nameless_Spirit_Detector SHALL recognize these interactive roles: `button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `tab`, `checkbox`, `radio`, `switch`, `option`, `combobox`, `listbox`, `treeitem`, `gridcell`
 3. THE Nameless_Spirit_Detector SHALL use `role.value` and `name.value` from the AX node
 4. THE Nameless_Spirit_Detector SHALL generate speech text containing only the role name (e.g. `"button"`)
-5. THE Nameless_Spirit_Detector SHALL map each instance to primary WCAG criterion 4.1.2 (Name, Role, Value). `wcagAlso` SHALL contain 2.4.4 (Link Purpose) when role is link, and 1.1.1 (Non-text Content) when the control's only content is an image
+5. THE Nameless_Spirit_Detector SHALL map each instance to `wcag`: [4.1.2 (Name, Role, Value)], plus 2.4.4 (Link Purpose) when role is link, plus 1.1.1 (Non-text Content) when the control's only content is an image
 
 ### Requirement 3: Detect Hollow Portrait Hauntings
 
@@ -72,7 +71,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 6. THE Hollow_Portrait_Detector SHALL NOT flag inline SVG icons inside already-named controls
 7. THE Hollow_Portrait_Detector SHALL generate speech text as `"unlabelled graphic, [filename]"` where filename is extracted from the `src` attribute. When no `src` is available, speech SHALL be `"unlabelled graphic"` alone
 8. THE Hollow_Portrait_Detector SHALL map each instance to WCAG 1.1.1 (Non-text Content)
-9. THE Hollow_Portrait_Detector SHALL use tag name from `domAxMapping[].tagName`. For `tagName === 'svg'`, flag only if the element has an explicit `role="img"` attribute, read from `RawAudit.explicitRoles` (runner prerequisite task). The filename comes from `RawAudit.imgSrcAttributes`, taking the last path segment without query or hash
+9. THE Hollow_Portrait_Detector SHALL use tag name from `domAxMapping[].tagName`. For `tagName === 'svg'`, flag only if `raw.domNodes[id]` has role attribute 'img' (no separate explicitRoles field). The filename comes from `RawAudit.imgSrcAttributes`, taking the last path segment without query or hash
 
 ### Requirement 4: Detect The Fog Hauntings
 
@@ -126,7 +125,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 3. THE Invisible_Wanderer_Detector SHALL ignore `outline-offset`, `outline-width`, and `outline-color` deltas when `outline-style` is `none`
 4. THE Invisible_Wanderer_Detector SHALL use `focusSnapshot.before` and `focusSnapshot.after` from each Tab step
 5. THE Invisible_Wanderer_Detector SHALL map each instance to WCAG 2.4.7 Focus Visible (AA) as primary criterion. `guidance` SHALL be 2.4.13 Focus Appearance (AAA, never 2.4.11)
-6. THE Invisible_Wanderer_Detector SHALL evaluate each backendDOMNodeId once (first non-cdpError step) and SHALL skip steps with `cdpError: true`. Steps with `cdpError === true` SHALL be added to `needsManualCheck` with reason `'focus-style-unavailable'`. At most one Invisible Wanderer per backendDOMNodeId
+6. THE Invisible_Wanderer_Detector SHALL evaluate each backendDOMNodeId once (first non-cdpError step). Steps with `cdpError === true` or `backendDOMNodeId === ''` SHALL be skipped by the detector and added to `needsManualCheck` with reason `'focus-style-unavailable'`. At most one Invisible Wanderer per backendDOMNodeId
 
 ### Requirement 8: Detect Whispering Field Hauntings
 
@@ -152,6 +151,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 3. THE Silent_Tongue_Detector SHALL validate BCP 47 tags using a primary-subtag regex: `/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/`
 4. THE Silent_Tongue_Detector SHALL use `pageMetadata.htmlLang` from the RawAudit
 5. THE Silent_Tongue_Detector SHALL map each instance to WCAG 3.1.1 (Language of Page)
+6. Silent Tongue `nodeIds` SHALL be `[pageMetadata.htmlBackendDOMNodeId]`
 
 ### Requirement 10: Detect Shattered Order Hauntings
 
@@ -159,7 +159,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 
 #### Acceptance Criteria
 
-1. WHEN the page has no `<h1>` element, THE Shattered_Order_Detector SHALL create a haunting instance with `kind: "no-h1"`
+1. WHEN the page has no `<h1>` element, THE Shattered_Order_Detector SHALL create a haunting instance with `kind: "no-h1"`. no-h1 `nodeIds` SHALL be `[bodyBackendDOMNodeId]`
 2. WHEN heading levels skip, THE Shattered_Order_Detector SHALL create a haunting instance with `kind: "heading-skip"` for each skip. heading-skip SHALL set `nodeIds: [backendDOMNodeId of the heading whose level jumps]`, and `id` = hash(type, that id, kind). This requires `HeadingRecord.backendDOMNodeId: number`; add it as a runner prerequisite task before task 9.5
 3. WHEN no `main` landmark is present, THE Shattered_Order_Detector SHALL create a haunting instance with `kind: "no-main"`. no-main uses the `body` node id (the domAxMapping row with tagName 'body')
 4. THE Shattered_Order_Detector SHALL use `pageMetadata.headings`, `pageMetadata.hasMainLandmark`, and `pageMetadata.landmarkRoles` from the RawAudit
@@ -178,7 +178,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 4. THE Veiled_Detector SHALL skip purely decorative elements: `<img alt="">`, elements with `role="presentation"`/`"none"` that contain no focusable children and no visible text
 5. THE Veiled_Detector SHALL use `domAxMapping` from the RawAudit to determine which DOM nodes have no corresponding AX node
 6. THE Veiled_Detector SHALL map each instance to WCAG 1.3.1 (Info and Relationships) and 4.1.2 (Name, Role, Value)
-7. If ignoredReasons cannot identify the root, require the runner to add `isHiddenRoot: boolean` to DomAxMapping, as a prerequisite task coordinated with the runner work
+7. THE Veiled_Detector SHALL identify the root from `domNodes` attrs['aria-hidden'] or role attribute plus the parentId chain (no separate isHiddenRoot field required)
 
 ### Requirement 12: Assign Severity to Hauntings
 
@@ -189,7 +189,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 1. WHEN a haunting affects an element that is part of a core task flow AND the haunting type makes the task impossible for AT users, THE Severity_Assigner SHALL assign severity `Wraith`. A haunting 'makes the task impossible' iff its type is CursedLoop, NamelessSpirit, WhisperingField or LostSoul. HollowPortrait, TheFog, InvisibleWanderer, TheVeiled, ShatteredOrder and SilentTongue never qualify for Wraith
 2. WHEN a haunting affects multiple elements (≥3 instances of the same type per page, per type, over primary hauntings after precedence) OR the WCAG criterion is level A, THE Severity_Assigner SHALL assign severity `Restless`
 3. FOR all other hauntings, THE Severity_Assigner SHALL assign severity `Banished`
-4. THE Severity_Assigner SHALL recognize core task flow elements as: elements inside a `<form>` (determined by: some AX ancestor via `parentId` maps to a domAxMapping row with `tagName === 'form'`), or with role `button`/`link` that contain these words (case-insensitive): "submit", "checkout", "buy", "pay", "login", "sign in", "sign up", "search", "continue", "cart", "add to", "basket", "register", "subscribe"
+4. THE Severity_Assigner SHALL recognize core task flow elements as: the element or a domNodes ancestor (via parentId up to body) is a `<form>`, a dialog (tag dialog or role dialog/alertdialog), or has an id/class containing 'checkout'/'cart'; OR its AX role is button/link and the keyword list matches its accessible name (or its id/class/aria-label/snippet when the name is empty). Keywords (case-insensitive): "submit", "checkout", "buy", "pay", "login", "sign in", "sign up", "search", "continue", "cart", "add to", "basket", "register", "subscribe"
 5. THE Severity_Assigner SHALL apply these rules in the order listed (first match wins)
 6. A NamelessSpirit on a button is Wraith when it is inside a form or its accessible name signals checkout/cart per the steering example. Record the blocking-type table in steering §Severity for sign-off
 
@@ -230,7 +230,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 
 #### Acceptance Criteria
 
-1. WHEN multiple detection rules match the same element (by any `backendDOMNodeId` in the haunting's `nodeIds`), THE Classifier SHALL assign exactly one primary haunting to that element. The precedence key of a haunting is a single backendDOMNodeId. For Cursed Loop it is the trap region node (`tabWalkResult.trapRegionNodeIds[0]`, the dialog/common ancestor). Cycle members go in `nodeIds` after it but do not take part in precedence. For all other types it is `nodeIds[0]`. Each precedence key has at most one primary haunting
+1. WHEN multiple detection rules match the same element (by any `backendDOMNodeId` in the haunting's `nodeIds`), THE Classifier SHALL assign exactly one primary haunting to that element. Two hauntings collide when their nodeIds share any backendDOMNodeId. CursedLoop nodeIds = trapRegionNodeIds (the trap region plus the cycle members). Each backendDOMNodeId belongs to at most one participating primary. SilentTongue and ShatteredOrder never take part
 2. THE Classifier SHALL apply this precedence (highest to lowest): Cursed Loop, Nameless Spirit, Whispering Field, Lost Soul, Hollow Portrait, The Veiled, Invisible Wanderer, The Fog. ShatteredOrder and SilentTongue never collide; always primary
 3. THE Classifier SHALL attach lower-precedence hauntings as `secondary: Haunting[]` (unscored, excluded from severity counts and score)
 4. THE Classifier SHALL count only primary hauntings in `countsByType` for scoring
@@ -393,7 +393,7 @@ The haunting-classifier transforms raw audit data into classified haunting insta
 #### Acceptance Criteria
 
 1. THE Haunting type SHALL include an `id` field that is a stable hash of the haunting type, `backendDOMNodeId`, and `kind` (if present)
-2. THE Haunting type SHALL include `type`, `kind` (optional), `severity`, `wcag` (primary criterion ID, level, title, URL) plus `wcagAlso: WCAGCriterion[]` for additional criteria
+2. THE Haunting type SHALL include `type`, `kind` (optional), `severity`, `wcag: WCAGCriterion[]` (the full steering criteria list for the instance, with wcag[0] as the primary criterion used by the severity level-A rule), plus `guidance?: WCAGCriterion` (2.4.13 for Invisible Wanderer)
 3. THE Haunting type SHALL include `nodeIds` (array of `backendDOMNodeId`), `box` (from `BoundingBox[]`)
 4. THE Haunting type SHALL include `speech` (optional), `speechNote` (optional), `htmlSnippet` (≤ 300 chars; outerHTML of the primary element, or fallback from AX role+name)
 5. THE Haunting type SHALL include `explanation`, `persona`, `fix` (plain-language and code snippet)

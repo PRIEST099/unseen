@@ -47,27 +47,27 @@ RawAudit
   │
   ├─→ All 10 detectors (run in parallel)
   │     │
-  │     └─→ UnclassifiedHaunting[] (no severity yet)
+  │     └─→ UnclassifiedHaunting[] (explanation, persona, fix, speech, speechNote, soundCue already filled)
   │
   ├─→ Precedence resolver
   │     │
-  │     └─→ Primary + secondary hauntings (one primary per element max)
+  │     └─→ Primary hauntings (each with secondary: UnclassifiedHaunting[])
   │
   ├─→ Severity assigner
   │     │
   │     └─→ Haunting[] (with Wraith/Restless/Banished)
   │
-  ├─→ Explanation generator
-  │     │
-  │     └─→ Haunting[] (with explanation, persona, fix)
-  │
   ├─→ Score computer
   │     │
   │     └─→ number (0-100 Haunting Score)
   │
+  ├─→ Count by type (countsByType: primary only; detectedCountsByType: primary + secondary, deduplicated per element)
+  │
   ├─→ Axe cross-checker
   │     │
   │     └─→ AxeCrossCheck (map hauntings ↔ axe violations)
+  │
+  ├─→ Needs manual check list (contrast-uncertain text, Tab steps with cdpError or empty backendDOMNodeId)
   │
   └─→ ClassifiedAudit
 ```
@@ -98,20 +98,19 @@ export type Haunting = {
   type: HauntingType
   kind?: string // for ShatteredOrder: "no-h1" | "heading-skip" | "no-main"
   severity: HauntingSeverity
-  wcag: WCAGCriterion // primary criterion
-  wcagAlso?: WCAGCriterion[] // additional criteria
-  guidance?: string // e.g. "2.4.13" for Invisible Wanderer
-  nodeIds: number[] // backendDOMNodeId for affected elements
-  box: BoundingBox | null // primary element's box; null for page-level hauntings
+  wcag: WCAGCriterion[] // full criteria list from hauntings.md, primary first
+  guidance?: WCAGCriterion // Invisible Wanderer only: WCAG_2_4_13 (never 2.4.11)
+  nodeIds: number[] // backendDOMNodeId for affected elements; never []
+  box: BoundingBox | null // primary element's box; null when no box available
   speech?: string // screen-reader announcement for this element
   speechNote?: string // e.g. "name disappears when typing"
   soundCue?: string // e.g. "garbled-whisper", "chime"
-  htmlSnippet: string // ≤ 300 chars; outerHTML of the primary element
+  htmlSnippet: string // ≤ 300 chars; outerHTML from domNodes
   explanation: string // what is wrong (1-2 sentences)
   persona: string // who is affected (1 sentence starting with "As a")
   fix: HauntingFix
   isPrimary: boolean // true for primary hauntings (scored); false for secondary
-  secondary?: Haunting[] // lower-precedence hauntings on the same element
+  secondary: Haunting[] // lower-precedence hauntings on colliding nodeIds
 }
 
 export type WCAGCriterion = {
@@ -148,7 +147,7 @@ export type AxeCrossCheck = {
   unmapped: AxeViolation[] // axe violations with no corresponding haunting
 }
 
-export type UnclassifiedHaunting = Omit<Haunting, "severity" | "isPrimary">
+export type UnclassifiedHaunting = Omit<Haunting, "severity" | "isPrimary" | "secondary">
 
 export type DetectorFunction = (raw: RawAudit) => UnclassifiedHaunting[]
 ```
@@ -238,20 +237,22 @@ type DetectorFunction = (raw: RawAudit) => UnclassifiedHaunting[]
 
 **Input:** `RawAudit` from `packages/core/src/types.ts`. The detector reads only the fields it needs:
 - `axNodes` — AX tree from CDP
-- `axeViolations` — axe-core results
+- `axeViolations` — axe-core results (nodes[].backendDOMNodeId for cross-check)
 - `textNodeStyles` — contrast data
 - `eventListenerSignals` — click handlers
-- `tabWalkResult` — Tab walk steps and cycles
-- `pageMetadata` — lang, headings, landmarks
+- `tabWalkResult` — Tab walk steps, cycles, trapDetected, trapRegionNodeIds
+- `pageMetadata` — lang, headings (with backendDOMNodeId), landmarks, htmlBackendDOMNodeId, bodyBackendDOMNodeId
 - `domAxMapping` — DOM-to-AX presence mapping
 - `imgAltAttributes` — alt attribute values
+- `imgSrcAttributes` — src attribute values (for Hollow Portrait filename extraction)
 - `boundingBoxes` — element positions
+- `domNodes` — Record<backendDOMNodeId, DomNodeInfo { tag, parentId, attrs, outerHTMLSnippet }>
 
-**Output:** `UnclassifiedHaunting[]`. Each has `type`, `wcag`, `nodeIds`, `box`, `speech`, `htmlSnippet`, `explanation`, `persona`, and `fix`, but **not** `severity` or `isPrimary` (those are assigned later).
+**Output:** `UnclassifiedHaunting[]`. Each has `type`, `kind?`, `wcag: WCAGCriterion[]`, `guidance?`, `nodeIds` (never []), `box`, `speech?`, `speechNote?`, `soundCue?`, `htmlSnippet` (from domNodes outerHTMLSnippet), `explanation`, `persona`, and `fix`, but **not** `severity`, `isPrimary` or `secondary` (those are assigned later).
 
 ### Precedence Model
 
-When multiple detection rules match the same element (by `backendDOMNodeId`), assign exactly one **primary haunting** and mark the others as **secondary**. Only primary hauntings are scored.
+When multiple detection rules match elements that share any backendDOMNodeId in their `nodeIds`, assign exactly one **primary haunting** and mark the others as **secondary**. Only primary hauntings are scored.
 
 **Precedence order (highest to lowest):**
 1. Cursed Loop
@@ -263,31 +264,52 @@ When multiple detection rules match the same element (by `backendDOMNodeId`), as
 7. Invisible Wanderer
 8. The Fog
 
-**Precedence key:** The `backendDOMNodeId` used for precedence grouping. For Cursed Loop it is `trapRegionNodeIds[0]` (the trap region: dialog or common ancestor). Cycle members go in `nodeIds` after it but do not take part in precedence. For all other types it is `nodeIds[0]`. Each precedence key has at most one primary haunting.
+**Collision rule:** Two hauntings collide when their `nodeIds` arrays share ANY `backendDOMNodeId`. For CursedLoop, `nodeIds` = `trapRegionNodeIds` (the region element first, followed by all cycle members), so all of these node IDs take part in precedence. SilentTongue and ShatteredOrder never take part in precedence and are always primary.
 
 **Algorithm:**
-1. Group all hauntings by their precedence key (nodeIds[0] for most types, trapRegionNodeIds[0] for Cursed Loop).
-2. For each group, sort by precedence order.
-3. Mark the first haunting `isPrimary: true`, attach the rest as `secondary: Haunting[]`.
-4. Return the full set (primary + secondary).
+1. Stable-sort all participating hauntings (exclude SilentTongue and ShatteredOrder) by precedence order.
+2. Initialize `claimed: Map<backendDOMNodeId, primaryHaunting>`.
+3. For each haunting `h` in order:
+   - `owners` = the set of distinct primary hauntings that have already claimed any `backendDOMNodeId` in `h.nodeIds`.
+   - If `owners` is empty, mark `h` as primary (`isPrimary: true`, `secondary: []`) and claim all of `h.nodeIds`.
+   - Otherwise, push `h` into the `secondary` array of its highest-precedence owner (the owner that appears first in the precedence list).
+4. Return the primary hauntings only (plus SilentTongue/ShatteredOrder), each with its `secondary` array populated.
 
-**Edge case:** page-level hauntings (Silent Tongue, Shattered Order with `kind: "no-h1"` or `"no-main"`) have `nodeIds: []` and cannot collide. They are always primary.
-
-**Note:** A Cursed Loop member that is also a Whispering Field keeps the Whispering Field as a secondary of the loop, because the loop's precedence key is the region, not the cycle members.
+**Example:** A Cursed Loop member that is also a Whispering Field will have the Whispering Field become a secondary of the loop, because the loop's `nodeIds` (which equals `trapRegionNodeIds`) includes that input's `backendDOMNodeId`, and Cursed Loop outranks Whispering Field. The Whispering Field is still counted in `detectedCountsByType`.
 
 ### Severity Assignment
 
 Apply these rules in order (first match wins):
 
-1. **Wraith** — the haunting affects a core task flow element AND makes the task impossible for AT users.
-2. **Restless** — the haunting affects ≥3 elements of the same type, OR the WCAG criterion is level A.
+**Blocking-type table:**
+| Type | Can block task? |
+|------|----------------|
+| CursedLoop | Yes |
+| NamelessSpirit | Yes |
+| WhisperingField | Yes |
+| LostSoul | Yes |
+| HollowPortrait | No (never Wraith) |
+| TheFog | No (never Wraith) |
+| InvisibleWanderer | No (never Wraith) |
+| TheVeiled | No (never Wraith) |
+| ShatteredOrder | No (never Wraith) |
+| SilentTongue | No (never Wraith) |
+
+1. **Wraith** — the haunting type can block tasks (see table above) AND the element is part of a core task flow.
+2. **Restless** — the number of primary hauntings of this type on the page (after precedence) is ≥3, OR the WCAG criterion `wcag[0].level === 'A'`.
 3. **Banished** — all other hauntings.
 
-**Core task flow detection:**
-- Element is inside a `<form>` (check DOM ancestor chain via `backendDOMNodeId` lookup), OR
-- Element has role `button` or `link`, AND the accessible name contains one of these keywords (case-insensitive): "submit", "checkout", "buy", "pay", "login", "sign in", "sign up", "search", "continue", "cart", "add to", "basket", "register", "subscribe".
+**Core task flow detection (for rule 1):**
+- Walk the element (by `nodeIds[0]`) and its ancestors via `raw.domNodes[id].parentId` up to `body`.
+- The element is part of a core task flow if **any** of the following is true:
+  - Some ancestor has `tag === 'form'`
+  - Some ancestor or the element itself has `tag === 'dialog'` or `attrs.role === 'dialog'` or `attrs.role === 'alertdialog'`
+  - Some ancestor or the element itself has an `id` or `class` containing "checkout" or "cart" (case-insensitive substring match)
+  - The element's AX role is `button` or `link`, AND the accessible name OR (when the name is empty) the element's `domNodes` attributes (`id`, `class`, `aria-label`) or `outerHTMLSnippet` contains one of these keywords (case-insensitive): "submit", "checkout", "buy", "pay", "login", "sign in", "sign up", "search", "continue", "cart", "add to", "basket", "register", "subscribe"
 
-**Input:** `UnclassifiedHaunting[]` + `RawAudit` (for DOM/AX traversal to check `<form>` ancestors and accessible names).
+**Example:** A checkout button that is a Nameless Spirit is always Wraith, because the keyword "checkout" (in its class or surrounding text) triggers the core-task rule even though the accessible name is empty.
+
+**Input:** The primary hauntings returned by `resolvePrecedence` (each with its `secondary` array), plus `raw: RawAudit` (for DOM/AX traversal to check ancestry and accessible names).
 
 **Output:** `Haunting[]` with `severity` field populated.
 
@@ -334,10 +356,21 @@ announcement = [name, role, state].filter(Boolean).join(", ")
 - **role** — human-readable label from `ROLE_LABEL_MAP` (always included)
 - **state** — computed from `axNode.states` and `axNode.properties` (omit if not relevant)
 
-**Special cases:**
-- `role: "heading"` → append " level N" where N is from `aria-level` property or inferred from tag name
+**Special cases (from hauntings.md verbatim):**
+- Empty name + interactive role → haunting (#1 or #7), announce only the role
+- `textbox`/`searchbox`/`spinbutton`/`slider`/`combobox` with empty name → `"<roleLabel>, blank"` (e.g. `"edit text, blank"`, `"search, blank"`)
+- Placeholder-only name → `"<placeholder text>, edit text"` **with** `speechNote: "name disappears when typing"`
+- `img`/`image` with empty name → `"unlabelled graphic, [filename]"` where filename is extracted from `imgSrcAttributes[id]` (last path segment, no query or hash), or `"unlabelled graphic"` if no src
+- `role: "heading"` → append `" level N"` where N is from `aria-level` property or inferred from tag name
 - `role: "generic"`, `"none"`, `"presentation"` → return empty string (do not announce)
-- Empty name + interactive role → haunting (#1 or #7), but still announce the role
+
+**Sound effects (never in `speech`):**
+- Silent Tongue: `soundCue: "garbled-whisper"`
+- Cursed Loop: `soundCue: "chime"`
+
+**Exported functions:**
+- `announce(node: AXNode, raw: RawAudit): string` — the full announcement
+- `announceNote(node: AXNode): string | undefined` — returns `"name disappears when typing"` for placeholder-only names, otherwise `undefined`
 
 **State inclusion rules:**
 | Role | State to include | Source Property | Format |
@@ -353,7 +386,7 @@ announcement = [name, role, state].filter(Boolean).join(", ")
 | Any | required | `required` | "required" |
 | heading | level N | `level` property | append " level N" |
 
-**Input:** `AXNode` from the `RawAudit`.
+**Input:** `AXNode` from the `RawAudit`, plus `raw` for `imgSrcAttributes` lookup.
 
 **Output:** `string` (the announcement text).
 
@@ -415,21 +448,28 @@ function detectNamelessSpirit(raw: RawAudit): UnclassifiedHaunting[] {
   
   for (const node of raw.axNodes) {
     if (node.ignored) continue
-    const role = node.role.value as string
-    const name = (node.name.value as string || "").trim()
+    const role = String(node.role.value)
+    const name = String(node.name.value ?? "").trim()
     
     if (interactiveRoles.has(role) && name === "") {
+      const id = node.backendDOMNodeId
+      const onlyContentIsImage = false // TODO: check if button/link contains only an image child
+      
       hauntings.push({
-        id: generateId("NamelessSpirit", node.backendDOMNodeId),
+        id: hauntingId("NamelessSpirit", id),
         type: "NamelessSpirit",
-        wcag: WCAG_4_1_2, // also 2.4.4, 1.1.1 for image buttons
-        nodeIds: [node.backendDOMNodeId],
-        box: findBox(raw.boundingBoxes, node.backendDOMNodeId),
-        speech: generateSpeech(node), // will be just the role
-        htmlSnippet: extractSnippet(raw, node.backendDOMNodeId),
+        wcag: [
+          WCAG_4_1_2,
+          ...(role === "link" ? [WCAG_2_4_4] : []),
+          ...(onlyContentIsImage ? [WCAG_1_1_1] : [])
+        ],
+        nodeIds: [id],
+        box: findBox(raw.boundingBoxes, id),
+        speech: announce(node, raw), // will be just the role
+        htmlSnippet: snippet(raw, id),
         explanation: `Interactive element has no accessible name. Screen readers announce only "${ROLE_LABEL_MAP[role] || role}", leaving users unable to identify its purpose.`,
         persona: "As a screen-reader user, I cannot determine what this control does.",
-        fix: generateNamelessSpiritFix(node),
+        fix: generateFix("NamelessSpirit", { role }),
       })
     }
   }
@@ -447,8 +487,10 @@ function detectNamelessSpirit(raw: RawAudit): UnclassifiedHaunting[] {
 **Exclusions:**
 - `alt=""` (intentionally decorative)
 - `role="presentation"` or `role="none"`
-- `aria-hidden="true"` (unless sole content of button/link — that's a Nameless Spirit instead)
-- Inline SVG without explicit `role="img"` (unless sole content of button/link)
+- `aria-hidden="true"` (always skipped: the AX node is ignored)
+- An image or inline SVG that is the sole content of a button/link whose name is empty (not reported; the parent is reported as Nameless Spirit)
+- Inline SVG inside an already-named control
+- Inline SVG without an explicit `role="img"` attribute
 
 **Algorithm:**
 ```typescript
@@ -457,33 +499,50 @@ function detectHollowPortrait(raw: RawAudit): UnclassifiedHaunting[] {
   
   for (const node of raw.axNodes) {
     if (node.ignored) continue
-    const role = node.role.value as string
+    const role = String(node.role.value)
     
     // Treat "img" and "image" as equivalent
     if (role !== "img" && role !== "image") continue
     
-    const name = (node.name.value as string || "").trim()
+    const name = String(node.name.value ?? "").trim()
     if (name !== "") continue // has a name, not hollow
     
+    const id = node.backendDOMNodeId
+    
     // Check if alt="" (intentionally decorative)
-    const altAttr = raw.imgAltAttributes[node.backendDOMNodeId.toString()]
+    const altAttr = raw.imgAltAttributes[String(id)]
     if (altAttr === "") continue // correctly decorative
     
-    // Check if role="presentation" or "none" (correctly decorative)
-    const explicitRole = getExplicitRole(raw, node.backendDOMNodeId)
-    if (explicitRole === "presentation" || explicitRole === "none") continue
+    const dn = raw.domNodes[id]
+    
+    // SVG without explicit role="img" attribute
+    if (dn?.tag === "svg" && dn.attrs.role !== "img") continue
+    
+    // Check if sole content of unnamed button/link
+    const parent = axParent(raw, node)
+    if (parent && ["button", "link"].includes(String(parent.role.value))) {
+      const parentName = String(parent.name.value ?? "").trim()
+      if (soleNonIgnoredChild(raw, parent, node) && parentName === "") {
+        continue // parent is Nameless Spirit
+      }
+      // SVG inside named control
+      if (dn?.tag === "svg" && parentName !== "") continue
+    }
+    
+    const filename = fileNameFromSrc(raw.imgSrcAttributes[String(id)])
+    const speechText = filename ? `unlabelled graphic, ${filename}` : "unlabelled graphic"
     
     hauntings.push({
-      id: generateId("HollowPortrait", node.backendDOMNodeId),
+      id: hauntingId("HollowPortrait", id),
       type: "HollowPortrait",
-      wcag: WCAG_1_1_1,
-      nodeIds: [node.backendDOMNodeId],
-      box: findBox(raw.boundingBoxes, node.backendDOMNodeId),
-      speech: generateHollowPortraitSpeech(node, raw), // "unlabelled graphic, [filename]"
-      htmlSnippet: extractSnippet(raw, node.backendDOMNodeId),
+      wcag: [WCAG_1_1_1],
+      nodeIds: [id],
+      box: findBox(raw.boundingBoxes, id),
+      speech: speechText,
+      htmlSnippet: snippet(raw, id),
       explanation: "Image has no text alternative. Screen-reader users miss the visual information.",
       persona: "As a screen-reader user, I cannot see the image and have no description.",
-      fix: generateHollowPortraitFix(node),
+      fix: generateFix("HollowPortrait", {}),
     })
   }
   
@@ -491,7 +550,7 @@ function detectHollowPortrait(raw: RawAudit): UnclassifiedHaunting[] {
 }
 ```
 
-**Speech generation:** `"unlabelled graphic, [filename]"` where filename is extracted from the `src` attribute (last path segment, no query string).
+**Speech generation:** `"unlabelled graphic, [filename]"` where filename is extracted from `imgSrcAttributes[id]` (last path segment, no query or hash), or `"unlabelled graphic"` when there is no src.
 
 **WCAG mapping:** 1.1.1 (Non-text Content).
 
@@ -513,30 +572,39 @@ function detectTheFog(raw: RawAudit): UnclassifiedHaunting[] {
     // Skip uncertain backgrounds
     if (style.backgroundUncertain) continue
     
+    const id = Number(nodeIdStr)
+    
+    // Skip disabled text
+    if (isDisabled(raw, id)) continue
+    
+    // Skip decorative text
+    if (isDecorative(raw, id)) continue
+    
     // Parse colors
-    const fg = parseColor(style.color)
-    const bg = parseColor(style.backgroundColor)
+    const fg = parseCssColor(style.color)
+    const bg = parseCssColor(style.backgroundColor)
     if (!fg || !bg) continue
     
     const ratio = contrastRatio(fg, bg)
     const threshold = style.isLargeText ? 3.0 : 4.5
     
     if (ratio < threshold) {
-      const nodeId = parseInt(nodeIdStr, 10)
       hauntings.push({
-        id: generateId("TheFog", nodeId),
+        id: hauntingId("TheFog", id),
         type: "TheFog",
-        wcag: WCAG_1_4_3,
-        nodeIds: [nodeId],
-        box: findBox(raw.boundingBoxes, nodeId),
+        wcag: [WCAG_1_4_3],
+        nodeIds: [id],
+        box: findBox(raw.boundingBoxes, id),
         speech: undefined, // no speech for Fog
-        htmlSnippet: extractSnippet(raw, nodeId),
+        htmlSnippet: snippet(raw, id),
         explanation: `Text contrast is ${ratio.toFixed(2)}:1, below the required ${threshold}:1. Low-vision users struggle to read it.`,
         persona: "As a low-vision user, I strain to read this text.",
-        fix: generateFogFix(ratio, threshold),
+        fix: generateFix("TheFog", { ratio, threshold }),
       })
     }
   }
+  
+  // backgroundUncertain nodes are collected by classify() into needsManualCheck
   
   return hauntings
 }
@@ -548,7 +616,7 @@ function detectTheFog(raw: RawAudit): UnclassifiedHaunting[] {
 
 **Rule:** Element has a click handler AND is not in Tab walk AND does not have an interactive ARIA role AND is not a native interactive element.
 
-**Native interactive elements:** `<button>`, `<a href>`, `<input>`, `<select>`, `<textarea>`, `<summary>`, `[contenteditable]`.
+**Native interactive elements:** `<button>`, `<a href>` (AX role link), `<input>`, `<select>`, `<textarea>`, `<summary>`, `[contenteditable]`.
 
 **Outermost rule:** Report only the outermost qualifying element. If a child and ancestor both match, report the ancestor.
 
@@ -558,8 +626,8 @@ function detectTheFog(raw: RawAudit): UnclassifiedHaunting[] {
 ```typescript
 function detectLostSoul(raw: RawAudit): UnclassifiedHaunting[] {
   const hauntings: UnclassifiedHaunting[] = []
-  const tabWalkNodeIds = new Set(raw.tabWalkResult.steps.map(s => parseInt(s.backendDOMNodeId, 10)))
-  const interactiveRoles = new Set([...INTERACTIVE_ROLES])
+  const tabWalkNodeIds = new Set(raw.tabWalkResult.steps.map(s => Number(s.backendDOMNodeId)))
+  const interactiveRoles = new Set(INTERACTIVE_ROLES)
   
   // Build candidate set: elements with click handlers
   const candidates = raw.eventListenerSignals.filter(sig =>
@@ -568,46 +636,52 @@ function detectLostSoul(raw: RawAudit): UnclassifiedHaunting[] {
   
   // Filter: not in Tab walk, not native interactive, not interactive ARIA role
   const qualifying = candidates.filter(sig => {
+    const id = sig.backendDOMNodeId
+    
     // In Tab walk? Skip.
-    if (tabWalkNodeIds.has(sig.backendDOMNodeId)) return false
+    if (tabWalkNodeIds.has(id)) return false
     
     // Native interactive element? Skip.
-    const tagLower = sig.tagName.toLowerCase()
-    if (["button", "a", "input", "select", "textarea", "summary"].includes(tagLower)) return false
-    // Check for <a href> specifically (axNode will have link role)
+    if (isNativeInteractive(raw, id)) return false
     
-    // Check AX role
-    const axNode = findAXNode(raw, sig.backendDOMNodeId)
-    if (!axNode) return false
-    if (interactiveRoles.has(axNode.role.value as string)) return false
+    // Check AX role (if element has an AX node)
+    const axNode = axByBackendId(raw, id)
+    if (axNode && interactiveRoles.has(String(axNode.role.value))) return false
     
     // Inside or contains native interactive? Skip.
-    if (isInsideInteractive(raw, sig.backendDOMNodeId)) return false
-    if (containsInteractive(raw, sig.backendDOMNodeId)) return false
+    const ancestors = domAncestors(raw, id).concat(axAncestors(raw, axNode))
+    if (ancestors.some(aid => isNativeInteractive(raw, aid))) return false
+    
+    const descendants = domDescendants(raw, id).concat(axNode ? axDescendants(raw, axNode).map(n => n.backendDOMNodeId) : [])
+    if (descendants.some(did => isNativeInteractive(raw, did))) return false
     
     return true
   })
   
-  // Apply outermost rule: sort by DOM depth, keep only ancestors
+  // Apply outermost rule
   const outermost = filterOutermost(raw, qualifying.map(s => s.backendDOMNodeId))
   
-  for (const nodeId of outermost) {
+  for (const id of outermost) {
     hauntings.push({
-      id: generateId("LostSoul", nodeId),
+      id: hauntingId("LostSoul", id),
       type: "LostSoul",
-      wcag: WCAG_2_1_1, // also 4.1.2
-      nodeIds: [nodeId],
-      box: findBox(raw.boundingBoxes, nodeId),
+      wcag: [WCAG_2_1_1, WCAG_4_1_2],
+      nodeIds: [id],
+      box: findBox(raw.boundingBoxes, id),
       speech: undefined, // no speech for Lost Soul
-      htmlSnippet: extractSnippet(raw, nodeId),
+      htmlSnippet: snippet(raw, id),
       explanation: "Element responds to clicks but is not keyboard-accessible. Keyboard users cannot interact with it.",
       persona: "As a keyboard user, I cannot reach this control.",
-      fix: generateLostSoulFix(),
+      fix: generateFix("LostSoul", {}),
     })
   }
   
   return hauntings
 }
+
+// Helper: isNativeInteractive(raw, id)
+// Returns true if tag is button/input/select/textarea/summary,
+// or tag is 'a' with AX role 'link', or element is editable
 ```
 
 **WCAG mapping:** 2.1.1 (Keyboard), 4.1.2 (Name, Role, Value).
@@ -621,33 +695,34 @@ function detectLostSoul(raw: RawAudit): UnclassifiedHaunting[] {
 **Algorithm:**
 ```typescript
 function detectCursedLoop(raw: RawAudit): UnclassifiedHaunting[] {
-  const hauntings: UnclassifiedHaunting[] = []
+  const t = raw.tabWalkResult
   
-  for (const cycle of raw.tabWalkResult.cycles) {
-    // Skip escapable cycles
-    if (cycle.escapable) continue
-    
-    // Skip cycles that include all focusables (intentional roving tabindex)
-    if (cycle.includesAllFocusables) continue
-    
-    // This is a trap
-    hauntings.push({
-      id: generateId("CursedLoop", cycle.nodeIds[0]), // use first node ID
-      type: "CursedLoop",
-      wcag: WCAG_2_1_2,
-      nodeIds: cycle.nodeIds.map(id => parseInt(id, 10)),
-      box: findBox(raw.boundingBoxes, parseInt(cycle.nodeIds[0], 10)),
-      speech: undefined, // no speech for Cursed Loop
-      htmlSnippet: extractSnippet(raw, parseInt(cycle.nodeIds[0], 10)),
-      explanation: `Keyboard trap detected. Focus cycles through ${cycle.nodeIds.length} elements with no escape. Keyboard users are stuck.`,
-      persona: "As a keyboard user, I am trapped and cannot navigate to the rest of the page.",
-      fix: generateCursedLoopFix(),
-    })
-  }
+  // At most one Cursed Loop, only when trapDetected
+  if (!t.trapDetected || t.trapRegionNodeIds.length === 0) return []
   
-  return hauntings
+  // Check for a true trap (non-escapable, not all-focusables)
+  if (!t.cycles.some(c => !c.escapable && !c.includesAllFocusables)) return []
+  
+  const nodeIds = t.trapRegionNodeIds.map(Number)
+  const regionId = nodeIds[0]
+  
+  return [{
+    id: hauntingId("CursedLoop", regionId),
+    type: "CursedLoop",
+    wcag: [WCAG_2_1_2],
+    nodeIds,
+    box: findBox(raw.boundingBoxes, regionId),
+    speech: undefined,
+    soundCue: "chime",
+    htmlSnippet: snippet(raw, regionId),
+    explanation: `Keyboard trap: focus cycles through ${nodeIds.length - 1} elements with no escape.`,
+    persona: "As a keyboard user, I am trapped and cannot navigate to the rest of the page.",
+    fix: generateFix("CursedLoop", {}),
+  }]
 }
 ```
+
+**Data source:** `tabWalkResult.trapDetected`, `trapRegionNodeIds` and `cycles[].escapable`/`includesAllFocusables`.
 
 **WCAG mapping:** 2.1.2 (No Keyboard Trap).
 
@@ -656,9 +731,9 @@ function detectCursedLoop(raw: RawAudit): UnclassifiedHaunting[] {
 **Rule:** Element is in Tab walk AND focus indicator is not visible.
 
 **Visibility criteria:** At least one of:
-- (a) `outline-style` ≠ `none` AND `outline-width` ≥ 1px AND outline colour contrast ≥ 3:1
-- (b) `box-shadow` changed with contrast ≥ 3:1
-- (c) `border-color` or `background-color` changed with Δ contrast ≥ 3:1
+- (a) `outline-style` ≠ `none` AND `outline-width` ≥ 1px AND outline colour contrast ≥ 3:1 against `after['adjacent-background-color']`
+- (b) `box-shadow` changed to a non-transparent shadow with ≥ 3:1 contrast against `after['adjacent-background-color']`
+- (c) `border-color` or `background-color` changed and the contrast between before and after (blended over adjacent background) is ≥ 3:1
 - (d) `text-decoration` changed
 
 **Chromium quirk:** Ignore `outline-offset`, `outline-width`, `outline-color` deltas when `outline-style` is `none`.
@@ -667,8 +742,18 @@ function detectCursedLoop(raw: RawAudit): UnclassifiedHaunting[] {
 ```typescript
 function detectInvisibleWanderer(raw: RawAudit): UnclassifiedHaunting[] {
   const hauntings: UnclassifiedHaunting[] = []
+  const seen = new Set<number>()
   
   for (const step of raw.tabWalkResult.steps) {
+    const id = step.backendDOMNodeId === '' ? NaN : Number(step.backendDOMNodeId)
+    
+    // Skip cdpError or empty-id steps (classify() adds them to needsManualCheck)
+    if (step.cdpError || !Number.isFinite(id)) continue
+    
+    // Dedupe: at most one IW per element
+    if (seen.has(id)) continue
+    seen.add(id)
+    
     const { before, after } = step.focusSnapshot
     
     // Check visibility criteria
@@ -680,18 +765,18 @@ function detectInvisibleWanderer(raw: RawAudit): UnclassifiedHaunting[] {
     )
     
     if (!hasVisibleIndicator) {
-      const nodeId = parseInt(step.backendDOMNodeId, 10)
       hauntings.push({
-        id: generateId("InvisibleWanderer", nodeId),
+        id: hauntingId("InvisibleWanderer", id),
         type: "InvisibleWanderer",
-        wcag: WCAG_2_4_7,
-        nodeIds: [nodeId],
-        box: findBox(raw.boundingBoxes, nodeId),
+        wcag: [WCAG_2_4_7],
+        guidance: WCAG_2_4_13,
+        nodeIds: [id],
+        box: findBox(raw.boundingBoxes, id),
         speech: undefined, // no speech for Invisible Wanderer
-        htmlSnippet: extractSnippet(raw, nodeId),
+        htmlSnippet: snippet(raw, id),
         explanation: "Element has no visible focus indicator. Keyboard users lose track of their position.",
         persona: "As a keyboard user, I cannot see which element has focus.",
-        fix: generateInvisibleWandererFix(),
+        fix: generateFix("InvisibleWanderer", {}),
       })
     }
   }
@@ -706,40 +791,50 @@ function hasVisibleOutline(before: ComputedStyleMap, after: ComputedStyleMap): b
   const outlineWidth = parseFloat(after["outline-width"])
   if (outlineWidth < 1) return false
   
-  const outlineColor = parseColor(after["outline-color"])
-  const bgColor = parseColor(after["background-color"]) // adjacent background (simplification)
-  if (!outlineColor || !bgColor) return false
+  const adj = parseCssColor(after["adjacent-background-color"])
+  const oc = parseCssColor(after["outline-color"])
+  if (!adj || !oc) return false
   
-  const contrast = contrastRatio(outlineColor, bgColor)
-  return contrast >= 3.0
+  return contrastRatio(blend(oc, adj), adj) >= 3
 }
 
 function hasVisibleBoxShadow(before: ComputedStyleMap, after: ComputedStyleMap): boolean {
-  if (before["box-shadow"] === after["box-shadow"]) return false
-  // Parse box-shadow, extract colour, check contrast ≥ 3:1
-  // (Implementation detail: parse box-shadow string, extract RGBA, compare)
-  return false // placeholder
+  const s = after["box-shadow"]
+  if (!s || s === "none" || s === before["box-shadow"]) return false
+  
+  const adj = parseCssColor(after["adjacent-background-color"])
+  if (!adj) return false
+  
+  const ratios = (s.match(/rgba?\([^)]*\)/g) ?? [])
+    .map(parseCssColor)
+    .filter(c => c !== null && c.a > 0)
+    .map(c => contrastRatio(blend(c!, adj), adj))
+  
+  return ratios.length > 0 && Math.max(...ratios) >= 3
 }
 
 function hasVisibleColorChange(before: ComputedStyleMap, after: ComputedStyleMap): boolean {
-  const beforeBg = parseColor(before["background-color"])
-  const afterBg = parseColor(after["background-color"])
-  if (beforeBg && afterBg) {
-    const contrast = contrastRatio(beforeBg, afterBg)
-    if (contrast >= 3.0) return true
-  }
+  const adj = parseCssColor(after["adjacent-background-color"])
+  if (!adj) return false
   
-  const beforeBorder = parseColor(before["border-color"])
-  const afterBorder = parseColor(after["border-color"])
-  if (beforeBorder && afterBorder) {
-    const contrast = contrastRatio(beforeBorder, afterBorder)
-    if (contrast >= 3.0) return true
+  for (const p of ["background-color", "border-color"]) {
+    if (before[p] === after[p]) continue
+    const b = parseCssColor(before[p])
+    const a = parseCssColor(after[p])
+    if (b && a && contrastRatio(blend(b, adj), blend(a, adj)) >= 3) return true
   }
   
   return false
 }
 
 function hasTextDecorationChange(before: ComputedStyleMap, after: ComputedStyleMap): boolean {
+  return before["text-decoration"] !== after["text-decoration"]
+}
+```
+
+**WCAG mapping:** 2.4.7 Focus Visible (AA) — primary. `guidance`: 2.4.13 Focus Appearance (AAA, never 2.4.11).
+
+### 7. Whispering Fieldfunction hasTextDecorationChange(before: ComputedStyleMap, after: ComputedStyleMap): boolean {
   return before["text-decoration"] !== after["text-decoration"]
 }
 ```
@@ -758,51 +853,73 @@ function detectWhisperingField(raw: RawAudit): UnclassifiedHaunting[] {
   const hauntings: UnclassifiedHaunting[] = []
   const formRoles = new Set(["textbox", "searchbox", "spinbutton", "slider", "combobox"])
   
+### 7. Whispering Field
+
+**Rule:** AX node has form field role AND (empty name OR placeholder-only name).
+
+**Form field roles:** `textbox`, `searchbox`, `spinbutton`, `slider`, `combobox`.
+
+**Algorithm:**
+```typescript
+function detectWhisperingField(raw: RawAudit): UnclassifiedHaunting[] {
+  const hauntings: UnclassifiedHaunting[] = []
+  const formRoles = new Set(["textbox", "searchbox", "spinbutton", "slider", "combobox"])
+  
   for (const node of raw.axNodes) {
     if (node.ignored) continue
-    const role = node.role.value as string
+    const role = String(node.role.value)
     if (!formRoles.has(role)) continue
     
-    const name = (node.name.value as string || "").trim()
+    const name = String(node.name.value ?? "").trim()
+    const id = node.backendDOMNodeId
     
     // Case (a): empty name
     if (name === "") {
       hauntings.push({
-        id: generateId("WhisperingField", node.backendDOMNodeId),
+        id: hauntingId("WhisperingField", id),
         type: "WhisperingField",
-        wcag: WCAG_1_3_1, // also 3.3.2, 4.1.2
-        nodeIds: [node.backendDOMNodeId],
-        box: findBox(raw.boundingBoxes, node.backendDOMNodeId),
-        speech: `${ROLE_LABEL_MAP[role]}, blank`,
-        htmlSnippet: extractSnippet(raw, node.backendDOMNodeId),
+        wcag: [WCAG_1_3_1, WCAG_3_3_2, WCAG_4_1_2],
+        nodeIds: [id],
+        box: findBox(raw.boundingBoxes, id),
+        speech: announce(node, raw), // "<roleLabel>, blank"
+        htmlSnippet: snippet(raw, id),
         explanation: "Form field has no accessible label. Screen-reader users do not know what to enter.",
         persona: "As a screen-reader user, I do not know what this field is for.",
-        fix: generateWhisperingFieldFix("empty"),
+        fix: generateFix("WhisperingField", { case: "empty" }),
       })
       continue
     }
     
     // Case (b): placeholder-only name
-    const sources = node.name.sources || []
-    const winningSource = sources.find(s => !s.superseded)
-    if (winningSource && winningSource.type === "placeholder") {
+    const win = winningNameSource(node)
+    const placeholderOnly = !!win && (
+      win.attribute === "placeholder" || 
+      win.attribute === "aria-placeholder" || 
+      win.type === "placeholder"
+    )
+    
+    if (placeholderOnly) {
       hauntings.push({
-        id: generateId("WhisperingField", node.backendDOMNodeId),
+        id: hauntingId("WhisperingField", id),
         type: "WhisperingField",
-        wcag: WCAG_1_3_1,
-        nodeIds: [node.backendDOMNodeId],
-        box: findBox(raw.boundingBoxes, node.backendDOMNodeId),
-        speech: `${name}, ${ROLE_LABEL_MAP[role]}`, // + UI note
-        htmlSnippet: extractSnippet(raw, node.backendDOMNodeId),
+        wcag: [WCAG_1_3_1, WCAG_3_3_2, WCAG_4_1_2],
+        nodeIds: [id],
+        box: findBox(raw.boundingBoxes, id),
+        speech: announce(node, raw), // "<placeholder text>, edit text"
+        speechNote: "name disappears when typing",
+        htmlSnippet: snippet(raw, id),
         explanation: `Form field uses placeholder as label. The placeholder text "${name}" disappears when the user types, causing confusion.`,
         persona: "As a screen-reader user, I lose the field label as soon as I start typing.",
-        fix: generateWhisperingFieldFix("placeholder"),
+        fix: generateFix("WhisperingField", { case: "placeholder" }),
       })
     }
   }
   
   return hauntings
 }
+
+// Helper: winningNameSource(node)
+// Returns the first name.sources entry with superseded !== true and non-empty value.value
 ```
 
 **WCAG mapping:** 1.3.1 (Info and Relationships), 3.3.2 (Labels or Instructions), 4.1.2 (Name, Role, Value).
@@ -818,20 +935,21 @@ function detectWhisperingField(raw: RawAudit): UnclassifiedHaunting[] {
 function detectSilentTongue(raw: RawAudit): UnclassifiedHaunting[] {
   const hauntings: UnclassifiedHaunting[] = []
   const lang = raw.pageMetadata.htmlLang
+  const htmlId = raw.pageMetadata.htmlBackendDOMNodeId
   
   if (!lang) {
     hauntings.push({
-      id: generateId("SilentTongue", 0), // page-level, no nodeId
+      id: hauntingId("SilentTongue", htmlId),
       type: "SilentTongue",
-      wcag: WCAG_3_1_1,
-      nodeIds: [],
-      box: null,
+      wcag: [WCAG_3_1_1],
+      nodeIds: [htmlId],
+      box: findBox(raw.boundingBoxes, htmlId) ?? null,
       speech: undefined,
-      soundCue: "garbled-whisper", // audio cue, not spoken text
-      htmlSnippet: "<html>",
+      soundCue: "garbled-whisper",
+      htmlSnippet: snippet(raw, htmlId),
       explanation: "Page has no language declaration. Screen readers cannot choose the correct pronunciation rules.",
       persona: "As a screen-reader user, I hear incorrect pronunciation.",
-      fix: generateSilentTongueFix(),
+      fix: generateFix("SilentTongue", {}),
     })
     return hauntings
   }
@@ -839,17 +957,17 @@ function detectSilentTongue(raw: RawAudit): UnclassifiedHaunting[] {
   const bcp47Regex = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/
   if (!bcp47Regex.test(lang)) {
     hauntings.push({
-      id: generateId("SilentTongue", 0),
+      id: hauntingId("SilentTongue", htmlId),
       type: "SilentTongue",
-      wcag: WCAG_3_1_1,
-      nodeIds: [],
-      box: null,
+      wcag: [WCAG_3_1_1],
+      nodeIds: [htmlId],
+      box: findBox(raw.boundingBoxes, htmlId) ?? null,
       speech: undefined,
       soundCue: "garbled-whisper",
-      htmlSnippet: `<html lang="${lang}">`,
+      htmlSnippet: snippet(raw, htmlId),
       explanation: `Language attribute "${lang}" is not a valid BCP 47 tag. Screen readers cannot interpret it.`,
       persona: "As a screen-reader user, I hear incorrect pronunciation.",
-      fix: generateSilentTongueFix(),
+      fix: generateFix("SilentTongue", {}),
     })
   }
   
@@ -872,23 +990,24 @@ function detectSilentTongue(raw: RawAudit): UnclassifiedHaunting[] {
 ```typescript
 function detectShatteredOrder(raw: RawAudit): UnclassifiedHaunting[] {
   const hauntings: UnclassifiedHaunting[] = []
-  const { headings, hasMainLandmark } = raw.pageMetadata
+  const { headings, hasMainLandmark, bodyBackendDOMNodeId } = raw.pageMetadata
+  const bodyId = bodyBackendDOMNodeId ?? raw.domAxMapping.find(m => m.tagName.toLowerCase() === 'body')!.backendDOMNodeId
   
   // Check (a): no h1
   const hasH1 = headings.some(h => h.tagName === "h1")
   if (!hasH1) {
     hauntings.push({
-      id: generateId("ShatteredOrder", 0, "no-h1"),
+      id: hauntingId("ShatteredOrder", bodyId, "no-h1"),
       type: "ShatteredOrder",
       kind: "no-h1",
-      wcag: WCAG_1_3_1, // also 2.4.6
-      nodeIds: [],
-      box: null,
+      wcag: [WCAG_1_3_1, WCAG_2_4_6],
+      nodeIds: [bodyId],
+      box: findBox(raw.boundingBoxes, bodyId) ?? null,
       speech: undefined,
-      htmlSnippet: "",
+      htmlSnippet: snippet(raw, bodyId),
       explanation: "Page has no main heading (h1). Screen-reader users cannot quickly identify the page purpose.",
       persona: "As a screen-reader user, I do not know what this page is about.",
-      fix: generateShatteredOrderFix("no-h1"),
+      fix: generateFix("ShatteredOrder", { kind: "no-h1" }),
     })
   }
   
@@ -896,18 +1015,19 @@ function detectShatteredOrder(raw: RawAudit): UnclassifiedHaunting[] {
   const levels = headings.map(h => parseInt(h.tagName.slice(1), 10))
   for (let i = 1; i < levels.length; i++) {
     if (levels[i] - levels[i - 1] > 1) {
+      const h = headings[i]
       hauntings.push({
-        id: generateId("ShatteredOrder", i, "heading-skip"),
+        id: hauntingId("ShatteredOrder", h.backendDOMNodeId, "heading-skip"),
         type: "ShatteredOrder",
         kind: "heading-skip",
-        wcag: WCAG_1_3_1,
-        nodeIds: [],
-        box: null,
+        wcag: [WCAG_1_3_1, WCAG_2_4_6],
+        nodeIds: [h.backendDOMNodeId],
+        box: findBox(raw.boundingBoxes, h.backendDOMNodeId) ?? null,
         speech: undefined,
-        htmlSnippet: `<h${levels[i - 1]}> → <h${levels[i]}>`,
+        htmlSnippet: snippet(raw, h.backendDOMNodeId),
         explanation: `Heading levels skip from h${levels[i - 1]} to h${levels[i]}. Screen-reader users expect a logical hierarchy.`,
         persona: "As a screen-reader user, I am confused by the document structure.",
-        fix: generateShatteredOrderFix("heading-skip"),
+        fix: generateFix("ShatteredOrder", { kind: "heading-skip" }),
       })
     }
   }
@@ -915,17 +1035,17 @@ function detectShatteredOrder(raw: RawAudit): UnclassifiedHaunting[] {
   // Check (c): no main landmark
   if (!hasMainLandmark) {
     hauntings.push({
-      id: generateId("ShatteredOrder", 0, "no-main"),
+      id: hauntingId("ShatteredOrder", bodyId, "no-main"),
       type: "ShatteredOrder",
       kind: "no-main",
-      wcag: WCAG_1_3_1,
-      nodeIds: [],
-      box: null,
+      wcag: [WCAG_1_3_1, WCAG_2_4_6],
+      nodeIds: [bodyId],
+      box: findBox(raw.boundingBoxes, bodyId) ?? null,
       speech: undefined,
-      htmlSnippet: "",
+      htmlSnippet: snippet(raw, bodyId),
       explanation: "Page has no main landmark. Screen-reader users cannot quickly jump to the main content.",
       persona: "As a screen-reader user, I cannot skip navigation and jump to content.",
-      fix: generateShatteredOrderFix("no-main"),
+      fix: generateFix("ShatteredOrder", { kind: "no-main" }),
     })
   }
   
@@ -937,7 +1057,7 @@ function detectShatteredOrder(raw: RawAudit): UnclassifiedHaunting[] {
 
 ### 10. The Veiled
 
-**Rule:** Focusable inside `aria-hidden="true"` OR visible content excluded from AX tree.
+**Rule:** One instance per hidden subtree root: a domAxMapping row with (ariaHidden || isPresentational) whose AX node's ignoredReasons contains 'ariaHiddenElement' or 'presentationalRole' (not 'ariaHiddenSubtree').
 
 **Visibility check:** Non-zero bounding box, not `display:none` / `visibility:hidden`, `opacity > 0`, intersects scrollable area.
 
@@ -947,13 +1067,50 @@ function detectShatteredOrder(raw: RawAudit): UnclassifiedHaunting[] {
 ```typescript
 function detectTheVeiled(raw: RawAudit): UnclassifiedHaunting[] {
   const hauntings: UnclassifiedHaunting[] = []
+  const reportedRoots = new Set<number>()
   
-  for (const mapping of raw.domAxMapping) {
-    // Case (a): focusable inside aria-hidden
-    if (mapping.ariaHidden && mapping.isFocusable) {
-      hauntings.push({
-        id: generateId("TheVeiled", mapping.backendDOMNodeId),
-        type: "TheVeiled",
+  for (const m of raw.domAxMapping) {
+    // Must be ariaHidden or presentational
+    if (!(m.ariaHidden || m.isPresentational) || m.hasAxNode) continue
+    
+    // Check if this is a root (not a descendant of another hidden element)
+    const ax = axByBackendId(raw, m.backendDOMNodeId)
+    const reasons = ax?.ignoredReasons ?? []
+    if (!reasons.some(r => r.name === 'ariaHiddenElement' || r.name === 'presentationalRole')) continue
+    
+    // Skip if ancestor already reported
+    if (domAncestors(raw, m.backendDOMNodeId).some(a => reportedRoots.has(a))) continue
+    
+    // Skip decorative
+    if (!(m.hasVisibleText || m.containsFocusable || m.isFocusable)) continue
+    
+    // Find focusable descendants
+    const focusDesc = raw.domAxMapping
+      .filter(d => d.isFocusable && d.backendDOMNodeId !== m.backendDOMNodeId)
+      .filter(d => domAncestors(raw, d.backendDOMNodeId).includes(m.backendDOMNodeId))
+      .map(d => d.backendDOMNodeId)
+    
+    reportedRoots.add(m.backendDOMNodeId)
+    
+    hauntings.push({
+      id: hauntingId("TheVeiled", m.backendDOMNodeId),
+      type: "TheVeiled",
+      wcag: [WCAG_1_3_1, WCAG_4_1_2],
+      nodeIds: [m.backendDOMNodeId, ...focusDesc],
+      box: findBox(raw.boundingBoxes, m.backendDOMNodeId),
+      speech: undefined,
+      htmlSnippet: snippet(raw, m.backendDOMNodeId),
+      explanation: "Visible content is hidden from assistive technology. Screen-reader users miss important information.",
+      persona: "As a screen-reader user, I do not know this content exists.",
+      fix: generateFix("TheVeiled", { focusable: m.isFocusable || m.containsFocusable }),
+    })
+  }
+  
+  return hauntings
+}
+```
+
+**WCAG mapping:** 1.3.1 (Info and Relationships), 4.1.2 (Name, Role, Value).
         wcag: WCAG_1_3_1, // also 4.1.2
         nodeIds: [mapping.backendDOMNodeId],
         box: findBox(raw.boundingBoxes, mapping.backendDOMNodeId),
@@ -976,22 +1133,6 @@ function detectTheVeiled(raw: RawAudit): UnclassifiedHaunting[] {
       hauntings.push({
         id: generateId("TheVeiled", mapping.backendDOMNodeId),
         type: "TheVeiled",
-        wcag: WCAG_1_3_1,
-        nodeIds: [mapping.backendDOMNodeId],
-        box: findBox(raw.boundingBoxes, mapping.backendDOMNodeId),
-        speech: undefined,
-        htmlSnippet: extractSnippet(raw, mapping.backendDOMNodeId),
-        explanation: "Visible content is hidden from assistive technology. Screen-reader users miss important information.",
-        persona: "As a screen-reader user, I do not know this content exists.",
-        fix: generateVeiledFix("content-hidden"),
-      })
-    }
-  }
-  
-  return hauntings
-}
-```
-
 **WCAG mapping:** 1.3.1 (Info and Relationships), 4.1.2 (Name, Role, Value).
 
 ## Error Handling
@@ -999,10 +1140,11 @@ function detectTheVeiled(raw: RawAudit): UnclassifiedHaunting[] {
 **Pure functions throw no exceptions.** All detectors and classifiers are total functions that return valid output for all inputs.
 
 **Error model:**
-- Invalid input (malformed `RawAudit`) → return empty `ClassifiedAudit` with score 0 and an error note in `automatedCoverageNote`.
-- Missing data (e.g. no `axNodes`) → skip that detector, continue with others.
-- Unparseable colour strings → skip that text node for Fog detection, continue with others.
-- CDP errors during collection → recorded in `raw.collectionErrors`, do not propagate to classifier.
+- Invalid input (malformed `RawAudit`) → return empty `ClassifiedAudit` with score 0, hauntings: [], countsByType: {}, detectedCountsByType: {}, needsManualCheck: []
+- Missing data (e.g. no `axNodes`) → skip that detector, continue with others
+- Unparseable colour strings → skip that text node for Fog detection, continue with others
+- CDP errors during collection → recorded in `raw.collectionErrors`, do not propagate to classifier
+- `automatedCoverageNote` is always exactly: `"Automated checks find approximately 30-40% of WCAG issues. Manual testing is required for complete coverage."`
 
 **No logging, no I/O.** The classifier is silent. If the input is broken, the output is an empty or partial result — never a thrown exception.
 
@@ -1043,119 +1185,168 @@ Each test must reference its design property in a comment:
 
 **Location:** `packages/core/src/classifier/**/*.test.ts` (same files as unit tests)
 
-### Integration Tests (Playwright Test)
+### Integration Tests — Golden Test (Vitest, browser-free)
 
-**Scope:** End-to-end classification against `apps/cursed-shop` fixtures.
+**Scope:** Validate classifier output against `apps/cursed-shop` fixtures.
 
-**Golden test:**
-1. Load `RawAudit` from `packages/core/tests/fixtures/raw/index.json`
-2. Call `classify(raw)`
-3. Assert `countsByType` matches `apps/cursed-shop/expected-hauntings.json` exactly
-4. Assert node IDs (resolved from selectors) match
-5. Repeat for `product.json` and `checkout.json`
-
-**Location:** `packages/core/tests/classify.int.spec.ts`
-
-**Run command:** `npm run test:integration` (Playwright Test)
+**Golden test (Vitest, no browser):**
+- Location: `packages/core/src/classifier/golden.test.ts`
+- Run: `npx vitest --run` in `packages/core`
+- For each page (index, product, checkout):
+  1. Load `tests/fixtures/raw/<page>.json` and `tests/fixtures/raw/<page>.selectors.json`
+  2. Load expected counts from `apps/cursed-shop/expected-hauntings.json[page]`
+  3. Call `classify(raw)`
+  4. Assert: `detectedCountsByType[type] === golden count` for every type
+  5. Assert: for element-level types, the union of `nodeIds[0]` over primary + secondary instances equals the union of the selectors' `self` ids
+  6. Assert: CursedLoop matches when every id in its `nodeIds` is in the selector's `subtree` set
+  7. Assert: SilentTongue and ShatteredOrder (no-h1/no-main) match by `type + kind + count`; the ShatteredOrder `kinds` multiset equals `kinds` when present
+  8. Assert: controls — no `self` id of a control selector appears in any primary or secondary of its guarded types:
+     - cookieBanner → CursedLoop
+     - decorativeImages → HollowPortrait
+     - accessibleCardLinks → LostSoul, NamelessSpirit
+     - namedQuickView → NamelessSpirit
+     - visibleFocus → InvisibleWanderer
+     - decorativeIcons → HollowPortrait, TheVeiled
+     - namedSocialLinks → NamelessSpirit
+     - hasMain → ShatteredOrder(no-main)
+     - hasH1 → ShatteredOrder(no-h1)
+     - hasLang → SilentTongue
+     - decorativeAltNotHollow → HollowPortrait
+     - namedField → WhisperingField
+     - properLabels → WhisperingField
+     - visibleFocusInTrap → InvisibleWanderer
+     - mouseOnlyNativeExits → LostSoul
 
 ### Fixture Capture
 
-**Purpose:** Generate `RawAudit` JSON fixtures for golden tests without running a browser in CI.
+**Purpose:** Generate `RawAudit` JSON fixtures and selector sidecars for golden tests.
 
 **Process:**
-1. Start `apps/cursed-shop` with `npm start` (serves on `http://localhost:3000`)
-2. Run fixture capturer: `npm run capture-fixtures` (calls `auditUrl` for each page)
-3. Write `RawAudit` to `packages/core/tests/fixtures/raw/{page}.json`
-4. Commit fixtures to git
+- Runs only after Task 0 (runner changes) and audit-engine runs 19 and 19b have landed
+- Script: `packages/core/tests/fixtures/capture.mjs` (ESM JavaScript, no TypeScript syntax, no `__dirname`)
+- Run: `npm run capture:fixtures -w @the-unseen/core` (builds first, then runs capture)
+- Starts shop via `startShopServer()` from `tests/fixtures/shop-server.ts` (127.0.0.1, random port, closable)
+- For each page, calls `auditUrlWithHooks` with `beforeClose` hook (added in Task 0)
+- In the **same page session** that produced the RawAudit, resolves every golden selector to `{self: number[], subtree: number[]}` via CDP `DOM.getDocument({depth:-1})` + `DOM.querySelectorAll` + `DOM.describeNode`
+- Asserts `collectionErrors.length === 0` and correct `endReason` (index 'body', product 'body', checkout 'trap')
+- Writes `tests/fixtures/raw/<page>.json` and `tests/fixtures/raw/<page>.selectors.json` with recursively sorted keys and `screenshotPng: ""`
+- In finally: `await getPool().close(); await shop.close()`
+- On error: `process.exitCode = 1`
 
-**Script location:** `packages/core/tests/fixtures/capture.ts`
+**Script location:** `packages/core/tests/fixtures/capture.mjs`
 
-**Script:**
-```typescript
-import { auditUrl } from "../../src/index.js"
-import { writeFileSync } from "fs"
-import { resolve } from "path"
+**Script outline:**
+```javascript
+import { fileURLToPath } from 'url'
+import { auditUrlWithHooks } from '../../dist/audit.js'
+import { getPool } from '../../dist/index.js'
+import { startShopServer } from './shop-server.ts' // type-stripped
 
-const BASE = "http://localhost:3000"
-const PAGES = ["index.html", "product.html", "checkout.html"]
+const RAW = fileURLToPath(new URL('./raw/', import.meta.url))
+const PAGES = ['index.html', 'product.html', 'checkout.html']
 
-async function captureFixtures() {
-  for (const page of PAGES) {
-    const url = `${BASE}/${page}`
-    console.log(`Capturing ${url}...`)
-    const raw = await auditUrl(url, { allowPrivate: true })
-    const filename = page.replace(".html", ".json")
-    const path = resolve(__dirname, "raw", filename)
-    writeFileSync(path, JSON.stringify(raw, null, 2))
-    console.log(`Wrote ${path}`)
+async function capture() {
+  const shop = await startShopServer()
+  try {
+    for (const page of PAGES) {
+      const url = `${shop.baseUrl}/${page}`
+      const raw = await auditUrlWithHooks(url, { allowPrivate: true }, {
+        beforeClose: async (page, raw) => {
+          // Resolve selectors while page is open
+        }
+      })
+      // Write raw/<page>.json and raw/<page>.selectors.json
+    }
+  } finally {
+    await getPool().close()
+    await shop.close()
   }
 }
 
-captureFixtures().catch(console.error)
+capture().catch(e => {
+  console.error(e)
+  process.exitCode = 1
+})
 ```
 
-**Regeneration:** Re-run when `apps/cursed-shop` HTML changes or new haunting types are added.
+**Regeneration:** Re-capture whenever `apps/cursed-shop/*.html`, `packages/core/src/runner/**` or `packages/core/src/types.ts` changes, then re-run the golden test.
 
 ### Boundary Test
 
 **Purpose:** Enforce that no classifier module imports from `packages/core/src/runner/`.
 
-**Implementation:**
+**Grep-based test:**
 ```typescript
 // packages/core/src/classifier/boundary.test.ts
 import { describe, it, expect } from "vitest"
 import { readdirSync, readFileSync } from "fs"
-import { resolve, join } from "path"
+import { resolve, relative, dirname } from "path"
 
 describe("Classifier/Runner boundary", () => {
   it("should not import from runner/", () => {
     const classifierDir = resolve(__dirname)
-    const files = readdirSync(classifierDir, { recursive: true, withFileTypes: true })
-      .filter(d => d.isFile() && d.name.endsWith(".ts"))
-      .map(d => join(d.path, d.name))
+    const files: string[] = []
+    
+    function walk(dir: string) {
+      const entries = readdirSync(dir, { recursive: true })
+      for (const entry of entries) {
+        const full = resolve(dir, String(entry))
+        if (full.endsWith('.ts')) files.push(full)
+      }
+    }
+    
+    walk(classifierDir)
     
     for (const file of files) {
       const content = readFileSync(file, "utf-8")
-      const importMatches = content.match(/import .* from ['"](.*)['"];?/g) || []
-      for (const imp of importMatches) {
-        expect(imp).not.toMatch(/runner\//)
+      const matches = [...content.matchAll(/(?:import|export).*from\s+['"]([^'"]+)['"]|(?:import|require)\(['"]([^'"]+)['"]\)/g)]
+      
+      for (const m of matches) {
+        const spec = m[1] || m[2]
+        const resolved = resolve(dirname(file), spec)
+        const rel = relative(resolve(__dirname, '../..'), resolved)
+        expect(rel).not.toMatch(/^src\/runner\//)
       }
     }
   })
 })
 ```
 
-**ESLint rule:**
-```json
-{
-  "overrides": [
-    {
-      "files": ["packages/core/src/classifier/**/*.ts"],
-      "rules": {
-        "no-restricted-imports": [
-          "error",
-          {
-            "patterns": ["**/runner/**"]
-          }
-        ]
-      }
-    }
-  ]
-}
+**ESLint flat config (ESLint 9):**
+```javascript
+// Root eslint.config.js
+import tseslint from 'typescript-eslint'
+
+export default tseslint.config({
+  files: ['packages/core/src/classifier/**/*.ts'],
+  languageOptions: {
+    parser: tseslint.parser
+  },
+  rules: {
+    'no-restricted-imports': ['error', {
+      patterns: [{
+        group: ['**/runner/*', '../runner/*', './runner/*', '**/runner'],
+        message: 'classifier must not import runner (structure.md)'
+      }]
+    }]
+  }
+})
 ```
+
+**Root devDependencies:** `eslint@^9`, `typescript-eslint@^8`
+
+**Root script:** `"lint": "eslint packages/core/src/classifier"`
 
 ### Test Commands
 
-```json
-{
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:integration": "playwright test",
-    "capture-fixtures": "tsx tests/fixtures/capture.ts"
-  }
-}
-```
+Use existing `packages/core` scripts:
+- `npm run typecheck` — TypeScript type checking
+- `npx vitest --run` — Unit and property tests
+- `npx playwright test` — Integration tests
+- `npm run capture:fixtures` — Fixture capture (added to `packages/core/package.json`)
+
+Root script:
+- `npm run lint` — ESLint (added to root `package.json`)
 
 ## Correctness Properties
 
@@ -1219,25 +1410,25 @@ describe("Classifier/Runner boundary", () => {
 
 *For any* AX node with role other than generic/none/presentation, the speech announcement contains the human-readable role label.
 
-**Validates: Requirements 14.3, 25.3**
+**Validates: Requirements 14.3, 25.2**
 
 ### Property 11: Speech includes name iff non-empty
 
 *For any* AX node, the speech announcement includes the accessible name if and only if `axNode.name.value.trim().length > 0`.
 
-**Validates: Requirements 14.2, 25.2**
+**Validates: Requirements 14.2, 25.3**
 
 ### Property 12: Speech contains no fabricated text
 
-*For any* AX node, the speech announcement contains only the name, role, and state — no "undefined", "null", or fabricated text.
+*For any* AX node, the speech announcement never contains 'undefined', 'null', element ids or HTML. Apart from the steering special rows ("<roleLabel>, blank", "unlabelled graphic", "unlabelled graphic, <filename>"), it contains only name, role and state. speechNote and soundCue text never appear in speech.
 
-**Validates: Requirements 14.8, 25.3**
+**Validates: Requirements 14.8, 25.4**
 
 ### Property 13: Generic nodes are skipped
 
 *For any* AX node with role generic/none/presentation, the speech announcement is an empty string.
 
-**Validates: Requirements 14.5, 25.4**
+**Validates: Requirements 14.5, (generic exception in 25.2)**
 
 ### Property 14: Detector purity
 
@@ -1259,7 +1450,7 @@ describe("Classifier/Runner boundary", () => {
 
 ### Property 17: Primary haunting uniqueness
 
-*For any* classified audit, each element has at most one primary haunting (by `backendDOMNodeId`).
+*For any* classified audit, no backendDOMNodeId appears in the nodeIds of two primary hauntings that take part in precedence. SilentTongue and ShatteredOrder are excluded: they are always primary and may share html/body.
 
 **Validates: Requirements 15.1**
 
@@ -1268,6 +1459,12 @@ describe("Classifier/Runner boundary", () => {
 *For any* classified audit, the score is computed only from hauntings where `isPrimary: true`.
 
 **Validates: Requirements 15.4**
+
+### Property 19: Luminance monotonicity
+
+*For any* colour c and any channel, increasing that channel never decreases `relativeLuminance(c)`. For a fixed darker colour, `contrastRatio` is non-decreasing as the lighter colour's luminance increases.
+
+**Validates: Requirements 23.5**
 
 ## Appendix: WCAG Criterion Definitions
 
