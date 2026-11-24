@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { arbRawAudit } from '../../tests/classifier/arbitraries.js'
 import { baseRaw } from '../../tests/classifier/builders.js'
 import type { AxeViolation, RawAudit } from '../types.js'
-import { AXE_RULE_TO_TYPE, crossCheckAxe } from './axe-cross-check.js'
+import { crossCheckAxe } from './axe-cross-check.js'
 import { classify } from './classify.js'
 import type { Haunting, HauntingType } from './types.js'
 import { WCAG_4_1_2 } from './wcag.js'
@@ -109,36 +109,26 @@ describe('crossCheckAxe examples', () => {
     expect(Object.keys(out.hauntingToAxe)).toHaveLength(2)
   })
 
-  it('a node with a null id falls back to the rule -> type table', () => {
-    const fog = haunting('TheFog', [7])
-    const out = crossCheckAxe([fog, haunting('NamelessSpirit', [5])], rawWith(violation('color-contrast', null)))
-    expect(out.hauntingToAxe).toEqual({ [fog.id]: ['color-contrast'] })
+  it('a node with a null id is never corroborated by a haunting on another element (no rule-table fallback)', () => {
+    const link = haunting('NamelessSpirit', [5])
+    const v = violation('button-name', null)
+    const out = crossCheckAxe([link, haunting('NamelessSpirit', [6])], rawWith(v))
+    expect(out.hauntingToAxe).toEqual({})
+    expect(out.unmapped).toEqual([v])
   })
 
-  it('rules mapped to none, and unknown rules, stay unmapped when the id is null', () => {
-    const vs = [violation('scrollable-region-focusable', null), violation('nested-interactive', null), violation('region', null)]
-    const out = crossCheckAxe([haunting('NamelessSpirit', [5])], rawWith(...vs))
+  it('every unresolved node goes to unmapped, whatever its rule', () => {
+    const vs = [violation('color-contrast', null), violation('scrollable-region-focusable', null), violation('region', null)]
+    const out = crossCheckAxe([haunting('TheFog', [7])], rawWith(...vs))
+    expect(out.hauntingToAxe).toEqual({})
     expect(out.unmapped).toEqual(vs)
   })
 
-  it('has the Req 16.1 table', () => {
-    expect(AXE_RULE_TO_TYPE).toEqual({
-      'button-name': 'NamelessSpirit',
-      'link-name': 'NamelessSpirit',
-      'image-alt': 'HollowPortrait',
-      'svg-img-alt': 'HollowPortrait',
-      'role-img-alt': 'HollowPortrait',
-      'color-contrast': 'TheFog',
-      label: 'WhisperingField',
-      'html-has-lang': 'SilentTongue',
-      'html-lang-valid': 'SilentTongue',
-      'aria-hidden-focus': 'TheVeiled',
-      'scrollable-region-focusable': null,
-      'nested-interactive': null,
-    })
-  })
-
-  it('ShatteredOrder has no corroborating axe rule', () => {
-    expect(Object.values(AXE_RULE_TO_TYPE)).not.toContain('ShatteredOrder')
+  it('a violation with one resolved and one unresolved node corroborates the first and is still reported unmapped', () => {
+    const h = haunting('NamelessSpirit', [5])
+    const v = violation('button-name', 5, null)
+    const out = crossCheckAxe([h], rawWith(v))
+    expect(out.hauntingToAxe).toEqual({ [h.id]: ['button-name'] })
+    expect(out.unmapped).toEqual([v])
   })
 })

@@ -117,6 +117,14 @@ test('finding 22: an aria-hidden block positioned off screen is not visible', as
   })
 })
 
+test('classifier-unseen-pages item 4: an off-screen aria-hidden container with a tabbable link keeps its mapping row', async () => {
+  await withPage(pool, `${pages.baseUrl}/veiled-offscreen-focusable.html`, async (page) => {
+    const { mapping } = await buildDomAxMapping(page, await collectAxTree(page))
+    const offId = await backendIdOf(page, '#offscreen')
+    const off = mapping.find((m) => String(m.backendDOMNodeId) === offId)
+    expect(off).toMatchObject({ ariaHidden: true, hasAxNode: false, containsFocusable: true, hasVisibleText: false })
+  })
+})
 test('finding 22: the shop promo strip is aria-hidden, has no AX node and contains a focusable link', async () => {
   await withPage(pool, `${shop.baseUrl}/index.html`, async (page) => {
     const { mapping } = await buildDomAxMapping(page, await collectAxTree(page))

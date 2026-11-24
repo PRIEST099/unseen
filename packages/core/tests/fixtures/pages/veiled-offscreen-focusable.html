@@ -1,0 +1,14 @@
+<!-- Expected: TheVeiled on #offscreen (aria-hidden container parked off screen that holds a tabbable link) and on
+     #onscreen. Case (a) of hauntings.md (a focusable inside aria-hidden) has no visibility condition: the link
+     can still take keyboard focus. -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>veiled, off screen and on screen</title></head>
+<body>
+<main>
+  <h1>Probe</h1>
+  <div id="offscreen" aria-hidden="true" style="position:absolute;left:-9999px;top:0"><a href="#x">Hidden but tabbable</a></div>
+  <div id="onscreen" aria-hidden="true"><a href="#y">Visible hidden link</a></div>
+</main>
+</body>
+</html>

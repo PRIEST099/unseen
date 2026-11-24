@@ -1,6 +1,6 @@
 import type { RawAudit } from '../types.js'
 import type { Haunting, HauntingSeverity, HauntingType, UnclassifiedHaunting } from './types.js'
-import { axByBackendId, axName, axRole, domAncestors } from './util.js'
+import { axByBackendId, axName, axRole, domAncestors, hasWordPhrase } from './util.js'
 
 /** Blocking-type table: only these types can make a core task impossible for AT users. */
 export const BLOCKING_TYPES: ReadonlySet<HauntingType> = new Set(['CursedLoop', 'NamelessSpirit', 'WhisperingField', 'LostSoul'])
@@ -26,12 +26,11 @@ const NAMELESS_BLOCKING_ROLES = new Set(['button', 'menuitem', 'menuitemcheckbox
 
 export type PrimaryHaunting = UnclassifiedHaunting & { isPrimary: true; secondary: UnclassifiedHaunting[] }
 
-const hasKeyword = (text: string): boolean => {
-  const lower = text.toLowerCase()
-  return CORE_TASK_KEYWORDS.some((k) => lower.includes(k))
-}
+/** A core-task keyword appears as a whole word (or adjacent words) in one of the texts. Texts are never joined. */
+const hasKeyword = (texts: readonly (string | undefined)[]): boolean =>
+  texts.some((text) => CORE_TASK_KEYWORDS.some((k) => hasWordPhrase(text, k)))
 
-const mentionsCheckoutOrCart = (text: string | undefined): boolean => /checkout|cart/i.test(text ?? '')
+const mentionsCheckoutOrCart = (text: string | undefined): boolean => hasWordPhrase(text, 'checkout') || hasWordPhrase(text, 'cart')
 
 /** The element or an ancestor is a form, a dialog, or has a checkout/cart id or class. */
 function onCriticalPath(raw: RawAudit, id: number): boolean {
@@ -45,13 +44,15 @@ function onCriticalPath(raw: RawAudit, id: number): boolean {
   })
 }
 
-/** Text that says what a button or link is for: its name, or (when unnamed) its id, class, aria-label and snippet. */
-function purposeText(raw: RawAudit, id: number, name: string): string {
-  if (name !== '') return name
-  const node = raw.domNodes[String(id)]
-  return [node?.attrs.id, node?.attrs.class, node?.attrs['aria-label'], node?.outerHTMLSnippet].filter(Boolean).join(' ')
+/**
+ * The texts that say what a button or link is for: its name, or (when unnamed) its id, class and aria-label.
+ * The element's HTML is not scanned: it would match the text of unrelated children.
+ */
+function purposeTexts(raw: RawAudit, id: number, name: string): Array<string | undefined> {
+  if (name !== '') return [name]
+  const attrs = raw.domNodes[String(id)]?.attrs
+  return [attrs?.id, attrs?.class, attrs?.['aria-label']]
 }
-
 /** Core task flow (hauntings.md §Severity): a form, dialog or checkout/cart region, or a button/link with a task keyword. */
 export function isCoreTask(h: UnclassifiedHaunting, raw: RawAudit): boolean {
   const id = h.nodeIds[0]
@@ -60,7 +61,7 @@ export function isCoreTask(h: UnclassifiedHaunting, raw: RawAudit): boolean {
   const ax = axByBackendId(raw, id)
   const role = ax === undefined ? undefined : axRole(ax)
   if (ax === undefined || (role !== 'button' && role !== 'link')) return false
-  return hasKeyword(purposeText(raw, id, axName(ax)))
+  return hasKeyword(purposeTexts(raw, id, axName(ax)))
 }
 
 /** Can this haunting make the task impossible? (the design's blocking table) */

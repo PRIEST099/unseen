@@ -44,11 +44,34 @@ export type AxeRunResult = {
   error?: CollectionError
 }
 
-/** backendDOMNodeId of `document.querySelector(selector)`, or null (no match, invalid selector, CDP failure). */
-async function backendIdOfSelector(cdp: CDPSession, selector: string): Promise<number | null> {
+/** A page expression for the element at the end of an axe target: each part but the last selects an iframe to enter. */
+function targetExpression(parts: readonly string[]): string {
+  return `(() => {
+    let doc = document
+    const parts = ${JSON.stringify(parts)}
+    for (let i = 0; i < parts.length - 1; i++) {
+      const frame = doc.querySelector(parts[i])
+      doc = frame && frame.contentDocument
+      if (!doc) return null
+    }
+    return doc.querySelector(parts[parts.length - 1])
+  })()`
+}
+
+/** The plain selector strings of an axe target, or null for a shadow-DOM target (a nested array) or an empty one. */
+function plainParts(target: unknown[]): string[] | null {
+  const parts = target.filter((t): t is string => typeof t === 'string')
+  return parts.length > 0 && parts.length === target.length ? parts : null
+}
+
+/**
+ * backendDOMNodeId of the element an axe target points at, or null (no match, invalid selector, CDP
+ * failure, or a frame whose document cannot be entered because it is cross-origin).
+ */
+async function backendIdOfTarget(cdp: CDPSession, parts: readonly string[]): Promise<number | null> {
   try {
     const { result, exceptionDetails } = (await cdp.send('Runtime.evaluate', {
-      expression: `document.querySelector(${JSON.stringify(selector)})`,
+      expression: targetExpression(parts),
       returnByValue: false,
     })) as { result: { objectId?: string; subtype?: string }; exceptionDetails?: unknown }
     if (exceptionDetails || !result.objectId || result.subtype === 'null') return null
@@ -64,8 +87,8 @@ async function backendIdOfSelector(cdp: CDPSession, selector: string): Promise<n
 
 /**
  * Fill `backendDOMNodeId` on every node of `normalised`. `raw` is the same result list before
- * normalisation: only a target that axe reported as exactly one plain string is resolved. An
- * iframe or shadow target (several parts, or a nested array) stays null.
+ * normalisation. A target that is one selector, or a chain of selectors through same-origin iframes, is
+ * resolved. A shadow target (a nested array) and a cross-origin frame stay null.
  */
 export async function resolveAxeNodeIds(page: Page, raw: AxeResultLike[], normalised: AxeViolation[]): Promise<void> {
   const cdp = await openCdp(page)
@@ -73,11 +96,12 @@ export async function resolveAxeNodeIds(page: Page, raw: AxeResultLike[], normal
   try {
     for (const [ri, result] of raw.entries()) {
       for (const [ni, node] of result.nodes.entries()) {
-        const only = node.target.length === 1 ? node.target[0] : undefined
-        if (typeof only !== 'string') continue
-        if (!cache.has(only)) cache.set(only, await backendIdOfSelector(cdp, only))
+        const parts = plainParts(node.target)
+        if (parts === null) continue
+        const key = JSON.stringify(parts)
+        if (!cache.has(key)) cache.set(key, await backendIdOfTarget(cdp, parts))
         const target = normalised[ri]?.nodes[ni]
-        if (target) target.backendDOMNodeId = cache.get(only) ?? null
+        if (target) target.backendDOMNodeId = cache.get(key) ?? null
       }
     }
   } finally {

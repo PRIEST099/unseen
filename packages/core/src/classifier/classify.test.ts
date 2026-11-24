@@ -94,6 +94,34 @@ describe('classify structure', () => {
   })
 })
 
+describe('classify: focus on a frame or host whose inner focus cannot be read', () => {
+  const frameRaw = (...steps: ReturnType<typeof step>[]): RawAudit =>
+    baseRaw({
+      domNodes: { ...baseRaw().domNodes, 7: dom('iframe', BODY_ID, {}, '<iframe title="Cookie consent">'), 8: dom('div', BODY_ID) },
+      pageMetadata: { ...baseRaw().pageMetadata, headings: [{ tagName: 'h1', accessibleName: 'x', domOrderIndex: 0, backendDOMNodeId: 8 }] },
+      tabWalkResult: walk({ steps }),
+    })
+
+  it('a Tab step on an iframe is a focus-style-unavailable manual check, never a haunting (score 0)', () => {
+    const audit = classify(frameRaw(step(7), step(7)))
+    expect(audit.hauntings).toEqual([])
+    expect(audit.score).toBe(0)
+    expect(audit.needsManualCheck).toEqual([{ backendDOMNodeId: 7, reason: 'focus-style-unavailable', htmlSnippet: '<iframe title="Cookie consent">' }])
+  })
+
+  it('a step the walker marked innerFocusUnreadable is a manual check, listed once per element', () => {
+    const audit = classify(frameRaw(step(8, {}, { innerFocusUnreadable: true }), step(8, {}, { innerFocusUnreadable: true })))
+    expect(audit.hauntings).toEqual([])
+    expect(audit.needsManualCheck.map((m) => [m.backendDOMNodeId, m.reason])).toEqual([[8, 'focus-style-unavailable']])
+  })
+
+  it('an ordinary step with no indicator is still a haunting and not a manual check', () => {
+    const audit = classify(frameRaw(step(8)))
+    expect(audit.hauntings.map((h) => h.type)).toEqual(['InvisibleWanderer'])
+    expect(audit.needsManualCheck).toEqual([])
+  })
+})
+
 describe('classify properties', () => {
   // Feature: haunting-classifier, Property 14: Detector purity
   it('Property 14: every detector and classify return the same output when called twice on frozen input', () => {

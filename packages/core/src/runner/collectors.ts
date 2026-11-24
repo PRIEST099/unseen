@@ -288,7 +288,8 @@ export async function collectPageMetadata(page: Page, axNodes: AXNode[]): Promis
     const roles = new Set<string>()
     for (const n of axNodes) {
       const role = String(n.role.value ?? '')
-      if (!n.ignored && LANDMARK_ROLES.includes(role)) roles.add(role)
+      // Landmarks are page-level: a <main> inside an iframe does not give the page one.
+      if (n.frameId === undefined && !n.ignored && LANDMARK_ROLES.includes(role)) roles.add(role)
     }
     const imgAltAttributes: Record<string, string | null> = {}
     imgList.values.forEach((alt, i) => {
@@ -330,7 +331,7 @@ type MappingRow = {
   containsFocusable: boolean
 }
 
-/** One chunk of at most 100 elements: the mapping rows of the visible ones. */
+/** One chunk of at most 100 elements: the mapping rows of the visible ones, and of focusable content under aria-hidden. */
 async function mappingChunk(cdp: CDPSession, list: string, start: number, visibleAx: Set<number>, timeoutMs: number): Promise<DomAxMapping[]> {
   const label = `dom-ax-mapping chunk ${start}`
   const rows = await withTimeout(callByValue<MappingRow[]>(cdp, list, MAPPING_ROWS_FN, [start, BATCH_SIZE]), timeoutMs, label)
@@ -340,7 +341,10 @@ async function mappingChunk(cdp: CDPSession, list: string, start: number, visibl
     const out: DomAxMapping[] = []
     rows.forEach((r, i) => {
       const id = ids[i]
-      if (id == null || !r.visible) return
+      // Case (a) of The Veiled (a focusable inside aria-hidden) has no visibility condition: a link parked
+      // off screen can still take keyboard focus. Every other row needs a visible box (case (b)).
+      const focusableUnderAriaHidden = r.ariaHidden && (r.isFocusable || r.containsFocusable)
+      if (id == null || (!r.visible && !focusableUnderAriaHidden)) return
       out.push({
         backendDOMNodeId: id,
         tagName: r.tagName,

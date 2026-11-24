@@ -143,7 +143,12 @@ export const FOCUS_BASE: ComputedStyleMap = {
   'outline-offset': '0px',
   'outline-style': 'none',
   'outline-width': '3px',
-  'text-decoration': 'none solid rgb(0, 0, 0)',
+  'text-decoration-line': 'none',
+  'text-decoration-style': 'solid',
+  'text-decoration-thickness': 'auto',
+  'border-style': 'none',
+  'border-width': '0px',
+  color: 'rgb(0, 0, 0)',
 }
 
 export function step(id: number | '', after: ComputedStyleMap = {}, over: Partial<TabStep> = {}, before: ComputedStyleMap = {}): TabStep {

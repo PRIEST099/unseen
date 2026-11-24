@@ -92,7 +92,7 @@ test('index: the cookie banner cycle is escapable and the walk reaches the foote
     }
     expect(footerIds.size).toBeGreaterThan(5)
     const step = r.steps.find((s) => !s.cdpError)!
-    for (const k of ['outline-style', 'outline-width', 'outline-color', 'outline-offset', 'box-shadow', 'border-style', 'border-width', 'border-color', 'background-color', 'text-decoration', 'adjacent-background-color']) {
+    for (const k of ['outline-style', 'outline-width', 'outline-color', 'outline-offset', 'box-shadow', 'border-style', 'border-width', 'border-color', 'background-color', 'color', 'text-decoration-line', 'text-decoration-style', 'text-decoration-thickness', 'adjacent-background-color']) {
       expect(step.focusSnapshot.after).toHaveProperty(k)
     }
     // finding 23: `before` is read too, has the same keys as `after`, and shows the real focus change

@@ -55,6 +55,7 @@ export type AXNode = {
   ignoredReasons: AXProperty[]
   childIds: string[]
   parentId?: string
+  frameId?: string // set for nodes of a child frame; absent for the main frame. Node ids of a child frame are prefixed with it
 }
 
 export type AXValue = {
@@ -119,6 +120,7 @@ export type TabStep = {
   cdpError: boolean // true if CDP read failed for this step
   compositeTruncated?: true // focus stayed inside this frame or shadow host past the 50-press sub-cap
   baselineUnavailable?: true // the unfocused look could not be read; `before` is empty
+  innerFocusUnreadable?: true // focus is on a frame or closed-shadow host; where it really sits inside cannot be read
 }
 
 export type FocusSnapshot = {

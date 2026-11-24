@@ -3,7 +3,7 @@ import { crossCheckAxe } from './axe-cross-check.js'
 import { detectCursedLoop } from './detectors/cursed-loop.js'
 import { detectTheFog } from './detectors/fog.js'
 import { detectHollowPortrait } from './detectors/hollow-portrait.js'
-import { detectInvisibleWanderer } from './detectors/invisible-wanderer.js'
+import { detectInvisibleWanderer, isInnerFocusUnreadable } from './detectors/invisible-wanderer.js'
 import { detectLostSoul } from './detectors/lost-soul.js'
 import { detectNamelessSpirit } from './detectors/nameless-spirit.js'
 import { detectShatteredOrder } from './detectors/shattered-order.js'
@@ -81,8 +81,7 @@ function primaryCounts(hauntings: readonly Haunting[]): Record<HauntingType, num
   return counts
 }
 
-/** Uncertain-contrast text, plus Tab steps whose focus styles could not be read. */
-function manualChecks(raw: RawAudit): ManualCheckNode[] {
+function contrastChecks(raw: RawAudit): ManualCheckNode[] {
   const out: ManualCheckNode[] = []
   for (const [key, style] of Object.entries(raw.textNodeStyles)) {
     const id = Number(key)
@@ -90,10 +89,22 @@ function manualChecks(raw: RawAudit): ManualCheckNode[] {
       out.push({ backendDOMNodeId: id, reason: 'contrast-uncertain', htmlSnippet: snippet(raw, id) })
     }
   }
+  return out
+}
+
+/** Tab steps whose focus styles could not be read: a CDP failure, or focus on a frame or host whose inside is out of reach. */
+function focusChecks(raw: RawAudit): ManualCheckNode[] {
+  const out: ManualCheckNode[] = []
+  const listedHosts = new Set<number>()
   for (const step of raw.tabWalkResult.steps) {
     const id = step.backendDOMNodeId === '' ? NaN : Number(step.backendDOMNodeId)
-    if (!step.cdpError && Number.isInteger(id) && id > 0) continue
     const known = Number.isInteger(id) && id > 0
+    const unreadable = known && !step.cdpError && isInnerFocusUnreadable(raw, step)
+    if (!unreadable && !step.cdpError && known) continue
+    if (unreadable) {
+      if (listedHosts.has(id)) continue
+      listedHosts.add(id)
+    }
     out.push({
       backendDOMNodeId: known ? id : 0,
       reason: 'focus-style-unavailable',
@@ -103,6 +114,10 @@ function manualChecks(raw: RawAudit): ManualCheckNode[] {
   return out
 }
 
+/** Uncertain-contrast text, plus Tab steps whose focus styles could not be read. */
+function manualChecks(raw: RawAudit): ManualCheckNode[] {
+  return [...contrastChecks(raw), ...focusChecks(raw)]
+}
 function emptyAudit(raw: RawAudit): ClassifiedAudit {
   return {
     hauntings: [],

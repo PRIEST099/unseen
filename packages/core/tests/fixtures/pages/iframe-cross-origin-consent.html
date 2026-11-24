@@ -1,0 +1,13 @@
+<!-- Expected: no hauntings and score 0. The consent frame is cross-origin, so its inner focus rings cannot be read:
+     the Tab step on the frame is one needsManualCheck entry (focus-style-unavailable), never an InvisibleWanderer. -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>cross-origin consent frame</title></head>
+<body>
+<main>
+  <h1>Shop</h1>
+  <p>Welcome to the shop.</p>
+  <iframe class="cookie" title="Cookie consent" src="{{ALT_ORIGIN}}/iframe-consent-inner.html" width="400" height="120"></iframe>
+</main>
+</body>
+</html>

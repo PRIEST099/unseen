@@ -166,7 +166,11 @@ const arbStyleMap: fc.Arbitrary<ComputedStyleMap> = fc.record({
   'outline-offset': fc.constant('0px'),
   'outline-style': fc.constantFrom('none', 'solid', 'auto'),
   'outline-width': fc.constantFrom('0px', '1px', '3px'),
-  'text-decoration': fc.constantFrom('none solid rgb(0, 0, 0)', 'underline solid rgb(0, 0, 0)'),
+  'text-decoration-line': fc.constantFrom('none', 'underline'),
+  'text-decoration-style': fc.constantFrom('solid', 'dashed'),
+  'border-style': fc.constantFrom('none', 'solid'),
+  'border-width': fc.constantFrom('0px', '1px', '2px'),
+  color: arbRgbString,
 })
 
 type TabSpec = { pick: number; before: ComputedStyleMap; after: ComputedStyleMap; cdpError: boolean; empty: boolean }

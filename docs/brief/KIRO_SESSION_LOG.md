@@ -436,3 +436,32 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - (c) **the agent permission rule denied `git commit`**: "Blocked by a permission rule … Source: agent-profile"
   - Kiro wrote `docs/LIVE_VERIFICATION_RESULTS.md`.
 - **Claude Code verification:** `git diff --stat apps/cursed-shop/expected-hauntings.json` is empty, no temp file remains, and `kiro-cli mcp list` shows playwright enabled and unseen disabled.
+
+## 2026-11-24 · Classifier anti-overfitting check, and run 32: real-world fixes (owner account, first build with the `unseen-builder` agent)
+- **Check (Claude Code workflow):** the classifier ran on **fresh, unseen pages** (per-type pages with near-miss controls, plus real-world markup) in real Chromium, and a code review looked for shop-specific shortcuts.
+  - **26 checks passed**, and **no shop-specific shortcuts** were found.
+  - **7 confirmed failures:** an iframe button missed; a cross-origin consent iframe falsely flagged as an Invisible Wanderer; a colour-only focus change counted as visible; substring keyword severity; golden coverage gaps; Veiled off-screen; a stale `dist/`.
+  - Evidence: `review-notes/classifier-unseen-pages-1.md`.
+- **Run 32:** `prompts/32-classifier-real-world-fixes.md`, run with `--agent unseen-builder` (V3 permissions plus workspace hooks), model `auto`.
+- **Kiro produced:**
+  - per-frame AX trees for same-origin frames
+  - no cross-element axe corroboration
+  - `innerFocusUnreadable` leading to a `focus-style-unavailable` manual check
+  - split text-decoration line/style/thickness capture
+  - painted-border-only rule (c)
+  - token-based keyword matching
+  - golden test: page-level ids, kinds, primary counts, secondary placement, score snapshots (no score changed)
+  - a package-entry test against `dist`
+  - a fixture page and a test for every item
+- **Kiro surprised us:** it listed four judgement calls for review instead of hiding them:
+  - not merging out-of-process frame AX trees (id collisions)
+  - Veiled case (a) still flags off-screen focusables
+  - text colour added to rule (c)
+  - token matching misses `minicart`
+- **Product-lead decision:** accept all four.
+- **Claude Code verification:**
+  - `npm run typecheck`: exit 0
+  - root `npm run lint`: exit 0
+  - `vitest --run`: **480/480** (30 files)
+  - `playwright test`: **90/90**
+  - Cursed Shop `npm run verify`: VERIFY PASSED

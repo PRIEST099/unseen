@@ -65,6 +65,50 @@ describe('assignSeverity', () => {
     expect(isCoreTask(haunting('LostSoul', 5), plain)).toBe(false)
   })
 
+  describe('keywords are whole words and tokens, never substrings', () => {
+    const unnamed = (attrs: Record<string, string>, snippet?: string): RawAudit =>
+      page({ 5: dom('button', BODY_ID, attrs, snippet) }, [ax({ id: 5, role: 'button' })])
+    const sev = (raw: RawAudit): string | undefined => severityOf(haunting('NamelessSpirit', 5), raw)
+
+    it('research-toggle does not match "search"; paypal-express does not match "pay"; spaybutton does not match "pay"', () => {
+      expect(sev(unnamed({ class: 'research-toggle' }))).toBe('Restless')
+      expect(sev(unnamed({ class: 'paypal-express' }))).toBe('Restless')
+      expect(sev(unnamed({ class: 'spaybutton' }))).toBe('Restless')
+      expect(sev(unnamed({ id: 'subscriber-list' }))).toBe('Restless')
+    })
+
+    it('a keyword that is a token of the id, class or aria-label matches (dash, underscore, camelCase)', () => {
+      expect(sev(unnamed({ class: 'add-to-cart-btn' }))).toBe('Wraith')
+      expect(sev(unnamed({ class: 'btn_pay' }))).toBe('Wraith')
+      expect(sev(unnamed({ id: 'payButton' }))).toBe('Wraith')
+      expect(sev(unnamed({ class: 'icon search-toggle' }))).toBe('Wraith')
+      expect(sev(unnamed({ 'aria-label': 'Sign in' }))).toBe('Wraith')
+    })
+
+    it('a multi-word keyword needs its words side by side, in one field', () => {
+      expect(sev(unnamed({ id: 'sign', class: 'in' }))).toBe('Restless')
+      expect(sev(unnamed({ class: 'sign-in-link' }))).toBe('Wraith')
+    })
+
+    it('the raw outerHTMLSnippet is never scanned', () => {
+      expect(sev(unnamed({ class: 'icon' }, '<button class="icon"><svg><title>Search the shop</title></svg></button>'))).toBe('Restless')
+    })
+
+    it('a name is matched by words too: "Search products" is core, "Researchers" is not', () => {
+      const named = (name: string): RawAudit => page({ 5: dom('button', BODY_ID) }, [ax({ id: 5, role: 'button', name })])
+      expect(isCoreTask(haunting('LostSoul', 5), named('Search products'))).toBe(true)
+      expect(isCoreTask(haunting('LostSoul', 5), named('Researchers'))).toBe(false)
+      expect(isCoreTask(haunting('LostSoul', 5), named('Prepay'))).toBe(false)
+    })
+
+    it('a checkout or cart region is found by token on an ancestor id or class, not by substring', () => {
+      const under = (attrs: Record<string, string>): RawAudit =>
+        page({ 4: dom('section', BODY_ID, attrs), 5: dom('button', 4) }, [ax({ id: 5, role: 'button' })])
+      expect(sev(under({ id: 'checkoutForm' }))).toBe('Wraith')
+      expect(sev(under({ class: 'site-cart' }))).toBe('Wraith')
+      expect(sev(under({ class: 'cartoon-gallery' }))).toBe('Restless')
+    })
+  })
   it('a plain unnamed button outside any core flow is not Wraith', () => {
     const raw = page({ 5: dom('button', BODY_ID, { class: 'icon' }) }, [ax({ id: 5, role: 'button' })])
     expect(severityOf(haunting('NamelessSpirit', 5), raw)).toBe('Restless') // level A

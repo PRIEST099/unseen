@@ -12,11 +12,13 @@ import {
   fileNameFromSrc,
   filterOutermost,
   findBox,
+  hasWordPhrase,
   hauntingId,
   isNativeInteractive,
   parseCssColor,
   snippet,
   winningNameSource,
+  wordTokens,
 } from './util.js'
 
 const RUNS = { numRuns: 100 }
@@ -252,5 +254,31 @@ describe('winningNameSource', () => {
   it('is undefined when no source qualifies', () => {
     expect(winningNameSource(ax({ id: 5, role: 'textbox', sources: [attr('aria-label')] }))).toBeUndefined()
     expect(winningNameSource(ax({ id: 5, role: 'textbox' }))).toBeUndefined()
+  })
+})
+
+describe('wordTokens and hasWordPhrase', () => {
+  it('splits on non-alphanumerics and camelCase, lower-cases', () => {
+    expect(wordTokens('add-to-cart_btn')).toEqual(['add', 'to', 'cart', 'btn'])
+    expect(wordTokens('payButton2 Go')).toEqual(['pay', 'button2', 'go'])
+    expect(wordTokens(undefined)).toEqual([])
+  })
+
+  it('property: every token is non-empty lower-case alphanumeric', () => {
+    fc.assert(
+      fc.property(fc.string(), (s) => wordTokens(s).every((w) => /^[a-z0-9]+$/.test(w))),
+      RUNS
+    )
+  })
+
+  it('property: a phrase of words joined by any separators is found, but never inside a longer word', () => {
+    const word = fc.stringMatching(/^[a-z]{2,8}$/)
+    fc.assert(
+      fc.property(word, word, fc.constantFrom('-', '_', ' ', '.'), (a, b, sep) => {
+        expect(hasWordPhrase(`x${sep}${a}${sep}${b}${sep}y`, `${a} ${b}`)).toBe(true)
+        expect(hasWordPhrase(`x${a}${b}y`, a)).toBe(false)
+      }),
+      RUNS
+    )
   })
 })

@@ -160,6 +160,19 @@ export async function isCompositeHost(cdp: CDPSession, backendNodeId: number): P
   return (node.shadowRoots ?? []).some((r) => r.shadowRootType !== 'user-agent')
 }
 
+/**
+ * True when focus on this node hides where focus really is: a frame element (focus that is readable
+ * inside a same-origin frame is reported on the inner element instead), or a host with a closed shadow root.
+ */
+export async function hasUnreadableInside(cdp: CDPSession, backendNodeId: number): Promise<boolean> {
+  const { node } = (await cdp.send('DOM.describeNode', { backendNodeId })) as {
+    node: { nodeName: string; shadowRoots?: Array<{ shadowRootType?: string }> }
+  }
+  const name = node.nodeName.toUpperCase()
+  if (name === 'IFRAME' || name === 'FRAME') return true
+  return (node.shadowRoots ?? []).some((r) => r.shadowRootType === 'closed')
+}
+
 type FrameTree = { frame: { id: string }; childFrames?: FrameTree[] }
 
 function frameIds(tree: FrameTree): string[] {

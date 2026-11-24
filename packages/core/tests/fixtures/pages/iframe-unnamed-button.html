@@ -1,0 +1,15 @@
+<!-- Expected: NamelessSpirit on the <button> inside the same-origin iframe #I (tabbable, announced as just "button"),
+     plus NamelessSpirit on the two unnamed links A and B. The axe button-name finding for the iframe button is
+     corroborated by the haunting on that button, never by the links. -->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>unnamed button inside an iframe</title></head>
+<body>
+<main>
+  <h1>Frame</h1>
+  <a id="A" href="#a"></a>
+  <a id="B" href="#b"></a>
+  <iframe id="I" title="Widget" src="/iframe-unnamed-inner.html" width="300" height="100"></iframe>
+</main>
+</body>
+</html>

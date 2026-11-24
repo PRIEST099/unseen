@@ -1,0 +1,29 @@
+<!-- Expected: InvisibleWanderer on #shade (text colour #555 -> #4f4f4f is not a visible indicator), #plain (no change)
+     and #unpaintedborder (border-color changes but no border is painted).
+     NOT on #underlined (an underline is added) or #contrast (text colour 3:1 or more on focus). -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>focus indicators that are only a colour change</title>
+<style>
+  body { background: #fff }
+  a { color: #555; text-decoration: none }
+  a:focus { outline: none }
+  a.shade:focus { color: #4f4f4f }
+  a.unpaintedborder:focus { border-color: #000 }
+  a.underlined:focus { text-decoration: underline }
+  a.contrast { color: #767676 }
+  a.contrast:focus { color: #000; background: #ffd }
+</style>
+</head>
+<body>
+<main>
+  <h1>Probe</h1>
+  <p><a id="shade" class="shade" href="#a">Shade link</a></p>
+  <p><a id="plain" href="#b">Plain link</a></p>
+  <p><a id="unpaintedborder" class="unpaintedborder" href="#c">Unpainted border link</a></p>
+  <p><a id="underlined" class="underlined" href="#d">Underlined link</a></p>
+  <p><a id="contrast" class="contrast" href="#e">Contrast link</a></p>
+</main>
+</body>
+</html>

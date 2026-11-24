@@ -4,6 +4,7 @@ import {
   activeElementBackendId,
   backendIdOfObject,
   backendIdsOf,
+  hasUnreadableInside,
   injectInspectorStyles,
   isCompositeHost,
   openCdp,
@@ -50,6 +51,11 @@ export interface TabDriver {
   regionOf(ids: string[]): Promise<string | null>
   /** True for an iframe or shadow host: repeated focus on it means focus moves inside it. */
   isComposite(id: string): Promise<boolean>
+  /**
+   * True when focus on this element hides where focus really is: a frame whose document cannot be
+   * entered (cross-origin), or a closed shadow host. Its focus styles cannot be judged from outside.
+   */
+  innerUnreadable?(id: string): Promise<boolean>
   /** True once the page has navigated since the driver was created. */
   navigated(): boolean
 }
@@ -131,7 +137,16 @@ class StepRecorder {
       cdpError: afterFailed || base.cdpError,
     }
     if (base.unavailable) step.baselineUnavailable = true
+    if (await this.innerUnreadable(id)) step.innerFocusUnreadable = true
     this.steps.push(step)
+  }
+
+  private async innerUnreadable(id: string): Promise<boolean> {
+    try {
+      return (await this.driver.innerUnreadable?.(id)) === true
+    } catch {
+      return false
+    }
   }
 
   /** A Tab press or escape test that failed: no element id is known. */
@@ -449,7 +464,10 @@ const STYLE_READER_SRC = `
       'border-width': cs.borderWidth,
       'border-color': cs.borderColor,
       'background-color': cs.backgroundColor,
-      'text-decoration': cs.textDecorationLine + ' ' + cs.textDecorationStyle + ' ' + cs.textDecorationColor,
+      color: cs.color,
+      'text-decoration-line': cs.textDecorationLine,
+      'text-decoration-style': cs.textDecorationStyle,
+      'text-decoration-thickness': cs.textDecorationThickness,
       'adjacent-background-color': adj,
     }
   }`
@@ -566,6 +584,7 @@ function pageDriver(page: Page, cdp: CDPSession, navigated: () => boolean): TabD
       return id === null ? null : String(id)
     },
     isComposite: (id) => isCompositeHost(cdp, Number(id)),
+    innerUnreadable: (id) => hasUnreadableInside(cdp, Number(id)),
   }
 }
 

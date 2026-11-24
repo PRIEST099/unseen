@@ -518,3 +518,21 @@ describe('Tab walk navigation (finding 10)', () => {
     expect(r.steps.map((s) => s.backendDOMNodeId)).toEqual(['a'])
   })
 })
+
+describe('Tab walk: focus on a host whose inside cannot be read', () => {
+  it('marks the step of such a host innerFocusUnreadable, and only that step', async () => {
+    const r = await runWalk(scripted(['a', 'f', 'b'], ['a', 'f', 'b', null], { innerUnreadable: async (id: string) => id === 'f' }))
+    expect(r.steps.map((s) => [s.backendDOMNodeId, s.innerFocusUnreadable === true])).toEqual([
+      ['a', false],
+      ['f', true],
+      ['b', false],
+    ])
+  })
+
+  it('a driver that cannot tell, or throws, leaves the step unmarked', async () => {
+    const throwing = await runWalk(scripted(['a'], ['a', null], { innerUnreadable: async () => { throw new Error('cdp') } }))
+    expect(throwing.steps[0]?.innerFocusUnreadable).toBeUndefined()
+    const plain = await runWalk(scripted(['a'], ['a', null]))
+    expect(plain.steps[0]?.innerFocusUnreadable).toBeUndefined()
+  })
+})

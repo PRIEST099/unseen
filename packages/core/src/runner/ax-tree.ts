@@ -1,4 +1,4 @@
-import type { Page } from 'playwright'
+import type { CDPSession, Page } from 'playwright'
 import type { AXNode, AXProperty, AXValue } from '../types.js'
 import { AuditCollectionError } from '../types.js'
 
@@ -65,6 +65,49 @@ export function mapAxNode(n: CdpAxNode): AXNode {
   }
 }
 
+type FrameTreeNode = { frame: { id: string }; childFrames?: FrameTreeNode[] }
+
+function childFrameIds(tree: FrameTreeNode): string[] {
+  return (tree.childFrames ?? []).flatMap((c) => [c.frame.id, ...childFrameIds(c)])
+}
+
+/** Node ids are only unique within one frame's tree: a frame's nodes carry its frame id as a prefix. */
+function qualify(frameId: string, n: CdpAxNode): CdpAxNode {
+  const q = (id: string): string => `${frameId}:${id}`
+  return {
+    ...n,
+    nodeId: q(n.nodeId),
+    ...(n.childIds !== undefined ? { childIds: n.childIds.map(q) } : {}),
+    ...(n.parentId !== undefined ? { parentId: q(n.parentId) } : {}),
+  }
+}
+
+/**
+ * The AX trees of the main frame's same-process child frames (same-origin iframes), mapped like the
+ * main tree. Their nodes keep their real backendDOMNodeIds, so detectors can match them to DOM nodes,
+ * Tab steps and axe results. A frame whose tree cannot be read here is skipped. That includes
+ * cross-origin frames in their own process: their ids belong to another DOM and cannot be mapped.
+ */
+async function collectFrameTrees(session: CDPSession, known: ReadonlySet<number>): Promise<AXNode[]> {
+  const { frameTree } = (await session.send('Page.getFrameTree')) as { frameTree: FrameTreeNode }
+  const out: AXNode[] = []
+  const seen = new Set(known)
+  for (const frameId of childFrameIds(frameTree)) {
+    try {
+      const { nodes } = (await session.send('Accessibility.getFullAXTree', { frameId })) as { nodes: CdpAxNode[] }
+      for (const n of nodes) {
+        const id = n.backendDOMNodeId ?? 0
+        if (id > 0 && seen.has(id)) continue
+        if (id > 0) seen.add(id)
+        out.push({ ...mapAxNode(qualify(frameId, n)), frameId })
+      }
+    } catch {
+      /* not readable from this session: skipped */
+    }
+  }
+  return out
+}
+
 export async function collectAxTree(page: Page): Promise<AXNode[]> {
   let session
   try {
@@ -84,7 +127,10 @@ export async function collectAxTree(page: Page): Promise<AXNode[]> {
         throw new AuditCollectionError('ax-tree', new Error('empty AX tree for a non-empty body'))
       }
     }
-    return nodes.map(mapAxNode)
+    const main = nodes.map(mapAxNode)
+    const known = new Set(main.map((n) => n.backendDOMNodeId).filter((id) => id > 0))
+    const frames = await collectFrameTrees(session, known).catch((): AXNode[] => [])
+    return [...main, ...frames]
   } catch (err) {
     if (err instanceof AuditCollectionError) throw err
     throw new AuditCollectionError('ax-tree', err)

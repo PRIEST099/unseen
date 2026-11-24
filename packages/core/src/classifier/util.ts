@@ -18,6 +18,26 @@ export function hauntingId(type: string, nodeId: number, kind?: string): string 
 }
 
 // ---------------------------------------------------------------------------
+// Words
+// ---------------------------------------------------------------------------
+
+/** Lower-case word tokens: split on anything that is not a letter or digit, and at camelCase boundaries. */
+export function wordTokens(text: string | undefined): string[] {
+  return (text ?? '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .filter((w) => w !== '')
+    .map((w) => w.toLowerCase())
+}
+
+/** True when `phrase` (one or more words) appears in `text` as whole, adjacent word tokens. */
+export function hasWordPhrase(text: string | undefined, phrase: string): boolean {
+  const words = wordTokens(text)
+  const wanted = wordTokens(phrase)
+  if (wanted.length === 0) return false
+  return words.some((_, start) => wanted.every((w, i) => words[start + i] === w))
+}
+// ---------------------------------------------------------------------------
 // Colours
 // ---------------------------------------------------------------------------
 
