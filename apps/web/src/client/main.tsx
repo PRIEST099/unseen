@@ -4,6 +4,7 @@ import '@fontsource/cormorant-garamond/400.css'
 import './styles/tokens.css'
 import './styles/global.css'
 import './styles/spirit-sight.css'
+import './styles/daylight.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

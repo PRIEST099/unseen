@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
+import { DaylightReport } from '../components/DaylightReport'
 import { SpiritSightView } from '../components/SpiritSightView'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useFocusMain } from '../hooks/useFocusMain'
@@ -109,6 +110,8 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
           <h1>Spirit Sight: {hostname}</h1>
           <SpiritSightView source={source} audit={result.audit} basePath={basePath} />
         </>
+      ) : lens === 'daylight' ? (
+        <DaylightReport audit={result.audit} hostname={hostname} basePath={basePath} />
       ) : (
         <LensPlaceholderPanel lens={lens} hostname={hostname} basePath={basePath} />
       )}
