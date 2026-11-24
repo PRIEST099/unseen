@@ -9,6 +9,7 @@ import { SeanceView } from './views/SeanceView'
 export function App(): ReactElement {
   return (
     <div className="app-shell">
+      <div id="skip-link-slot" />
       <a href="#main" className="skip-link">
         Skip to main content
       </a>

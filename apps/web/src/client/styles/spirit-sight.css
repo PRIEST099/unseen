@@ -1,0 +1,558 @@
+/* Spirit Sight view. Fog, desaturation and overlays live only inside .spirit-stage (the screenshot). */
+
+.view-wide {
+  max-width: 96rem;
+}
+
+.view-wide h1 {
+  font-size: var(--text-3xl);
+  overflow-wrap: anywhere;
+}
+
+/* Toolbar above the screenshot */
+.spirit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.status-line {
+  flex: 1 1 16rem;
+  min-height: 1.5rem;
+  margin: 0;
+  color: var(--color-ecto);
+  font-weight: 700;
+}
+
+a.button {
+  text-decoration: none;
+}
+
+/*
+ * The extra skip link rests higher than "Skip to main content", so the two never stack on the
+ * same off-screen spot (the audit engine reads stacked painted boxes as an uncertain contrast).
+ */
+#skip-link-slot .skip-link {
+  top: -12rem;
+}
+
+#skip-link-slot .skip-link:focus {
+  top: var(--space-2);
+}
+
+/* Two columns: haunting list, then the screenshot */
+.spirit-layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .spirit-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.spirit-sidebar {
+  position: sticky;
+  top: var(--space-4);
+  max-height: calc(100vh - var(--space-8));
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--color-mist);
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 60rem) {
+  .spirit-sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
+.spirit-sidebar h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-2xl);
+}
+
+.spirit-sidebar h3 {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+/* Score */
+.score {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.score-value {
+  font-size: var(--text-display);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-clean {
+  color: var(--color-ecto);
+}
+
+.score-wraith {
+  color: var(--color-ember);
+}
+
+.score-restless {
+  color: var(--color-candle);
+}
+
+.score-banished {
+  color: var(--color-mist);
+}
+
+.score-bar {
+  height: 0.5rem;
+  margin-bottom: var(--space-4);
+  background-color: var(--color-ink);
+  border: 1px solid var(--color-mist);
+}
+
+.score-bar > span {
+  display: block;
+  height: 100%;
+  background-color: var(--color-mist);
+}
+
+.score-bar.score-clean > span {
+  background-color: var(--color-ecto);
+}
+
+.score-bar.score-wraith > span {
+  background-color: var(--color-ember);
+}
+
+.score-bar.score-restless > span {
+  background-color: var(--color-candle);
+}
+
+/* Groups */
+.group-list,
+.instance-list,
+.lens-nav {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-list > li + li {
+  margin-top: var(--space-1);
+}
+
+.group-toggle,
+.instance-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+  font-family: inherit;
+  font-size: var(--text-base);
+  text-align: left;
+  cursor: pointer;
+}
+
+.group-toggle {
+  font-weight: 700;
+}
+
+.group-toggle:hover,
+.instance-button:hover {
+  border-color: var(--color-ecto);
+}
+
+.group-toggle .chevron {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  transition: transform 150ms ease-out;
+}
+
+.group-toggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+
+.group-count {
+  margin-left: auto;
+}
+
+.group-severity {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.group-empty {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-mist);
+}
+
+.instance-list {
+  margin: var(--space-1) 0 var(--space-2) var(--space-4);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-mist);
+}
+
+.instance-list[hidden] {
+  display: none;
+}
+
+.instance-button {
+  font-size: var(--text-base);
+}
+
+.gravestone {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  fill: var(--color-mist);
+}
+
+.group-structural .instance-list {
+  border-left-color: var(--color-candle);
+}
+
+.clean-note {
+  margin: 0 0 var(--space-4);
+}
+
+.coverage-note {
+  color: var(--color-mist);
+}
+
+/* Lens navigation (the step bar) */
+.lens-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  counter-reset: lens;
+}
+
+.lens-nav li {
+  counter-increment: lens;
+}
+
+.lens-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-mist);
+  border-radius: 0.25rem;
+  color: var(--color-bone);
+  text-decoration: none;
+}
+
+.lens-nav a::before {
+  content: counter(lens);
+  color: var(--color-ecto);
+  font-weight: 700;
+}
+
+.lens-nav a[aria-current='page'] {
+  border-color: var(--color-ecto);
+  color: var(--color-ecto);
+}
+
+.lens-nav a:hover {
+  border-color: var(--color-ecto);
+}
+
+.sidebar-nav {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-mist);
+}
+
+.lens-bar {
+  margin-bottom: var(--space-6);
+}
+
+/* Stage: the screenshot and its layers */
+.stage-frame {
+  width: 100%;
+  min-width: 0;
+}
+
+.spirit-stage {
+  position: relative;
+  max-width: 100%;
+  line-height: 0;
+  box-shadow: 0 0 0 1px var(--color-mist);
+}
+
+.spirit-stage img {
+  display: block;
+  max-width: 100%;
+}
+
+.spirit-stage > svg,
+.spirit-stage > canvas,
+.overlay-buttons {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Decorative layers never take pointer events (requirement 10.9). */
+.haunting-overlay,
+#spirit-sight {
+  pointer-events: none;
+}
+
+#spirit-sight {
+  transition: opacity 200ms ease-out;
+}
+
+.overlay-buttons {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.haunting-overlay-button {
+  position: absolute;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  /* Keeps a focused overlay clear of the top edge (requirement 10.8). */
+  scroll-margin: 80px;
+}
+
+.haunting-overlay-button:hover {
+  background-color: color-mix(in srgb, var(--color-ecto) 18%, transparent);
+}
+
+/* Dual-tone ring: ecto outline on an ink halo, readable on any screenshot (requirement 10.5). */
+.haunting-overlay-button:focus-visible {
+  outline: 3px solid var(--color-ecto);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px var(--color-ink),
+    0 0 0 7px var(--color-ink);
+}
+
+.haunting-overlay-button.is-banner {
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 var(--space-4);
+  border: 2px solid var(--color-ember);
+  background-color: var(--color-ink);
+  color: var(--color-ember);
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: left;
+  overflow: hidden;
+}
+
+.image-error {
+  padding: var(--space-4);
+  border: 2px solid var(--color-ember);
+  color: var(--color-ember);
+}
+
+/* Overlay motion. Loops are finite so nothing moves for longer than 5 seconds (WCAG 2.2.2). */
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ghost-bob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes ember-glow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fog-drift {
+  to {
+    transform: translateX(48px);
+  }
+}
+
+@keyframes veiled-pulse {
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.overlay-enter {
+  animation: overlay-in 400ms ease-out both;
+}
+
+.overlay-leave {
+  animation: overlay-out 200ms ease-in both;
+}
+
+.ghost-bob {
+  animation: ghost-bob 2.5s ease-in-out 2;
+}
+
+.cursed-loop-glow {
+  animation: ember-glow 2s ease-in-out 2;
+}
+
+.cursed-loop-pulse {
+  animation: ember-glow 1s ease-in-out 2;
+}
+
+.fog-drift {
+  animation: fog-drift 5s linear 1 both;
+}
+
+.veiled-pulse {
+  animation: veiled-pulse 4s ease-in-out 1;
+}
+
+/* Haunting visual treatments (SVG, screenshot layer only) */
+.haunting-visual * {
+  vector-effect: non-scaling-stroke;
+}
+
+.stop-mist {
+  stop-color: var(--color-mist);
+}
+
+.flood-mist {
+  flood-color: var(--color-mist);
+}
+
+.v-desaturate {
+  fill: var(--color-ink);
+  opacity: 0.9;
+  mix-blend-mode: saturation;
+}
+
+.v-mist-dashed {
+  fill: none;
+  stroke: var(--color-mist);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.v-ink-fill {
+  fill: var(--color-ink);
+}
+
+.v-mist-fill {
+  fill: var(--color-mist);
+}
+
+.v-mist-stroke {
+  stroke: var(--color-mist);
+  stroke-width: 2;
+  opacity: 0.7;
+}
+
+.v-ember-ring {
+  fill: none;
+  stroke: var(--color-ember);
+  stroke-width: 3;
+  opacity: 0.8;
+}
+
+.v-mist-print {
+  fill: var(--color-mist);
+  opacity: 0.6;
+}
+
+.v-ecto-dashed {
+  fill: none;
+  stroke: var(--color-ecto);
+  stroke-width: 2;
+  stroke-dasharray: 6 3;
+}
+
+.v-mist-mouth {
+  fill: none;
+  stroke: var(--color-mist);
+  stroke-width: 1.5;
+}
+
+.v-ember-fill {
+  fill: var(--color-ember);
+  opacity: 0.9;
+}
+
+.v-ink-veil {
+  fill: var(--color-ink);
+  opacity: 0.7;
+}
+
+.v-active-ring {
+  fill: none;
+  stroke: var(--color-ecto);
+  stroke-width: 3;
+}
+
+/* Haunting detail dialog */
+.severity-badge {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 2px solid currentColor;
+  border-radius: 0.25rem;
+  font-weight: 700;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay-enter,
+  .overlay-leave {
+    animation: none !important;
+  }
+}

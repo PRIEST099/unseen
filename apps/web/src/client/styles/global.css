@@ -137,6 +137,12 @@ p {
   font-weight: 700;
 }
 
+/* Pressed: inverse of the primary look, so ecto text never sits on an ecto background. */
+.button-primary[aria-pressed='true'] {
+  background-color: var(--color-ink);
+  color: var(--color-ecto);
+}
+
 .button-primary:hover {
   border-color: var(--color-bone);
 }
