@@ -486,3 +486,8 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - present: `/sample/:id`, `build-samples`, `UNSEEN_DEV_ALLOW_PRIVATE`, `global: false`, `pngSize`, `onProgress`, `buildSpeechTrack`
   - gone: `alert(`, `spirit-sight-canvas`, any Dockerfile task
   - `design.md` grew to about 135 KB, so a final consistency check is running before the IDE build.
+
+## 2026-11-24 · Product-lead edit (Claude Code, not Kiro): stale duplicate sections deleted from `spirit-sight-ui/design.md`
+- **Why:** a final consistency check (`review-notes/spirit-sight-ui-consistency-1.md`, 63 items) showed that earlier amendments had **appended** new sections next to stale ones. A fresh rewrite by Kiro (run 38) was started, then stopped at the owner's request to save time.
+- **What Claude Code did (pure deletion, no new content):** removed the second "API Layer Design" and "Audit Job Queue", the old Routing table, the corrupted "Haunting Sidebar" duplicate of treatments 4–10, "Keyboard-Accessible Overlays", the old "Spirit Sight Fog Toggle Animation", "Keyboard Shortcuts", the orphaned "Docker Deployment" section (its heading replaced by "Correctness Properties", which the following text belonged to), and a stale component-API splice. Size went from 135 KB to 118 KB, with no duplicate section headings left.
+- **Next:** Kiro fixes the remaining content items in place (`prompts/39`), then `tasks.md` and `requirements.md` (`prompts/38c`).
