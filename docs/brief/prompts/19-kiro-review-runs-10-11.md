@@ -55,3 +55,26 @@ Sources of truth, in order:
   - an explicit list of the files you reviewed and accepted unchanged
 
 If credits run low, stop after a numbered item and say which is next.
+
+---
+
+## Addendum from the owner's product lead (2026-11-24): fix these confirmed findings first
+
+An independent review workflow (4 area reviewers plus skeptical verifiers, with probe pages in real Chromium) confirmed **47 defects** in tasks 5–16. They are listed with evidence and fixes in **`docs/brief/review-notes/audit-engine-review-1.md`**. This run is split in two:
+
+- **This run (19): findings 1–24** (all blockers and majors), strictly in order, saving after each one. Some findings overlap: 2 and 17 (CSP injection), 8 and 18 (the escape-test landing step), 14 and 19 (the Fog test), and 22 and 34 (the Veiled test). Fix each pair once.
+- **Run 19b: findings 25–47** (minors), then checklist items 1–6 above.
+
+For every finding:
+1. Reproduce it with a small fixture page under `packages/core/tests/fixtures/pages/`, using the review's evidence.
+2. Fix the code.
+3. Keep the fixture as a regression integration test (`*.int.spec.ts`) that fails before the fix and passes after it.
+
+Two notes on specific findings:
+- **Findings 5 and 6** (walk start point and the before-style baseline): after the fix, re-check that `checkout.html` is still detected as a true trap. Its trap is keydown-based (see the verifier note on finding 5).
+- **Findings 1 and 2** are demo-critical. Real public sites use iframes, shadow DOM and strict CSP.
+
+Done means:
+- the three test commands are green
+- `npm run verify` in `apps/cursed-shop` passes
+- your final table lists each finding number with "fixed" or "not a defect, because …"

@@ -267,3 +267,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `design.md` (about 46 KB, 18 correctness properties)
   - `tasks.md` (23 tasks, 51 sub-tasks, 5 checkpoints)
 - **Product-lead note:** Kiro marked the property-based-test sub-tasks as optional (`*`). `hauntings.md` requires them, so run 12b makes them mandatory. Credits are not readable headless.
+
+## 2026-11-24 · Run 19 · started (owner account)
+- Claimed by the owner's Claude Code session (Windows). Kiro reviews and adopts the Claude-written audit-engine tasks 5–16, starting with confirmed findings 1–24 from `review-notes/audit-engine-review-1.md`. Branched from `kiro/run-12-classifier-spec` (stacked, so the session log does not conflict).
