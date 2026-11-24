@@ -6,18 +6,16 @@
     "rules": [
       {
         "capability": "fs_read",
-        "match": ["./**"],
         "effect": "allow"
       },
       {
         "capability": "fs_write",
-        "match": [".kiro/specs/**/*"],
+        "match": [".kiro/specs/**"],
         "effect": "allow"
       },
       {
         "capability": "fs_write",
-        "match": ["./**"],
-        "exclude": [".kiro/specs/**/*"],
+        "match": ["**"],
         "effect": "deny"
       }
     ]

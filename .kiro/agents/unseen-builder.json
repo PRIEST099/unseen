@@ -6,7 +6,6 @@
     "rules": [
       {
         "capability": "fs_read",
-        "match": ["./**"],
         "effect": "allow"
       },
       {
@@ -16,8 +15,7 @@
       },
       {
         "capability": "fs_write",
-        "match": ["./**"],
-        "exclude": ["../**"],
+        "match": ["**"],
         "effect": "allow"
       },
       {

@@ -414,3 +414,25 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-24 · Run 27 · started (owner account)
 - Kiro sets up its own workflow surfaces: four steering modes, v1 hooks (protected-file guard, save-time checks, Stop test gate, spec-types drift), three custom agents (builder, spec-writer, reviewer) and Playwright MCP.
+
+## 2026-11-24 · Runs 27, 30, 31 and 33: Kiro sets up its own workflow surfaces, verified live (owner account)
+- **Why:** the Devpost write-up asks how we used custom agents, agent hooks, steering, MCP and powers. Until now we had used steering and specs only.
+- **Run 27** (`prompts/27-kiro-workflow-surfaces.md`, written from the product lead's check of the current kiro.dev docs) added:
+  - **Steering:** 4 new files covering all four inclusion modes (`kiro-workflow` always, `testing` fileMatch, `wcag-reference` auto, `exorcise` manual).
+  - **Hooks:** 5 v1 hooks: a PreToolUse protected-file guard, PostFileSave typecheck and shop verify, a Stop test gate, and an agent-action spec-types drift check.
+  - **Agents:** 3 custom agents: `unseen-builder`, `unseen-spec-writer` and `unseen-reviewer`.
+  - **MCP:** the Playwright MCP server (`@playwright/mcp@0.0.86`), plus a disabled `unseen` entry for later.
+  - Kiro reported "`kiro-cli agent validate` passed".
+- **Run 30 (the product lead's live test) disproved that.** `kiro-cli chat --agent unseen-builder` refused to load: `AgentFileFormatError: permissions.rules.N.capability/effect Required`. Kiro had used a non-V3 permissions shape and tool IDs. A code read also found that the guard read `toolInput` instead of the documented `tool_input`, so it would have **allowed every write**. **Lesson for the write-up: verify agent and hook configs by exercising them, not by validator output.**
+- **Run 31** (`prompts/31-fix-agents-hooks.md`):
+  - Kiro rewrote the agents to the V3 schema (`tools: read/write/shell/@playwright`, `permissions.rules` with capability/match/effect).
+  - It fixed the guard's stdin parsing, fails closed when stdin is malformed and mentions a protected path, and made the SessionStart hook PowerShell-safe.
+  - It could not write `.kiro/settings/mcp.json`, so **the product lead fixed that file** (`autoApprove` moved inside the playwright server, with the real `browser_*` tool names). This is a Claude Code edit, recorded here.
+  - Writes still failed headless: the `fs_write` allow rule `./**` matched nothing, so writes fell through to "ask".
+  - **Kiro surprised us:** the agent refused to even attempt the protected write because the steering forbids it. That is defence in depth, but it meant the hook was never exercised.
+- **Run 33** (`prompts/33-builder-write-permission.md`, with an explicit one-time authorisation to attempt the protected write) fixed the glob (`**`). It then proved live:
+  - (a) the builder creates, reads and deletes a temp file headless with no prompt
+  - (b) **the PreToolUse hook blocked the write** to `expected-hauntings.json`: "Tool "fs_write" was intercepted by PreToolUse hooks … 🚫 BLOCKED … The tool was NOT executed"
+  - (c) **the agent permission rule denied `git commit`**: "Blocked by a permission rule … Source: agent-profile"
+  - Kiro wrote `docs/LIVE_VERIFICATION_RESULTS.md`.
+- **Claude Code verification:** `git diff --stat apps/cursed-shop/expected-hauntings.json` is empty, no temp file remains, and `kiro-cli mcp list` shows playwright enabled and unseen disabled.
