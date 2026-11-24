@@ -50,7 +50,7 @@ Do not use any colour combination not in this table for text. For decorative/non
 | **All UI text, body, labels, inputs, buttons** | **Atkinson Hyperlegible** | Designed by the Braille Institute specifically for low-vision readability. This choice is intentional and meaningful for the product. |
 | **Display headings only** (`<h1>`, `<h2>`, hero text) | **Cormorant Garamond** (or **IM Fell English SC** as fallback) | Restrained display serif for the Victorian séance aesthetic. Used sparingly. |
 
-Load both fonts from Google Fonts or self-hosted. Never swap or substitute them without updating this file.
+Self-host both fonts via `@fontsource` packages only. Never load Google Fonts (no third-party font requests from the auditor). Never swap or substitute them without updating this file.
 
 ### Type scale (rem-based, `1rem = 16px`)
 

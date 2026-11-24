@@ -111,7 +111,7 @@ The module also exports the `normalizeBoundingBox` pure helper function used in 
 1. Opens a CDP session on the page: `page.context().newCDPSession(page)`.
 2. Calls `session.send('Accessibility.getFullAXTree', { fetchRelatedNodes: true })`.
 3. Maps every CDP node to an `AXNode`, preserving all fields verbatim.
-4. Validates that every node has a `backendDOMNodeId`; throws `AuditCollectionError` with `step: "ax-tree"` if any node is missing it.
+4. Validates that every node except `InlineTextBox` text runs has a `backendDOMNodeId`; throws `AuditCollectionError` with `step: "ax-tree"` if any other node is missing it. Interpretation recorded 2026-11-21: CDP returns `InlineTextBox` nodes (about 75 of 292 on the Cursed Shop index) with no DOM backing. They are kept in `axNodes` unfiltered (Req 5.1) with `backendDOMNodeId: 0`.
 5. Validates that at least one node is returned when `document.body.children.length > 0`; throws `AuditCollectionError` with `step: "ax-tree"` if zero nodes are returned.
 6. Returns the full `AXNode[]` in CDP's original order.
 

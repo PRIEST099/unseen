@@ -162,3 +162,50 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `audit.mjs`: all 30 page × haunting counts match the golden file, with no EXTRA or bad selectors. The 3 NOTFIRED notes (checkout CursedLoop, SilentTongue, ShatteredOrder no-main) are page-level hauntings that the probe's per-node selector match cannot pair; their counts match.
   - `packages/core`: untouched, 47/47 tests still pass.
 - **Outcome:** passed. The golden file and the shop README are no longer stale. Next: run 10.
+
+## 2026-11-21 · Run 10 · started (teammate irumvag, own Kiro account)
+- Claimed by the teammate's Claude Code session. Branched from `kiro/run-09-cursed-shop-finish` (PR #1), because tasks 7+ test against the finished shop.
+
+## 2026-11-21 · Run 10: audit engine tasks 5–8, partial (teammate irumvag, own Kiro account)
+- **Instruction:** `docs/brief/prompts/10-impl-audit-engine-5-8.md`
+- **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_write,execute_bash --model auto < docs/brief/prompts/10-impl-audit-engine-5-8.md`, model `auto`
+- **Attempt 1:** failed at once with `ClientThrottleError` ("using credits faster than your rate limit allows"). No changes.
+- **Attempt 2 (5 minutes later):** Kiro read the spec, steering and review notes, and probed CDP (backendNodeId alignment; `InlineTextBox` nodes lacking `backendDOMNodeId`; AXNode shape; both Chromium channels launch). It then stopped with `UsageLimitReachedError` (monthly limit) partway through Step 0.
+- **Kiro produced (checked by Claude Code against the diff):**
+  - Step 0.1: `structure.md` rewritten. No `docs/specs/`, the real shop tree, "(planned)" markers, the ESLint boundary, no CI claim.
+  - Step 0.2: Req 15.3 typo fixed.
+  - Step 0.3: `tasks.md` Notes fixed.
+  - Step 0.4, partly: task 5 limits (2 / 1–20 / 20) and the `buildLaunchArgs` bullet.
+- **Not done:**
+  - the task 5 acceptance text still says "queue depth 51"
+  - `security.md` limits and SSRF API names
+  - `design-system.md` fonts
+  - `packages/core` and shop/root `package.json` config
+  - tasks 5–8, so there is no code yet
+- **Credits:** the account's monthly limit is now exhausted. The exact `/usage` figure is for the teammate to add.
+- **Next:** `prompts/18-run-10-resume.md`, which lists exactly what is left, once credits are available again (hackathon credit form or the next month).
+
+## 2026-11-21 · Run 10 completion, written by Claude Code, not Kiro (teammate irumvag's decision)
+- **Why:** the teammate's Kiro account hit its monthly limit mid-run. The teammate chose to have Claude Code finish the remaining work by hand rather than wait for credits. **This is a deviation from `CLAUDE.md` and the hackathon's built-with-Kiro rule.** It is recorded here so the owner can decide to keep it, or to have Kiro redo it from `prompts/18-run-10-resume.md`.
+- **Written by Claude Code:**
+  - Step 0.4–0.8:
+    - `security.md` limits table (5/min, 30/hour, `UNSEEN_MAX_CONCURRENCY` default 2, queue 20)
+    - the real SSRF API names, plus a known-gaps pointer
+    - `@fontsource`-only fonts
+    - task 5 acceptance text
+    - `packages/core` config: `private`, `license`, `playwright` 1.65.1 devDependency, `playwright.config.ts` (`*.int.spec.ts`), `tsconfig.test.json`, `@runner/*` alias removed, Vitest excludes `tests/`
+    - shop and root `package.json`
+  - Tasks 5–8:
+    - `src/runner/browser.ts`: `buildLaunchArgs`, `BrowserPool`, `getPool`, `PageLoader` with the 1500 ms settle window and the deterministic screenshot, and `normalizeBoundingBox`
+    - `src/runner/ax-tree.ts`: `name.sources` verbatim, `isImageRole`, `InlineTextBox` exemption (recorded in `design.md`)
+    - `src/runner/axe.ts`
+    - `tests/fixtures/shop-server.ts` and 3 integration specs
+    - Property 5 (200 runs)
+  - Also removed an unused `beforeEach` import in Kiro's `safe-fetch.test.ts`. The new test type-check exposed it.
+- **Verification:**
+  - `npm run typecheck` (src + tests) is clean
+  - `vitest --run`: 58/58 (47 existing + 11 new)
+  - `playwright test`: 6/6 integration
+  - `apps/cursed-shop` `npm run verify`: VERIFY PASSED
+- **Credits:** 0 Kiro credits.
+- **Next:** run 11 (tasks 9–16), ideally through Kiro once credits exist.

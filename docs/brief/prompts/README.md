@@ -33,6 +33,7 @@ kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_w
 | 15b | Implement mcp + power + hooks | auto | 40–80 | Try the "build a checkout button" demo in the Kiro IDE |
 | 16 | `16-deploy.md` | auto | 15–30 | Smoke test passes locally; **the owner picks Fly or Render and deploys** |
 | 17 | `17-night-shift-crew.md` (separate repo) | spec then implement, auto | 60–120 | Demo patrol runs; the Exorcist rejects a bad fix |
+| 18 | `18-run-10-resume.md` (resume run 10 after the usage limit) | auto | 25–45 | Same gate as run 10 |
 
 **Estimated total: about 500–1,000 credits**, leaving headroom for review-driven fix passes. Each spec gets an independent review (as the audit engine did) before implementation.
 
