@@ -358,3 +358,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Kiro surprised us:** it classified this as a **bug fix** and used Kiro's bugfix spec workflow. It wrote `bugfix.md` instead of `requirements.md`, and the 21 tasks start with exploratory tests that **prove each bug exists** before any fix, then preservation tests. It chose design option (b), the in-process CONNECT proxy (one enforcement point, covering redirects and subresources), with `ipaddr.js` and `dns.lookup({all, verbatim})`.
 - **Kiro produced:** `.kiro/specs/safe-fetch/{bugfix.md, design.md, tasks.md}` (about 15 KB, 63 KB and 30 KB).
 - **Next:** independent spec review before the implementation run.
+
+## 2026-11-24 · Run 25 (12b) · started (owner account)
+- Kiro builds the haunting classifier (all tasks of `.kiro/specs/haunting-classifier/tasks.md`), after first fixing the `collectBoundingBoxes` pairing defect it reported in run 22. Visible in the Terminal panel.
