@@ -80,6 +80,8 @@ export type TabWalkResult = {
   trapRegionNodeIds: string[] // backendDOMNodeIds in the trap region
   stepCapReached: boolean
   cycles: TabCycle[]
+  walkStartedAtMs: number // epoch ms when the walk started (after the settle window)
+  endReason: "body" | "trap" | "step-cap" | "cycle-includes-all" | "no-focusables" | "no-focus"
 }
 
 export type TabStep = {
@@ -100,6 +102,7 @@ export type TabCycle = {
   nodeIds: string[] // backendDOMNodeIds forming the cycle
   startStepIndex: number
   escapable: boolean
+  includesAllFocusables?: boolean // true when the cycle covers every focusable (not a trap)
 }
 
 // Cycle detection result (pure function output)
@@ -115,6 +118,8 @@ export type TextNodeStyle = {
   backgroundColor: string // effective (resolved from transparent ancestors)
   fontSize: string // e.g. "16px"
   fontWeight: string // e.g. "400"
+  backgroundUncertain: boolean // an image, gradient or translucent layer sits between text and the first opaque colour
+  isLargeText: boolean // WCAG large text: >= 24px, or >= 18.66px and bold (>= 700)
 }
 
 // Click/pointer event listener presence on a node
@@ -132,6 +137,8 @@ export type DomAxMapping = {
   ariaHidden: boolean
   isPresentational: boolean
   isFocusable: boolean
+  hasVisibleText: boolean // subtree has visible non-whitespace text inside the scrollable area
+  containsFocusable: boolean // subtree (excluding the element itself) has a focusable element
 }
 
 // Page-level metadata for Silent Tongue and Shattered Order
@@ -139,6 +146,7 @@ export type PageMetadata = {
   htmlLang: string | null
   headings: HeadingRecord[]
   landmarkRoles: string[]
+  hasMainLandmark: boolean // <main> or role="main" present
 }
 
 export type HeadingRecord = {

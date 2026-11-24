@@ -11,27 +11,56 @@ Read, in this order:
 3. `docs/brief/prompts/README.md`: the run queue, with model, rough credit cost and review gate for each run.
 4. `docs/brief/KIRO_SESSION_LOG.md`: what every past run did, including failures.
 
-## 2. Current state (as of 2026-11-21)
-| Piece | State |
-|---|---|
-| Steering (`.kiro/steering/`, 6 docs) | Done; reviewed twice |
-| `audit-engine` spec (`.kiro/specs/audit-engine/`) | Done: 15 requirements, 16 tasks |
-| `packages/core` tasks 1–4 | Done: `tsc` clean, 47/47 Vitest tests pass |
-| Cursed Shop (`apps/cursed-shop`) | About half fixed. Run 08 stopped on the free-plan limit. **Next run: 09.** |
-| Runs 09–17 | Written and queued in `docs/brief/prompts/`, not yet sent to Kiro |
+## 2. Current state (as of 2026-11-24)
+| Piece | State | Built by |
+|---|---|---|
+| Steering (`.kiro/steering/`, 6 docs) | Done. Drift fixed in run 10 | Kiro; run 10 Step 0.4–0.6 by Claude Code |
+| `audit-engine` spec (`.kiro/specs/audit-engine/`) | Done: 15 requirements, **16/16 tasks ticked** | Kiro |
+| Cursed Shop (`apps/cursed-shop`) | **Done and verified** (run 09, merged in #1). `npm run verify` passes; all 30 golden counts match | Kiro |
+| `packages/core` tasks 1–4 | Done | Kiro |
+| `packages/core` tasks 5–8 (BrowserPool, PageLoader, AX tree, axe) | Done, PR #2 | **Claude Code** (Kiro hit the monthly limit mid-run) |
+| `packages/core` tasks 9–16 (collectors, Tab walker, `auditUrl`/`auditHtml`, determinism) | Done, PR #3 | **Claude Code** (no Kiro credits) |
+| Tests | `npm run typecheck` clean; Vitest 62/62; Playwright 20/20 | |
+| **Next run: 12** | `12-spec-haunting-classifier.md` | |
+
+**Open PRs, stacked. Merge in order with merge commits, not squash:**
+- [#2](https://github.com/PRIEST099/unseen/pull/2) is the run 10 branch, now based on `main`.
+- [#3](https://github.com/PRIEST099/unseen/pull/3) is the run 11 branch, based on #2's branch.
+- Merging #2 first makes #3's diff collapse to run 11 only.
+
+### ⚠️ Decision before submission: hand-written code in PRs #2 and #3
+The hackathon requires the project to be built with Kiro, and `CLAUDE.md` says only Kiro writes code. Tasks 5–16 were written by Claude Code because the teammate's Kiro account had run out of credits. Every commit, both PR bodies and `KIRO_SESSION_LOG.md` say so openly. Now that there are Kiro credits again, pick one option:
+
+1. **Kiro reviews and adopts (recommended, cheaper).** Send Kiro a review run, `docs/brief/prompts/19-kiro-review-runs-10-11.md`. Kiro reads tasks 5–16 against the spec and steering, fixes anything wrong, and adds what's missing. Everything it changes is then Kiro-written, and the log shows Kiro verified the rest. Estimate: 30–60 credits.
+2. **Kiro rebuilds.** Revert the Claude-written files and re-send `18-run-10-resume.md` and `11-impl-audit-engine-9-16.md`. This is the purest route, but costs about 100–150 credits and time we may need for the UI (14b).
+
+Whichever you pick, keep the honesty notes in the session log; judges read it.
+
+### Findings worth knowing (from runs 10–11)
+- `safe-fetch.ts` (task 3) used `route.abort('blocked')`, which is not a valid Playwright error code, so every blocked request threw. It was fixed to `'blockedbyclient'` in PR #3. The other safe-fetch gaps in `review-notes/safe-fetch-review-1.md` still stand (runs 13/13b).
+- CDP AX nodes of role `InlineTextBox` have no `backendDOMNodeId`. They are kept, and the exemption is recorded in `design.md` Req 5.2.
+- `trapRegionNodeIds` holds the region element (the dialog or common ancestor) followed by the cycle members.
+- Chromium ids differ per renderer, so the determinism test canonicalises them. The screenshot SHA can differ (font rasterisation) and is recorded, not failed.
+- On macOS both the `chromium` channel and the bundled headless shell work. Windows still needs `UNSEEN_CHROMIUM_CHANNEL=chromium` (see `local-env.md`).
+
+### Kiro CLI notes from the teammate's machine
+- `/usage` can't be read headless. Sending it as a headless prompt spends credits and returns nothing, so check it in an interactive `kiro-cli chat`.
+- Two errors to expect:
+  - `ClientThrottleError`: you are sending too fast. Wait about 5 minutes and re-send.
+  - `UsageLimitReachedError`: the monthly credits are gone. Log what was finished, then check the files.
+- Write Kiro's output log **outside the repo** (for example `../kiro-logs/runNN.log`). The OS can clear the scratchpad.
 
 ## 3. One-time setup
 ```bash
 git clone <repo-url> && cd the-unseen
 npm install
 npx playwright install chromium
-cd packages/core && npx tsc --noEmit && npx vitest --run   # expect 47 passing
+cd packages/core && npm run typecheck && npx vitest --run && npx playwright test   # expect 62 + 20 passing
 ```
 - **Kiro CLI:** install it from kiro.dev, then run `kiro-cli login` (device flow in the browser; no API key needed). Check your credits with `/usage` in an interactive `kiro-cli chat`; the counter lags by a few minutes.
 - **Hackathon credits:** each teammate can request Kiro credits through the Devpost credit form linked on the Kiroween page.
-- **Chromium channel:** if `npx playwright install chromium` cannot fetch the headless shell (it fails on the owner's Windows machine), use `npx playwright install chromium --no-shell` and launch with `channel: 'chromium'`. `BrowserPool` (task 5, run 10) **will** read `UNSEEN_CHROMIUM_CHANNEL`. Until then, scripts pass the channel themselves, as the probes in `docs/brief/review-notes/probes/` do. See `docs/brief/review-notes/local-env.md`.
+- **Chromium channel:** if `npx playwright install chromium` cannot fetch the headless shell (it fails on the owner's Windows machine), use `npx playwright install chromium --no-shell` and launch with `channel: 'chromium'`. `BrowserPool` reads `UNSEEN_CHROMIUM_CHANNEL` (an empty string means the bundled build), and so do the probes and `playwright.config.ts`. See `docs/brief/review-notes/local-env.md`.
 
-> ⚠️ **Known-stale until run 09 is verified:** `apps/cursed-shop/expected-hauntings.json` and `apps/cursed-shop/README.md` contradict the current rules. Until then, the truth is `.kiro/steering/hauntings.md` plus the actual-vs-golden tables in `docs/brief/review-notes/cursed-shop-review-2.md`. The steering docs also have some drift (e.g. `structure.md`), which run 10's "Step 0" fixes.
 
 ## 4. The loop for each run
 1. **Claim the run.** Create a branch (`kiro/run-09-cursed-shop-finish`), add a "Run NN · started" line to the session log, and tell the owner. Then two people never send the same prompt.
