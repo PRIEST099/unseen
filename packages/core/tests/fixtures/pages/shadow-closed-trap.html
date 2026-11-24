@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>closed shadow root that traps focus</title></head>
+<body>
+<main>
+  <h1>Closed shadow trap</h1>
+  <a href="#one">one</a>
+  <div id="host"></div>
+  <a href="#two">two</a>
+  <a href="#three">three</a>
+</main>
+<script>
+  const root = document.getElementById('host').attachShadow({ mode: 'closed' })
+  root.innerHTML = '<button id="b1">B1</button><button id="b2">B2</button>'
+  const b1 = root.getElementById('b1'), b2 = root.getElementById('b2')
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && !e.shiftKey && root.activeElement === b2) { e.preventDefault(); b1.focus() }
+    if (e.key === 'Tab' && e.shiftKey && root.activeElement === b1) { e.preventDefault(); b2.focus() }
+  })
+</script>
+</body>
+</html>

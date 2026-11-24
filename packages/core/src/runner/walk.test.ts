@@ -14,12 +14,22 @@ function fakeDriver(cycle: string[], after: string[], trap = false): TabDriver {
   const all = [...cycle, ...after]
   return {
     async prepare() {},
+    async activeId() {
+      return null
+    },
     async focusableIds() {
       return all
     },
     async styles() {
       return { 'outline-style': 'none' }
     },
+    async unfocusedStyles() {
+      return { 'outline-style': 'none' }
+    },
+    async anyShown() {
+      return true
+    },
+    navigated: () => false,
     async pressTab() {
       if (!escaped) {
         ci = (ci + 1) % cycle.length
@@ -48,12 +58,22 @@ function scripted(all: string[], tabs: Array<string | null | Error>, overrides: 
   let i = 0
   return {
     async prepare() {},
+    async activeId() {
+      return null
+    },
     async focusableIds() {
       return all
     },
     async styles() {
       return { 'outline-style': 'none' }
     },
+    async unfocusedStyles() {
+      return { 'outline-style': 'none' }
+    },
+    async anyShown() {
+      return true
+    },
+    navigated: () => false,
     async pressTab() {
       const next = tabs[Math.min(i++, tabs.length - 1)]
       if (next instanceof Error) throw next
@@ -144,18 +164,30 @@ describe('Tab walk cycle detection (design properties 1-3, through runWalk)', ()
     )
   })
 
-  it('property: a repeat before all focusables are visited is a cycle whose members come from the steps', async () => {
+  it('property: a repeat of element j at step k (before every focusable is visited) gives exactly seq[j..k] starting at step j', async () => {
     await fc.assert(
-      fc.asyncProperty(ids('u', 3, 20), fc.integer({ min: 1, max: 2 }), async (all, repeatAt) => {
-        const seq = [...all.slice(0, repeatAt + 1), all[0]!]
-        const r = await runWalk(scripted(all, seq))
-        const stepIds = new Set(r.steps.map((s) => s.backendDOMNodeId))
-        return r.cycles.length === 1 && r.cycles[0]!.nodeIds.every((n) => stepIds.has(n)) && r.cycles[0]!.nodeIds[0] === all[0]
-      }),
-      { numRuns: 100 }
+      fc.asyncProperty(
+        ids('u', 3, 20).chain((all) =>
+          fc.integer({ min: 0, max: all.length - 2 }).chain((k) =>
+            fc.integer({ min: 0, max: k }).map((j) => ({ all, k, j }))
+          )
+        ),
+        async ({ all, k, j }) => {
+          const seq = all.slice(0, k + 1)
+          const r = await runWalk(scripted(all, [...seq, all[j]!], { escapeTest: async () => all[j]! }))
+          const c = r.cycles[0]
+          return (
+            r.cycles.length === 1 &&
+            c !== undefined &&
+            JSON.stringify(c.nodeIds) === JSON.stringify(seq.slice(j)) &&
+            c.startStepIndex === j &&
+            c.includesAllFocusables === (seq.slice(j).length === all.length)
+          )
+        }
+      ),
+      { numRuns: 200 }
     )
   })
-
   it('property: a repeat after every focusable was visited is not a trap', async () => {
     await fc.assert(
       fc.asyncProperty(ids('u', 2, 20), async (all) => {
@@ -312,5 +344,177 @@ describe('Tab walk limits and errors (Req 11.5, 11.9, 11.12)', () => {
     const r = await runWalk(scripted(['f', 'z'], ['f', 'f', 'f']))
     expect(r.cycles.length).toBe(1)
     expect(r.trapDetected).toBe(true)
+  })
+})
+
+describe('Tab walk after prepare(): focus that came back (findings 5 and 6)', () => {
+  const focusedLook = { 'outline-style': 'solid' }
+  const plainLook = { 'outline-style': 'none' }
+
+  it('records the still-focused element as the first step, with its unfocused baseline', async () => {
+    const reads: string[] = []
+    const r = await runWalk(
+      scripted(['a', 'f', 'b'], ['b', null], {
+        activeId: async () => 'f',
+        styles: async (id: string) => {
+          reads.push(id)
+          return focusedLook
+        },
+        unfocusedStyles: async () => plainLook,
+      })
+    )
+    expect(r.steps[0]).toMatchObject({ backendDOMNodeId: 'f', cdpError: false })
+    expect(r.steps[0]!.focusSnapshot).toEqual({ before: plainLook, after: focusedLook })
+    expect(r.steps.map((s) => s.backendDOMNodeId)).toEqual(['f', 'b'])
+    // the baseline of the focused element never came from a plain read while it held focus
+    expect(reads.filter((id) => id === 'f').length).toBe(1)
+  })
+
+  it('a baseline that cannot be read for the focused element marks the step cdpError', async () => {
+    const r = await runWalk(
+      scripted(['f', 'b'], ['b', null], { activeId: async () => 'f', unfocusedStyles: async () => null })
+    )
+    expect(r.steps[0]).toMatchObject({ backendDOMNodeId: 'f', cdpError: true })
+  })
+
+  it('a focused element that is not a focusable is not recorded', async () => {
+    const r = await runWalk(scripted(['a'], ['a', null], { activeId: async () => 'zzz' }))
+    expect(r.steps.map((s) => s.backendDOMNodeId)).toEqual(['a'])
+  })
+
+  it('a focusable that first appears mid-walk gets an on-demand baseline, not {}', async () => {
+    const r = await runWalk(
+      scripted(['a'], ['a', 'late', null], {
+        styles: async (id: string) => (id === 'late' ? { 'outline-style': 'solid' } : { 'outline-style': 'none' }),
+        unfocusedStyles: async () => ({ 'outline-style': 'none' }),
+      })
+    )
+    const late = r.steps[1]!
+    expect(late.backendDOMNodeId).toBe('late')
+    expect(late.focusSnapshot.before).toEqual({ 'outline-style': 'none' })
+    expect(late.focusSnapshot.after).toEqual({ 'outline-style': 'solid' })
+    expect(late.baselineUnavailable).toBeUndefined()
+  })
+
+  it('an on-demand baseline that cannot be taken is flagged, not left as a silent {}', async () => {
+    const r = await runWalk(scripted(['a'], ['a', 'late', null], { unfocusedStyles: async () => null }))
+    expect(r.steps[1]).toMatchObject({ backendDOMNodeId: 'late', baselineUnavailable: true, cdpError: false })
+    expect(r.steps[1]!.focusSnapshot.before).toEqual({})
+  })
+})
+
+describe('Tab walk escape test (hauntings.md §5, Req 11.8)', () => {
+  it('no focus after Escape and the cycle is still shown: a trap', async () => {
+    const r = await runWalk(
+      scripted(['a', 'b', 'c'], ['a', 'b', 'a'], { escapeTest: async () => null, anyShown: async () => true })
+    )
+    expect(r.trapDetected).toBe(true)
+    expect(r.endReason).toBe('trap')
+    expect(r.cycles[0]!.escapable).toBe(false)
+  })
+
+  it('no focus after Escape because the cycle was removed or hidden: the user escaped', async () => {
+    const r = await runWalk(
+      scripted(['a', 'b', 'c'], ['a', 'b', 'a', 'c', null], { escapeTest: async () => null, anyShown: async () => false })
+    )
+    expect(r.trapDetected).toBe(false)
+    expect(r.cycles).toHaveLength(1)
+    expect(r.cycles[0]).toMatchObject({ nodeIds: ['a', 'b'], escapable: true })
+    // detection restarts: the walk goes on and reaches c
+    expect(r.steps.map((s) => s.backendDOMNodeId)).toContain('c')
+    expect(r.endReason).toBe('body')
+  })
+
+  it('an unreadable "is the cycle shown" check ends with cdp-error and never invents a trap', async () => {
+    const r = await runWalk(
+      scripted(['a', 'b', 'c'], ['a', 'b', 'a'], {
+        escapeTest: async () => null,
+        anyShown: async () => {
+          throw new Error('gone')
+        },
+      })
+    )
+    expect(r.trapDetected).toBe(false)
+    expect(r.endReason).toBe('cdp-error')
+  })
+
+  it('segment reset (Req 11.7): after an escapable cycle an element seen before the cycle is new again', async () => {
+    const r = await runWalk(
+      scripted(['a', 'b', 'c', 'd'], ['a', 'b', 'a', 'a', 'd', null], { escapeTest: async () => 'c' })
+    )
+    expect(r.cycles).toHaveLength(1)
+    expect(r.endReason).toBe('body')
+    expect(r.steps.map((s) => s.backendDOMNodeId)).toEqual(['a', 'b', 'a', 'c', 'a', 'd'])
+  })
+
+  it('a cycle that can only be left backwards ends with cycle-repeated, not at the step cap', async () => {
+    const all = ['x', 'a', 'b', 'y', 'z']
+    const r = await runWalk(
+      scripted(all, ['x', 'a', 'b', 'a', 'a', 'b', 'a', 'b', 'a'], { escapeTest: async () => 'x' })
+    )
+    expect(r.endReason).toBe('cycle-repeated')
+    expect(r.stepCapReached).toBe(false)
+    expect(r.trapDetected).toBe(false)
+    expect(r.cycles).toHaveLength(2)
+    expect(r.cycles.every((c) => c.escapable === true)).toBe(true)
+  })
+
+  it('includesAllFocusables is about the members, and escapable is absent when no escape test ran', async () => {
+    const r = await runWalk(scripted(['a', 'b', 'c'], ['a', 'b', 'c', 'b']))
+    expect(r.endReason).toBe('cycle-includes-all')
+    expect(r.cycles[0]).toEqual({
+      nodeIds: ['b', 'c'],
+      startStepIndex: 1,
+      includesAllFocusables: false,
+      allFocusablesVisited: true,
+    })
+  })
+})
+
+describe('Tab walk composites (finding 1)', () => {
+  const host = { isComposite: async (id: string) => id === 'f' }
+
+  it('presses inside a host do not use steps: a 60-link frame does not hide what follows', async () => {
+    const all = ['f', 'two', 'three', 'four']
+    const r = await runWalk(scripted(all, ['f', ...Array<string>(60).fill('f'), 'two', 'three', 'four', null], host))
+    expect(r.steps.map((s) => s.backendDOMNodeId)).toEqual(['f', 'two', 'three', 'four'])
+    expect(r.steps[0]!.compositeTruncated).toBe(true)
+    expect(r.endReason).toBe('body')
+    expect(r.errors).toEqual([])
+  })
+
+  it('a host that is left within the sub-cap is not truncated', async () => {
+    const r = await runWalk(scripted(['f', 'z'], ['f', ...Array<string>(30).fill('f'), 'z', null], host))
+    expect(r.steps[0]!.compositeTruncated).toBeUndefined()
+  })
+
+  it('focus that never leaves a host ends with composite-stuck and a collection error', async () => {
+    const r = await runWalk(scripted(['f', 'two'], ['f'], host))
+    expect(r.endReason).toBe('composite-stuck')
+    expect(r.stepCapReached).toBe(false)
+    expect(r.trapDetected).toBe(false)
+    expect(r.steps).toHaveLength(1)
+    expect(r.steps[0]!.compositeTruncated).toBe(true)
+    expect(r.errors).toHaveLength(1)
+    expect(r.errors[0]).toMatchObject({ step: 'tab-walk' })
+  })
+})
+
+describe('Tab walk navigation (finding 10)', () => {
+  it('a mid-walk navigation ends the walk with navigated', async () => {
+    let navigated = false
+    let presses = 0
+    const r = await runWalk(
+      scripted(['a', 'b', 'c'], [], {
+        pressTab: async () => {
+          presses++
+          if (presses === 2) navigated = true
+          return presses === 1 ? 'a' : 'b'
+        },
+        navigated: () => navigated,
+      })
+    )
+    expect(r.endReason).toBe('navigated')
+    expect(r.steps.map((s) => s.backendDOMNodeId)).toEqual(['a'])
   })
 })

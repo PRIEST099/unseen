@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>modal dialog that closes on Escape (hidden, focus blurred)</title></head>
+<body>
+<div id="dlg" role="dialog" aria-modal="true" aria-label="Offer">
+  <button id="a">A</button>
+  <button id="b">B</button>
+</div>
+<main>
+  <h1>Closable dialog</h1>
+  <a href="#x">x</a>
+  <a href="#y">y</a>
+</main>
+<script>
+  // Escape hides the dialog and drops focus; Shift+Tab is swallowed, so focus is nowhere afterwards.
+  document.addEventListener('keydown', (e) => {
+    const dlg = document.getElementById('dlg')
+    if (e.key === 'Escape') { dlg.hidden = true; document.activeElement.blur(); return }
+    if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); return }
+    if (e.key === 'Tab' && document.activeElement === document.getElementById('b') && !dlg.hidden) {
+      e.preventDefault(); document.getElementById('a').focus()
+    }
+  })
+</script>
+</body>
+</html>

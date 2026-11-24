@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>cycle that can only be left backwards</title></head>
+<body>
+<main>
+  <h1>Backwards only</h1>
+  <a href="#x" id="x">x</a>
+  <button id="a">A</button>
+  <button id="b">B</button>
+  <a href="#y" id="y">y</a>
+  <a href="#z" id="z">z</a>
+</main>
+<script>
+  // Tab on B wraps to A, so forward focus never gets past the pair. Shift+Tab is free.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && !e.shiftKey && document.activeElement === document.getElementById('b')) {
+      e.preventDefault(); document.getElementById('a').focus()
+    }
+  })
+</script>
+</body>
+</html>

@@ -1,7 +1,13 @@
 import { createServer, type Server } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { basename, join, resolve } from 'node:path'
+import { basename, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+}
 
 const PAGES_ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), 'pages')
 
@@ -29,7 +35,7 @@ export async function startPagesServer(options: PagesServerOptions = {}): Promis
       const name = basename(decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname))
       const raw = await readFile(join(PAGES_ROOT, name), 'utf8')
       const body = raw.replaceAll('{{ALT_ORIGIN}}', `http://localhost:${port}`)
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...(options.headers?.[name] ?? {}) })
+      res.writeHead(200, { 'content-type': CONTENT_TYPES[extname(name)] ?? 'text/html; charset=utf-8', ...(options.headers?.[name] ?? {}) })
       res.end(body)
     } catch {
       res.writeHead(404).end()

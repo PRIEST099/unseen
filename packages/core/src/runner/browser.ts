@@ -104,7 +104,8 @@ export class BrowserPool {
   }
 
   async acquire(): Promise<Browser> {
-    if (this.busy + this.launching < this.maxConcurrency) {
+    // Never overtake a waiter: a slot that is free while the queue is not empty belongs to the queue head.
+    if (this.queue.length === 0 && this.busy + this.launching < this.maxConcurrency) {
       return this.checkout()
     }
     if (this.queue.length >= MAX_QUEUE_DEPTH) {
@@ -138,11 +139,13 @@ export class BrowserPool {
 
     if (!healthy || count >= MAX_SESSIONS_PER_BROWSER) {
       this.sessions.delete(browser)
+      // The slot is free now: hand it to the queue before waiting for the old browser to close.
+      this.dispatch()
       await browser.close().catch(() => undefined)
     } else {
       this.idle.push(browser)
+      this.dispatch()
     }
-    this.dispatch()
   }
 
   /** Close every idle browser and reject all waiters. For shutdown and tests. */
@@ -163,13 +166,17 @@ export class BrowserPool {
       return ready
     }
     this.launching++
+    let launched = false
     try {
       const browser = await this.launchFn()
       this.sessions.set(browser, 0)
       this.busy++
+      launched = true
       return browser
     } finally {
       this.launching--
+      // A failed launch frees its slot: let the next waiter try instead of waiting for a release.
+      if (!launched) this.dispatch()
     }
   }
 

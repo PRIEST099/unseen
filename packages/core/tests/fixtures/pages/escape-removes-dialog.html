@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>modal dialog that closes on Escape (removed)</title></head>
+<body>
+<div id="dlg" role="dialog" aria-modal="true" aria-label="Offer">
+  <button id="a">A</button>
+  <button id="b">B</button>
+</div>
+<main>
+  <h1>Closable dialog</h1>
+  <a href="#x">x</a>
+  <a href="#y">y</a>
+</main>
+<script>
+  // A compliant modal: Tab stays inside it, Escape closes it (removes it from the document).
+  const els = () => [document.getElementById('a'), document.getElementById('b')]
+  document.addEventListener('keydown', (e) => {
+    const dlg = document.getElementById('dlg')
+    if (!dlg) return
+    if (e.key === 'Escape') { dlg.remove(); return }
+    if (e.key === 'Tab') {
+      const [a, b] = els()
+      if (!e.shiftKey && document.activeElement === b) { e.preventDefault(); a.focus() }
+      if (e.shiftKey && document.activeElement === a) { e.preventDefault(); b.focus() }
+    }
+  })
+</script>
+</body>
+</html>

@@ -21,7 +21,18 @@ test('task 9: text styles, uncertain backgrounds and large text', async () => {
     expect(errors).toEqual([])
     const entries = Object.values(textNodeStyles)
     expect(entries.length).toBeGreaterThan(10)
-    expect(entries.some((s) => /^rgba?\(/.test(s.color) && /^rgba?\(/.test(s.backgroundColor))).toBe(true)
+    // every colour is a well-formed rgb() with integer channels 0-255 (the old check accepted any "rgb(" prefix)
+    const rgb = /^rgba?\((\d{1,3}), (\d{1,3}), (\d{1,3})(?:, ([\d.]+))?\)$/
+    const channelsOk = (c: string): boolean => {
+      const m = rgb.exec(c)
+      return m !== null && [m[1], m[2], m[3]].every((n) => Number(n) <= 255)
+    }
+    const certain = entries.filter((s) => !s.backgroundUncertain)
+    expect(certain.every((s) => channelsOk(s.backgroundColor))).toBe(true)
+    expect(entries.every((s) => channelsOk(s.color))).toBe(true)
+    // real backgrounds are resolved, not just the white fallback
+    expect(certain.some((s) => s.backgroundColor !== 'rgb(255, 255, 255)')).toBe(true)
+    expect(certain.some((s) => s.backgroundColor === 'rgb(255, 255, 255)')).toBe(true)
     expect(entries.some((s) => s.isLargeText)).toBe(true)
     expect(entries.some((s) => s.backgroundUncertain)).toBe(true)
     expect(entries.some((s) => !s.backgroundUncertain)).toBe(true)

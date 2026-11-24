@@ -332,3 +332,29 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   2. **Plain `--resume` picked the wrong conversation.** It means "the most recent conversation in this folder", which was the concurrent run 22. Kiro refused with `SessionHeldElsewhereError` instead of hijacking it. Since then, resumes use `--resume-id <session>` from `kiro-cli chat --list-sessions`.
 - **Kiro produced:** rewritten Data Flow, types (`wcag: WCAGCriterion[]` plus `guidance`), Precedence (collide on any shared id), Severity (a blocks-the-task table and a `domNodes` core-task predicate), all 10 detector algorithms, fixture capture (`capture.mjs`, same-page selectors), ESLint 9 flat config, and Correctness Properties. Also the `tasks.md` rewrites (full task 0, dependency graph) plus the matching `requirements.md` and `REVIEW_RESOLUTION.md` corrections.
 - **Product-lead check:** the stale-string grep is clean apart from legitimate uses: `nodeIds[0]` as the trap-region element, and "no `__dirname`" in instructions.
+
+## 2026-11-24 · Run 22 (19b): Kiro finishes adopting the audit engine (owner account)
+- **Instruction:** `prompts/22-run-19b-audit-engine-fixes.md`. It covers the 10 partly fixed findings from the run-19 re-verification, then minors 25–47 and prompt 19's checklist. Model `auto`, run in the visible Terminal panel.
+- **Kiro produced:**
+  - **Walk start and baselines:** a robust walk-start and baseline (focusin traps, `showModal` dialogs, on-demand baselines with `:focus-within`).
+  - **Dialogs:** compliant Escape-closing dialogs are escapable (Req 11.8 amended).
+  - **Composite hosts:** a per-host sub-cap with `compositeTruncated` and `endReason: 'composite-stuck'`.
+  - **Lifecycle:** the late context is closed on timeout.
+  - **Metering:** OOPIF and worker metering.
+  - **Backgrounds:** `elementsFromPoint` painter detection for non-ancestor background layers.
+  - **Cleanup:** dead `detectCycle` removed; endings `cycle-repeated` and `navigated`; a named-export `index.ts` replaces the barrel.
+  - **Tests and fixtures:** about 14 new fixture pages and tests.
+  - **Findings 25–47:** fixed, except 35, which Kiro showed was no longer a defect.
+- **Kiro surprised us:** it ended with a "Decisions for you" section. It flagged a heuristic it had chosen itself (50 extra presses to move past a composite host), and a defect **nobody had reported**: `collectBoundingBoxes` pairs rects with ids by index across two snapshots. It asked whether to fix that later instead of silently widening scope.
+- **Product-lead decisions:** accept the 50-press heuristic. Fix the bounding-box pairing first in run 25 (the classifier build, which already touches the runner for task 0).
+- **Claude Code verification:**
+  - `npm run typecheck`: exit 0
+  - `vitest --run`: **101/101**
+  - `playwright test`: **73/73**
+  - Cursed Shop `npm run verify`: VERIFY PASSED
+
+## 2026-11-24 · Run 13: spec `safe-fetch` (owner account)
+- **Instruction:** `prompts/13-spec-safe-fetch.md`, plus the 2026-11-24 addendum (fail-open `ENODATA`, mocks that hid IPv6 gaps, integrating with `resource-limits.ts`). Mode `spec`, model `claude-sonnet-4.5`, fs tools only. It ran **in parallel** with run 22 in another Terminal tab with no throttling.
+- **Kiro surprised us:** it classified this as a **bug fix** and used Kiro's bugfix spec workflow. It wrote `bugfix.md` instead of `requirements.md`, and the 21 tasks start with exploratory tests that **prove each bug exists** before any fix, then preservation tests. It chose design option (b), the in-process CONNECT proxy (one enforcement point, covering redirects and subresources), with `ipaddr.js` and `dns.lookup({all, verbatim})`.
+- **Kiro produced:** `.kiro/specs/safe-fetch/{bugfix.md, design.md, tasks.md}` (about 15 KB, 63 KB and 30 KB).
+- **Next:** independent spec review before the implementation run.

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import type { Page } from 'playwright'
 import { BrowserPool } from '../src/runner/browser.js'
 import { walkTabs } from '../src/runner/tab-walker.js'
 import { startShopServer, type ShopServer } from './fixtures/shop-server.js'
@@ -14,6 +15,35 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   await pool.close()
   await shop.close()
+})
+
+/** Evaluate `fn` (a function declaration source, `this` = the node) on a backendDOMNodeId. */
+async function onNode<T>(page: Page, id: string, fn: string): Promise<T> {
+  const cdp = await page.context().newCDPSession(page)
+  try {
+    const { object } = (await cdp.send('DOM.resolveNode', { backendNodeId: Number(id) })) as { object: { objectId: string } }
+    const { result } = (await cdp.send('Runtime.callFunctionOn', {
+      objectId: object.objectId,
+      functionDeclaration: fn,
+      returnByValue: true,
+    })) as { result: { value: T } }
+    return result.value
+  } finally {
+    await cdp.detach().catch(() => undefined)
+  }
+}
+
+// Findings 5 and 6: checkout's focusin-based restoreFocus pulls focus back into the modal input.
+test('checkout: the modal input is the first step and its baseline is the unfocused look', async () => {
+  await withPage(pool, `${shop.baseUrl}/checkout.html`, async (page) => {
+    const r = await walkTabs(page)
+    const first = r.steps[0]!
+    expect(await onNode<boolean>(page, first.backendDOMNodeId, 'function(){ return this.matches("#newsletterModal input") }')).toBe(true)
+    expect(first.cdpError).toBe(false)
+    expect(first.focusSnapshot.before['outline-style']).toBe('none')
+    expect(first.focusSnapshot.after['outline-style']).toBe('solid')
+    expect(r.trapDetected).toBe(true)
+  })
 })
 
 test('checkout: the newsletter modal is a true trap', async () => {
@@ -32,6 +62,8 @@ test('checkout: the newsletter modal is a true trap', async () => {
       })) as { result: { value: boolean } }
       expect(result.value).toBe(true)
     }
+    // the region comes first and is the modal's dialog
+    expect(await onNode<boolean>(page, r.trapRegionNodeIds[0]!, 'function(){ return !!this.closest("#newsletterModal") && this.matches("[role=dialog]") }')).toBe(true)
     expect(r.walkStartedAtMs).toBeGreaterThan(0)
   })
 })
@@ -40,7 +72,13 @@ test('index: the cookie banner cycle is escapable and the walk reaches the foote
   await withPage(pool, `${shop.baseUrl}/index.html`, async (page) => {
     const r = await walkTabs(page)
     expect(r.trapDetected).toBe(false)
-    expect(r.cycles.some((c) => c.escapable)).toBe(true)
+    // the escapable cycle is the cookie banner's, not the wrap-around of the whole page
+    const banner = r.cycles.find((c) => c.escapable && !c.includesAllFocusables)
+    expect(banner).toBeDefined()
+    for (const id of banner!.nodeIds) {
+      expect(await onNode<boolean>(page, id, 'function(){ return !!this.closest("#cookieBanner") }')).toBe(true)
+    }
+    expect(r.endReason).toBe('body')
     const footerIds = new Set<string>()
     const cdp = await page.context().newCDPSession(page)
     for (const s of r.steps) {
@@ -54,7 +92,7 @@ test('index: the cookie banner cycle is escapable and the walk reaches the foote
     }
     expect(footerIds.size).toBeGreaterThan(5)
     const step = r.steps.find((s) => !s.cdpError)!
-    for (const k of ['outline-style', 'outline-width', 'outline-color', 'box-shadow', 'border-color', 'background-color', 'text-decoration', 'adjacent-background-color']) {
+    for (const k of ['outline-style', 'outline-width', 'outline-color', 'outline-offset', 'box-shadow', 'border-style', 'border-width', 'border-color', 'background-color', 'text-decoration', 'adjacent-background-color']) {
       expect(step.focusSnapshot.after).toHaveProperty(k)
     }
     // finding 23: `before` is read too, has the same keys as `after`, and shows the real focus change

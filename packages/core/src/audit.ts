@@ -8,7 +8,7 @@ import type { LoadedPage } from './runner/browser.js'
 import { buildDomAxMapping, collectEventListeners, collectPageMetadata, collectTextNodeStyles } from './runner/collectors.js'
 import { collectAxTree } from './runner/ax-tree.js'
 import { runAxe } from './runner/axe.js'
-import { walkTabs } from './runner/tab-walker.js'
+import { walkTabsWithErrors } from './runner/tab-walker.js'
 import { ResourceMeter } from './runner/resource-limits.js'
 import { PermissiveSafeFetchPolicy, RestrictiveSafeFetchPolicy } from './runner/safe-fetch.js'
 
@@ -37,8 +37,12 @@ function validateUrl(url: string): URL {
 
 /** Test seams. Production callers use `auditUrl`. */
 export type AuditHooks = {
+  /** Called with the browser as soon as the pool hands it out. */
+  onBrowserAcquired?: (browser: Browser) => void
   /** Called with the page as soon as it exists, before navigation. */
   onPageCreated?: (page: Page) => void
+  /** Replaces the Tab walk (to test the failure path). */
+  walk?: (page: Page) => Promise<{ walk: TabWalkResult; errors: CollectionError[] }>
 }
 
 /** Audit a live URL and return the raw evidence the classifier needs. */
@@ -87,6 +91,22 @@ async function closeContext(context: BrowserContext, browser: Browser): Promise<
   if (!ok) await browser.close().catch(() => undefined)
 }
 
+/** Create the context; if the audit fails first, close the context when it resolves late. */
+async function createContextGuarded(
+  loader: PageLoader,
+  browser: Browser,
+  options: AuditOptions,
+  guard: AuditGuard
+): Promise<BrowserContext> {
+  const creating = loader.createContext(browser, options)
+  try {
+    return await guard.race(creating)
+  } catch (err) {
+    creating.then((late) => late.close(), () => undefined).catch(() => undefined)
+    throw err
+  }
+}
+
 async function runAudit(
   url: string,
   policy: SafeFetchPolicy,
@@ -97,11 +117,12 @@ async function runAudit(
   const started = Date.now()
   const crashed = (): AuditTimeoutError => new AuditTimeoutError('browser-crash', Date.now() - started)
   const browser = await acquireBrowser(guard)
+  hooks.onBrowserAcquired?.(browser)
   const onDisconnect = (): void => guard.fail(crashed())
   browser.on('disconnected', onDisconnect)
   try {
     const loader = new PageLoader()
-    const context = await guard.race(loader.createContext(browser, options))
+    const context = await createContextGuarded(loader, browser, options, guard)
     try {
       return await collectAudit(url, policy, options, guard, { loader, context, crashed, hooks })
     } finally {
@@ -139,7 +160,7 @@ async function collectAudit(
   loaded.page.on('close', () => guard.fail(parts.crashed()))
   try {
     const collectionErrors: CollectionError[] = []
-    const evidence = await collectEvidence(loaded.page, guard, collectionErrors)
+    const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks)
     return assemble(url, options, loaded, meter, evidence, collectionErrors)
   } finally {
     // Not awaited: on a crashed renderer a CDP detach never settles. Closing the context drops the session anyway.
@@ -170,9 +191,16 @@ function emptyWalk(): TabWalkResult {
 }
 
 /** The Tab walk is evidence, not a precondition: a failure is recorded and the audit goes on. */
-async function walkOrRecord(page: Page, guard: AuditGuard, errors: CollectionError[]): Promise<TabWalkResult> {
+async function walkOrRecord(
+  page: Page,
+  guard: AuditGuard,
+  errors: CollectionError[],
+  hooks: AuditHooks
+): Promise<TabWalkResult> {
   try {
-    return await guard.race(walkTabs(page))
+    const { walk, errors: walkErrors } = await guard.race((hooks.walk ?? walkTabsWithErrors)(page))
+    errors.push(...walkErrors)
+    return walk
   } catch (err) {
     if (guard.hasFailed) throw err
     errors.push({ step: 'tab-walk', message: err instanceof Error ? err.message : String(err) })
@@ -180,7 +208,12 @@ async function walkOrRecord(page: Page, guard: AuditGuard, errors: CollectionErr
   }
 }
 
-async function collectEvidence(page: Page, guard: AuditGuard, collectionErrors: CollectionError[]): Promise<Evidence> {
+async function collectEvidence(
+  page: Page,
+  guard: AuditGuard,
+  collectionErrors: CollectionError[],
+  hooks: AuditHooks
+): Promise<Evidence> {
   const axNodes = await guard.race(collectAxTree(page))
   const [axe, listeners, meta, mapping] = await guard.race(
     Promise.all([
@@ -194,7 +227,7 @@ async function collectEvidence(page: Page, guard: AuditGuard, collectionErrors: 
   const styles = await guard.race(collectTextNodeStyles(page, listeners.signals))
   if (axe.error) collectionErrors.push(axe.error)
   collectionErrors.push(...listeners.errors, ...mapping.errors, ...styles.errors)
-  const tabWalkResult = await walkOrRecord(page, guard, collectionErrors)
+  const tabWalkResult = await walkOrRecord(page, guard, collectionErrors, hooks)
   return { axNodes, axe, listeners, meta, mapping, styles, tabWalkResult }
 }
 
@@ -251,6 +284,24 @@ export class OriginScopedPolicy implements SafeFetchPolicy {
   }
 }
 
+/** The in-process server's port changes every run; auditHtml reports this origin instead (Req 12.6). */
+export const STABLE_HTML_ORIGIN = 'http://127.0.0.1:0'
+
+function isRawAudit(x: unknown): x is RawAudit {
+  return typeof x === 'object' && x !== null && 'schemaVersion' in x && x.schemaVersion === '1' && 'auditedUrl' in x
+}
+
+/**
+ * Replace the random local host:port everywhere in the audit: auditedUrl, request URLs, and the
+ * page URL the AX tree reports on its root node. A plain text replacement over the JSON form
+ * covers every field, including ones added later.
+ */
+function stabiliseOrigin(raw: RawAudit, origin: string): RawAudit {
+  const hostPort = new URL(origin).host
+  const parsed: unknown = JSON.parse(JSON.stringify(raw).replaceAll(hostPort, new URL(STABLE_HTML_ORIGIN).host))
+  if (!isRawAudit(parsed)) throw new Error('auditHtml: the audit changed shape while its origin was normalised')
+  return parsed
+}
 /** Audit an HTML string by serving it on 127.0.0.1 at a random port. */
 export async function auditHtml(html: string, options: AuditOptions = {}): Promise<RawAudit> {
   const bytes = Buffer.byteLength(html, 'utf8')
@@ -264,13 +315,18 @@ export async function auditHtml(html: string, options: AuditOptions = {}): Promi
       res.writeHead(404).end()
     }
   })
-  await new Promise<void>((ok) => server.listen(0, '127.0.0.1', () => ok()))
+  await new Promise<void>((ok, fail) => {
+    server.once('error', fail)
+    server.listen(0, '127.0.0.1', () => ok())
+  }).catch((err: unknown) => {
+    throw new Error(`auditHtml could not start its local server: ${err instanceof Error ? err.message : String(err)}`)
+  })
   try {
     const addr = server.address()
     if (!addr || typeof addr === 'string') throw new Error('auditHtml server has no port')
     const origin = `http://127.0.0.1:${addr.port}`
     const policy = new OriginScopedPolicy(origin, selectPolicy(options))
-    return await auditUrl(`${origin}/`, { ...options, safeFetchPolicy: policy })
+    return stabiliseOrigin(await auditUrl(`${origin}/`, { ...options, safeFetchPolicy: policy }), origin)
   } finally {
     await new Promise((ok) => server.close(() => ok(undefined)))
   }

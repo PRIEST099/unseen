@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>page that attacks window globals</title></head>
+<body>
+<main>
+  <h1>Hostile</h1>
+  <p id="p1">some text</p>
+  <p id="p2">more text</p>
+</main>
+<script>
+  // A page that makes any assignment to the old collector globals throw, or read back as an empty list.
+  for (const name of ['__unseenTextEls', '__unseenMapEls']) {
+    Object.defineProperty(window, name, { get() { return [] }, set() { throw new Error('nope') }, configurable: false })
+  }
+</script>
+</body>
+</html>

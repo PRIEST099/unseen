@@ -175,3 +175,59 @@ describe('Property 5: normalizeBoundingBox', () => {
     )
   })
 })
+
+describe('BrowserPool fairness and launch failures (findings 36, 37)', () => {
+  it('a failed launch gives the freed slot to the next waiter at once', async () => {
+    let calls = 0
+    const pool = new BrowserPool({
+      maxConcurrency: 1,
+      acquireTimeoutMs: 5_000,
+      launch: async () => {
+        if (calls++ === 0) throw new Error('launch failed')
+        return fakeBrowser()
+      },
+    })
+    const first = pool.acquire()
+    const second = pool.acquire() // queued behind the first launch
+    first.catch(() => undefined)
+    await expect(first).rejects.toThrow('launch failed')
+    await expect(second).resolves.toBeDefined()
+    expect(calls).toBe(2)
+    expect(pool.queueDepth).toBe(0)
+  })
+
+  it('a caller arriving while an old browser is closing does not overtake the queue head', async () => {
+    let closeDone: () => void = () => undefined
+    const slowClose = new Promise<void>((ok) => (closeDone = ok))
+    const dying = { isConnected: vi.fn(() => false), close: vi.fn(() => slowClose) } as unknown as Browser
+    let launches = 0
+    const pool = new BrowserPool({ maxConcurrency: 1, launch: async () => (launches++ === 0 ? dying : fakeBrowser()) })
+    const held = await pool.acquire()
+    const order: string[] = []
+    const early = pool.acquire().then((b) => (order.push('early'), b))
+    const releasing = pool.release(held) // the dying browser is still closing
+    const late = pool.acquire().then((b) => (order.push('late'), b))
+    await early
+    expect(order).toEqual(['early'])
+    closeDone()
+    await releasing
+    await pool.release(await early)
+    await late
+    expect(order).toEqual(['early', 'late'])
+  })
+  it('release hands the slot to the queue before an unhealthy browser has finished closing', async () => {
+    let closeDone: () => void = () => undefined
+    const slowClose = new Promise<void>((ok) => (closeDone = ok))
+    const dying = { isConnected: vi.fn(() => false), close: vi.fn(() => slowClose) } as unknown as Browser
+    let launches = 0
+    const pool = new BrowserPool({ maxConcurrency: 1, launch: async () => (launches++ === 0 ? dying : fakeBrowser()) })
+    const first = await pool.acquire()
+    const waiter = pool.acquire()
+    const releasing = pool.release(first)
+    // the close has not finished, yet the waiter gets its browser
+    await expect(waiter).resolves.toBeDefined()
+    closeDone()
+    await releasing
+    expect(launches).toBe(2)
+  })
+})

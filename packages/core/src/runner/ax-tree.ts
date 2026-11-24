@@ -16,7 +16,7 @@ type CdpAxNode = {
   parentId?: string
 }
 
-const EMPTY_VALUE: AXValue = { type: 'none', value: undefined }
+const EMPTY_VALUE: AXValue = { type: 'none' }
 
 /** CDP reports images as `image` or `img`; treat them as the same role. */
 export function isImageRole(role: string | undefined | null): boolean {
@@ -60,7 +60,8 @@ export function mapAxNode(n: CdpAxNode): AXNode {
     ignored: n.ignored,
     ignoredReasons: toProps(n.ignoredReasons),
     childIds: n.childIds ?? [],
-    parentId: n.parentId,
+    // Leave the key out when there is no parent, so a JSON round-trip is strictly equal (Req 12.3).
+    ...(n.parentId !== undefined ? { parentId: n.parentId } : {}),
   }
 }
 

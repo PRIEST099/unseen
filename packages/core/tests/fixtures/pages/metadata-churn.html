@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>images that change order while the audit reads them</title></head>
+<body>
+<main>
+  <h1>Churn</h1>
+  <div id="imgs">
+    <img id="i1" alt="first" width="4" height="4">
+    <img id="i2" alt="second" width="4" height="4">
+    <img id="i3" alt="third" width="4" height="4">
+  </div>
+</main>
+<script>
+  // Every tick the last image moves to the front: the count is stable, every index shifts.
+  const box = document.getElementById('imgs')
+  setInterval(() => box.insertBefore(box.lastElementChild, box.firstElementChild), 0)
+</script>
+</body>
+</html>

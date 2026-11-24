@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { test, expect } from '@playwright/test'
-import { auditUrl } from '../src/audit.js'
+import { STABLE_HTML_ORIGIN, auditHtml, auditUrl } from '../src/audit.js'
 import type { RawAudit } from '../src/types.js'
 import { startShopServer, type ShopServer } from './fixtures/shop-server.js'
 
@@ -76,27 +76,48 @@ function normalise(a: RawAudit): Record<string, unknown> {
   }
 }
 
+/** Names the top-level fields that differ, with the first differing entry of array fields. */
+function differences(na: Record<string, unknown>, nb: Record<string, unknown>): string[] {
+  const differing = Object.keys(na).filter((k) => JSON.stringify(na[k]) !== JSON.stringify(nb[k]))
+  return differing.map((k) => {
+    const pa = na[k]
+    const pb = nb[k]
+    if (!Array.isArray(pa) || !Array.isArray(pb)) return k
+    const i = pa.findIndex((v, j) => JSON.stringify(v) !== JSON.stringify(pb[j]))
+    return `${k}[${i}] (len ${pa.length} vs ${pb.length}): ${JSON.stringify(pa[i]).slice(0, 600)} || ${JSON.stringify(pb[i]).slice(0, 600)}`
+  })
+}
+
+const sha = (s: string): string => createHash('sha256').update(Buffer.from(s, 'base64')).digest('hex')
+
 test('two sequential audits of the same page are identical after normalisation', async () => {
   test.setTimeout(150_000)
   const url = `${shop.baseUrl}/index.html`
   const a = await auditUrl(url, { allowPrivate: true })
   const b = await auditUrl(url, { allowPrivate: true })
-  const na = normalise(a) as Record<string, unknown>
-  const nb = normalise(b) as Record<string, unknown>
-  const differing = Object.keys(na).filter((k) => JSON.stringify(na[k]) !== JSON.stringify(nb[k]))
-  const detail = differing.map((k) => {
-    const pa = na[k] as unknown[]
-    const pb = nb[k] as unknown[]
-    if (!Array.isArray(pa) || !Array.isArray(pb)) return k
-    const i = pa.findIndex((v, j) => JSON.stringify(v) !== JSON.stringify(pb[j]))
-    return `${k}[${i}] (len ${pa.length} vs ${pb.length}): ${JSON.stringify(pa[i]).slice(0, 600)} || ${JSON.stringify(pb[i]).slice(0, 600)}`
-  })
-  expect(detail).toEqual([])
-  const sha = (s: string) => createHash('sha256').update(Buffer.from(s, 'base64')).digest('hex')
-  if (a.screenshotPng !== b.screenshotPng) {
-    // Amendment 6: font rasterisation can make PNG bytes differ; record, do not fail.
-    const note = `${sha(a.screenshotPng)} vs ${sha(b.screenshotPng)}`
-    test.info().annotations.push({ type: 'screenshot-mismatch', description: note })
-    console.warn(`screenshot SHA-256 mismatch: ${note}`)
+  expect(differences(normalise(a), normalise(b))).toEqual([])
+  // Req 12.6: the screenshots are byte-identical. Drift is tolerated only behind an explicit opt-in,
+  // for machines where font rasterisation is shown to differ between runs.
+  if (process.env.UNSEEN_ALLOW_SCREENSHOT_DRIFT === '1') {
+    if (a.screenshotPng !== b.screenshotPng) {
+      test.info().annotations.push({ type: 'screenshot-mismatch', description: `${sha(a.screenshotPng)} vs ${sha(b.screenshotPng)}` })
+    }
+    return
   }
+  expect(sha(a.screenshotPng)).toBe(sha(b.screenshotPng))
+})
+
+// Finding 39: auditHtml must also be deterministic, so the random local port must not leak into the audit.
+test('two auditHtml runs of the same HTML are identical, with a stable origin', async () => {
+  test.setTimeout(150_000)
+  const html =
+    '<!doctype html><html lang="en"><body><main><h1>Hi</h1><a href="/x">link</a><img src="http://127.0.0.1:1/x.png" alt=""></main></body></html>'
+  const a = await auditHtml(html, { allowPrivate: true })
+  const b = await auditHtml(html, { allowPrivate: true })
+  expect(a.auditedUrl).toBe(`${STABLE_HTML_ORIGIN}/`)
+  expect(a.auditedUrl).toBe(b.auditedUrl)
+  expect(differences(normalise(a), normalise(b))).toEqual([])
+  expect(sha(a.screenshotPng)).toBe(sha(b.screenshotPng))
+  // the strict JSON round-trip of Req 12.3 holds for the whole audit
+  expect(JSON.parse(JSON.stringify(a))).toStrictEqual(a)
 })

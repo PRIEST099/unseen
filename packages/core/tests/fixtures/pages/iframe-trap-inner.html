@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>keyboard trap inside a frame</title></head>
+<body>
+  <a id="p" href="#p">p</a>
+  <a id="q" href="#q">q</a>
+<script>
+  // Tab on the last link wraps to the first: focus can never leave this frame by keyboard.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && !e.shiftKey && document.activeElement === document.getElementById('q')) {
+      e.preventDefault(); document.getElementById('p').focus()
+    }
+    if (e.key === 'Tab' && e.shiftKey && document.activeElement === document.getElementById('p')) {
+      e.preventDefault(); document.getElementById('q').focus()
+    }
+  })
+</script>
+</body>
+</html>

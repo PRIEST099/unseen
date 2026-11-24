@@ -1,4 +1,6 @@
+import net from 'node:net'
 import { test, expect } from '@playwright/test'
+import { getPool } from '../src/runner/browser.js'
 import { auditHtml, auditUrl } from '../src/audit.js'
 import { RestrictiveSafeFetchPolicy } from '../src/runner/safe-fetch.js'
 import { HtmlSizeError, SsrfBlockedError } from '../src/types.js'
@@ -21,7 +23,7 @@ for (const page of ['index.html', 'checkout.html']) {
     expect(a.viewportWidth).toBe(1280)
     expect(a.viewportHeight).toBe(900)
     expect(a.boundingBoxes.every((b) => b.backendDOMNodeId !== 0)).toBe(true)
-    expect(JSON.parse(JSON.stringify(a))).toEqual(a)
+    expect(JSON.parse(JSON.stringify(a))).toStrictEqual(a)
     expect(a.tabWalkResult.trapDetected).toBe(page === 'checkout.html')
   })
 }
@@ -31,8 +33,38 @@ test('auditUrl rejects invalid URLs and non-http schemes with TypeError', async 
   await expect(auditUrl('file:///etc/passwd')).rejects.toBeInstanceOf(TypeError)
 })
 
-test('auditUrl blocks loopback under the restrictive policy before launching', async () => {
-  await expect(auditUrl(`${shop.baseUrl}/index.html`)).rejects.toBeInstanceOf(SsrfBlockedError)
+test('auditUrl blocks loopback under the restrictive policy before any pool acquire', async () => {
+  const pool = getPool()
+  const original = pool.acquire.bind(pool)
+  let acquires = 0
+  pool.acquire = async () => {
+    acquires++
+    return original()
+  }
+  try {
+    await expect(auditUrl(`${shop.baseUrl}/index.html`)).rejects.toBeInstanceOf(SsrfBlockedError)
+    // Req 3.6 / task 14: the check runs before a browser is acquired, so no pool slot was used
+    expect(acquires).toBe(0)
+    expect(pool.busyCount).toBe(0)
+  } finally {
+    pool.acquire = original
+  }
+})
+
+// Finding 41: a server that cannot listen is a typed error, not an unhandled 'error' event.
+test('auditHtml turns a failing listen into an Error instead of crashing', async () => {
+  const original = net.Server.prototype.listen
+  net.Server.prototype.listen = function (this: net.Server): net.Server {
+    queueMicrotask(() => this.emit('error', new Error('listen EMFILE')))
+    return this
+  }
+  try {
+    await expect(auditHtml('<!doctype html><html lang="en"><body><h1>x</h1></body></html>')).rejects.toThrow(
+      /could not start its local server: listen EMFILE/
+    )
+  } finally {
+    net.Server.prototype.listen = original
+  }
 })
 
 test('auditHtml rejects HTML over 10 MB', async () => {

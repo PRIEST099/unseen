@@ -136,15 +136,13 @@ Pre-walk steps:
 
 Walk loop (see Tab Walker Cycle Detection Algorithm section for detail):
 - Each iteration: capture `before` styles → `keyboard.press('Tab')` → read `activeElement` via CDP → capture `after` styles → record `TabStep`.
-- Collected style properties: `outline-style`, `outline-width`, `outline-color`, `outline-offset`, `box-shadow`, `border-color`, `background-color`, `text-decoration`.
+- Collected style properties: `outline-style`, `outline-width`, `outline-color`, `outline-offset`, `box-shadow`, `border-style`, `border-width`, `border-color`, `background-color`, `text-decoration`, `adjacent-background-color`.
 - Cycle detection: if the same `backendDOMNodeId` appears a second time before `focusableSet` is fully visited, run the escape test.
 - Escape test: `keyboard.press('Escape')` → `keyboard.press('Shift+Tab')` → read `activeElement`.
 - After escape test: if escapable, **reset cycle detection** (begin a new walk segment from the new focus position) and continue; otherwise declare trap and stop.
 - The step cap applies to the cumulative step count across all segments.
 
-The module also exports two pure helper functions for property testing:
-- `detectCycle(steps, focusableCount)` — pure cycle detection on a sequence of IDs
-- `stepCap(focusableCount)` — the step cap formula
+The module exports one pure helper for property testing, `stepCap(focusableCount)` (the step cap formula). Cycle detection is not a separate helper: it lives in `runWalk`, which is the only implementation and is tested directly through a fake `TabDriver` (run 19b, finding 20).
 
 ### `runner/safe-fetch.ts` — SafeFetchPolicy
 
@@ -271,31 +269,28 @@ type TabStep = {
   backendDOMNodeId: string
   focusSnapshot: FocusSnapshot
   cdpError: boolean                    // true if CDP read failed for this step
+  compositeTruncated?: true            // focus stayed in this frame or shadow host past the 50-press sub-cap
+  baselineUnavailable?: true           // the unfocused look could not be read; before is {}
 }
 
 type FocusSnapshot = {
   before: ComputedStyleMap             // styles captured before Tab keypress
   after: ComputedStyleMap              // styles captured after focus arrives
   // Captured properties: outline-style, outline-width, outline-color, outline-offset,
-  // box-shadow, border-color, background-color, text-decoration
+  // box-shadow, border-style, border-width, border-color, background-color, text-decoration,
+  // adjacent-background-color
 }
 
 type ComputedStyleMap = Record<string, string>  // CSS property → computed value
 
 type TabCycle = {
-  nodeIds: string[]                    // backendDOMNodeIds forming the cycle
-  startStepIndex: number
-  escapable: boolean
+  nodeIds: string[]                    // backendDOMNodeIds forming the cycle, in focus order from the first occurrence
+  startStepIndex: number               // step index of the first member
+  escapable?: boolean                  // set only when the escape test ran for this cycle
+  includesAllFocusables: boolean       // the members are every focusable on the page
+  allFocusablesVisited: boolean        // every focusable had been visited when the cycle closed (ends the walk)
 }
 
-// Cycle detection result (pure function output)
-type CycleResult = {
-  hasCycle: boolean
-  cycleStart: number                   // index of first repeat, or -1
-  cycleNodeIds: string[]
-}
-
-// Text node computed styles for contrast detection
 type TextNodeStyle = {
   color: string
   backgroundColor: string             // effective (resolved from transparent ancestors)
@@ -697,29 +692,20 @@ function runEscapeTest(cdpSession):
 
 If the resulting `activeElement.backendDOMNodeId` is **not** a member of the candidate cycle's node set, the cycle is classified as `escapable: true` — a modal with a working Escape key is compliant with WCAG 2.1.2. The walker resumes from that element.
 
-If the resulting `activeElement.backendDOMNodeId` **is** a member of the candidate cycle's node set (or if no element is focused), a keyboard trap is declared.
+If the resulting `activeElement.backendDOMNodeId` **is** a member of the candidate cycle's node set, a keyboard trap is declared.
 
-### Pure helper: `detectCycle`
+If **no element is focused** after the escape test, the walker asks whether any member of the cycle is still in the document and rendered (`isConnected` and `checkVisibility({ visibilityProperty: true })`). If one is, focus was dropped inside a dialog that is still there: a keyboard trap is declared. If none is, the dialog was removed or hidden by Escape, so the user escaped: the cycle is `escapable: true`, detection restarts with an empty segment and the walk continues (run 19b, finding 7; hauntings.md section 5 wins over the earlier wording of Req 11.8).
 
-This function is extracted from the walker loop for property-based testing:
+### Cycle detection lives in `runWalk`
 
-```typescript
-type CycleResult = {
-  hasCycle: boolean
-  cycleStart: number       // index of the first repeated step, or -1
-  cycleNodeIds: string[]   // IDs forming the cycle
-}
+There is no separate `detectCycle` helper any more (removed in run 19b, finding 20): it had different semantics from the walker and no production caller. `runWalk` keeps a *segment* of ids since the last escapable cycle. A repeat of an id in the segment is a candidate cycle whose members are `segment[first..]` and whose `startStepIndex` is the step index of its first member. If every focusable has been visited the walk ends (`cycle-includes-all`); if the same member set was escaped before, the walk ends (`cycle-repeated`); otherwise the escape test decides.
 
-function detectCycle(steps: readonly string[], focusableCount: number): CycleResult
-```
+### Other walk behaviours added in run 19b
 
-Logic:
-1. Build `focusableSet` by scanning the first `focusableCount` unique IDs in `steps`.
-2. Walk `steps` with a running `visitedSet`.
-3. If a step ID is already in `visitedSet` AND `visitedSet.size < focusableCount`, return `{ hasCycle: true, cycleStart: i, cycleNodeIds: [...members of visitedSet since first occurrence] }`.
-4. If the walk completes without that condition, return `{ hasCycle: false, cycleStart: -1, cycleNodeIds: [] }`.
-
-This function is pure (no I/O, no globals, no `Date.now()`). It lives in `tab-walker.ts` and is exported as a named export alongside the main `Tab_Walker` logic.
+- **Pre-walk reset.** `prepare()` swallows focus events (capture phase, each window) while it blurs the focused element and parks the Tab starting point at the top of the document, inside the open modal `<dialog>` if there is one. It then checks `activeElement`; an element that still has focus becomes the first step, with its baseline read by `unfocusedStyles` (focus swallowed, forced `:focus-within` on its ancestors, then focus given back).
+- **Composite hosts.** Repeated focus on an iframe or shadow host is counted per host (50 presses, then `compositeTruncated`, 50 more, then `composite-stuck` plus a CollectionError). Those presses are not steps and do not use the step cap.
+- **Navigation.** `Page.frameNavigated` on the main frame ends the walk with `navigated`.
+- **Mid-walk focusables** get an on-demand baseline.
 
 ---
 
@@ -727,25 +713,25 @@ This function is pure (no I/O, no globals, no `Date.now()`). It lives in `tab-wa
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-The audit engine's runner layer is primarily I/O-bound (browser automation, CDP calls), so the vast majority of its logic is not suitable for property-based testing. However, three pure helper functions extracted for testability are excellent candidates: `detectCycle`, `stepCap`, and `normalizeBoundingBox`. All correctness properties below target these pure functions.
+The audit engine's runner layer is primarily I/O-bound (browser automation, CDP calls), so the vast majority of its logic is not suitable for property-based testing. However, `stepCap`, `normalizeBoundingBox` and the walk logic in `runWalk` (driven through a fake `TabDriver`) are suitable for property-based testing. The correctness properties below target them.
 
-### Property 1: detectCycle — no-cycle invariant
+### Property 1: no-cycle invariant (through `runWalk`)
 
-*For any* sequence of step IDs with no repeated element, `detectCycle` SHALL return `{ hasCycle: false }` and the same result for any permutation of the same unique IDs (determinism).
+*For any* focus sequence with no repeated id, `runWalk` SHALL record no cycle and not declare a trap.
 
-**Validates: Requirements 11.3, 11.4** — a walk with no revisited node cannot be a trap; the function is deterministic (same inputs → same output).
+**Validates: Requirements 11.6**
 
-### Property 2: detectCycle — cycle detection before full visit
+### Property 2: cycle detection before full visit (through `runWalk`)
 
-*For any* sequence of step IDs that contains at least one repeat, where the repeat occurs before all `focusableCount` unique IDs have been seen at least once, `detectCycle` SHALL return `{ hasCycle: true }` with a non-empty `cycleNodeIds` array.
+*For any* sequence in which element `j` repeats at step `k` before every focusable has been visited, `runWalk` SHALL record exactly one cycle whose `nodeIds` are the steps `j..k` and whose `startStepIndex` is `j`.
 
-**Validates: Requirements 11.4** — the Tab_Walker must detect a cycle exactly when the same `backendDOMNodeId` appears a second time before all focusable elements have been visited.
+**Validates: Requirements 11.6**
 
-### Property 3: detectCycle — cycleNodeIds subset invariant
+### Property 3: cycle members come from the steps (through `runWalk`)
 
-*For any* input to `detectCycle`, every ID in `cycleNodeIds` SHALL also appear in `steps`.
+*For any* walk, every id in `cycles[].nodeIds` SHALL also appear among the recorded steps.
 
-**Validates: Requirements 11.4, 11.6** — cycle node IDs reported to the classifier must be drawn only from actually observed focus steps, never from fabricated data.
+**Validates: Requirements 11.6, 11.10**
 
 ### Property 4: stepCap invariants
 
@@ -809,51 +795,10 @@ Both integration tests (Playwright Test) and property-based tests (fast-check + 
 
 Each property test references its design document property in a comment:
 ```typescript
-// Feature: audit-engine, Property 1: detectCycle — no-cycle invariant
+// Feature: audit-engine, Property N: <name> (through runWalk)
 ```
 
-**Property 1 — detectCycle no-cycle invariant** (`tab-walker.test.ts`):
-```typescript
-fc.property(
-  fc.array(fc.uniqueArray(fc.string(), { minLength: 1 })),
-  (uniqueSteps) => {
-    const result = detectCycle(uniqueSteps, uniqueSteps.length)
-    return result.hasCycle === false
-  }
-)
-```
-
-**Property 2 — detectCycle cycle detection** (`tab-walker.test.ts`):
-Generate a sequence where a repeat appears before `focusableCount` unique IDs have been visited:
-```typescript
-fc.property(
-  fc.integer({ min: 2, max: 20 }).chain(n =>
-    fc.tuple(
-      fc.array(fc.string({ minLength: 1 }), { minLength: n, maxLength: n }),
-      fc.integer({ min: 0, max: n - 2 })
-    ).map(([ids, repeatAt]) => {
-      const steps = [...ids.slice(0, repeatAt + 1), ids[0], ...ids.slice(repeatAt + 1)]
-      return { steps, focusableCount: n + 1 }
-    })
-  ),
-  ({ steps, focusableCount }) => {
-    const result = detectCycle(steps, focusableCount)
-    return result.hasCycle === true && result.cycleNodeIds.length > 0
-  }
-)
-```
-
-**Property 3 — cycleNodeIds subset** (`tab-walker.test.ts`):
-```typescript
-fc.property(
-  fc.array(fc.string({ minLength: 1 }), { maxLength: 50 }),
-  fc.integer({ min: 0, max: 50 }),
-  (steps, focusableCount) => {
-    const result = detectCycle(steps, focusableCount)
-    return result.cycleNodeIds.every(id => steps.includes(id))
-  }
-)
-```
+Properties 1-3 live in `walk.test.ts` and drive `runWalk` with a scripted driver; Property 4 lives in `tab-walker.test.ts`.
 
 **Property 4 — stepCap invariants** (`tab-walker.test.ts`):
 ```typescript

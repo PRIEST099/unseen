@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>submenu that exists only while focus is inside</title>
+<style>
+  .sub { display: none; }
+  nav.menu:focus-within .sub { display: block; }
+  a { outline: none; }
+  a:focus { outline: 2px solid rgb(0, 0, 255); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Menu</h1>
+  <nav class="menu">
+    <a href="#menu" id="top">menu</a>
+    <div class="sub"><a href="#s1" id="s1">s1</a><a href="#s2" id="s2">s2</a></div>
+  </nav>
+  <a href="#end" id="end">end</a>
+</main>
+</body>
+</html>

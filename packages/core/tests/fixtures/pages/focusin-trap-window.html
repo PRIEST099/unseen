@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>focusin focus trap that registers first on window</title>
+<style>
+  input { outline: none; background: rgb(255, 255, 255); }
+  input:focus { outline: 2px solid rgb(0, 0, 255); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Window-level focusin trap</h1>
+  <a href="#before">before</a>
+  <div id="dlg" role="dialog" aria-modal="true" aria-label="Dialog">
+    <input id="email" aria-label="email">
+    <button id="ok">ok</button>
+  </div>
+  <a href="#after">after</a>
+</main>
+<script>
+  // Registered before the audit runs, on window in the capture phase: it sees focus events first,
+  // so it pulls focus back even while the auditor tries to move focus away.
+  const dlg = document.getElementById('dlg'), email = document.getElementById('email')
+  email.focus()
+  window.addEventListener('focusin', (e) => { if (!dlg.contains(e.target)) email.focus() }, true)
+</script>
+</body>
+</html>

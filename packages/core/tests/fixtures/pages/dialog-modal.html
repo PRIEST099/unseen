@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>native modal dialog</title>
+<style>
+  input { outline: none; background: rgb(255, 255, 255); }
+  input:focus { outline: 2px solid rgb(0, 0, 255); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Native dialog</h1>
+  <a href="#outside">outside</a>
+  <dialog id="d">
+    <input id="field" aria-label="field">
+    <button id="ok">ok</button>
+  </dialog>
+</main>
+<script>document.getElementById('d').showModal()</script>
+</body>
+</html>

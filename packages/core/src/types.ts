@@ -38,12 +38,12 @@ export type AXNode = {
   ignored: boolean
   ignoredReasons: AXProperty[]
   childIds: string[]
-  parentId: string | undefined
+  parentId?: string
 }
 
 export type AXValue = {
   type: string
-  value: string | boolean | number | undefined
+  value?: string | boolean | number
   sources?: AXValueSource[]
 }
 
@@ -81,14 +81,28 @@ export type TabWalkResult = {
   stepCapReached: boolean
   cycles: TabCycle[]
   walkStartedAtMs: number // epoch ms when the walk started (after the settle window)
-  endReason: "body" | "trap" | "step-cap" | "cycle-includes-all" | "no-focusables" | "no-focus" | "cdp-error"
+  endReason: TabWalkEndReason
 }
+
+export type TabWalkEndReason =
+  | "body"
+  | "trap"
+  | "step-cap"
+  | "cycle-includes-all"
+  | "no-focusables"
+  | "no-focus"
+  | "cdp-error"
+  | "composite-stuck" // focus stayed inside one frame or shadow host past its press budget
+  | "navigated" // the page navigated mid-walk; later focusables were not walked
+  | "cycle-repeated" // an escapable cycle was re-entered: focus can only leave it backwards
 
 export type TabStep = {
   index: number // 0-based step counter
   backendDOMNodeId: string
   focusSnapshot: FocusSnapshot
   cdpError: boolean // true if CDP read failed for this step
+  compositeTruncated?: true // focus stayed inside this frame or shadow host past the 50-press sub-cap
+  baselineUnavailable?: true // the unfocused look could not be read; `before` is empty
 }
 
 export type FocusSnapshot = {
@@ -101,15 +115,9 @@ export type ComputedStyleMap = Record<string, string> // CSS property → comput
 export type TabCycle = {
   nodeIds: string[] // backendDOMNodeIds forming the cycle
   startStepIndex: number
-  escapable: boolean
-  includesAllFocusables?: boolean // true when the cycle covers every focusable (not a trap)
-}
-
-// Cycle detection result (pure function output)
-export type CycleResult = {
-  hasCycle: boolean
-  cycleStart: number // index of first repeat, or -1
-  cycleNodeIds: string[]
+  escapable?: boolean // set only when the escape test ran for this cycle
+  includesAllFocusables: boolean // the cycle members are every focusable on the page
+  allFocusablesVisited: boolean // every focusable had been visited when the cycle closed (the walk ends, not a trap)
 }
 
 // Text node computed styles for contrast detection

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>listener on a parent only</title></head>
+<body>
+<main>
+  <h1>Listeners</h1>
+  <div id="parent"><span id="child">click me</span></div>
+  <div id="other">no listener</div>
+</main>
+<script>document.getElementById('parent').addEventListener('click', () => {})</script>
+</body>
+</html>

@@ -17,33 +17,89 @@ export async function backendIdOfObject(cdp: CDPSession, objectId: string): Prom
   }
 }
 
+type Evaluated = { result: RemoteObject; exceptionDetails?: { text?: string; exception?: { description?: string } } }
+
+function failure(what: string, evaluated: Evaluated): Error {
+  const detail = evaluated.exceptionDetails?.exception?.description ?? evaluated.exceptionDetails?.text ?? 'threw'
+  return new Error(`${what} failed: ${detail}`)
+}
+
+/** Evaluate an expression and keep its (object) result remote. Throws when the expression throws. */
+export async function evaluateToObject(cdp: CDPSession, expression: string): Promise<string> {
+  const evaluated = (await cdp.send('Runtime.evaluate', { expression, returnByValue: false })) as Evaluated
+  if (evaluated.exceptionDetails || evaluated.result.subtype === 'error' || !evaluated.result.objectId) {
+    throw failure('Runtime.evaluate', evaluated)
+  }
+  return evaluated.result.objectId
+}
+
+function callArguments(args: readonly unknown[]): Array<{ value: unknown }> {
+  return args.map((value) => ({ value }))
+}
+
+/** Call a function with `this` = the remote object and return its JSON value. Throws on a page exception. */
+export async function callByValue<T>(cdp: CDPSession, objectId: string, functionDeclaration: string, args: readonly unknown[] = []): Promise<T> {
+  const res = (await cdp.send('Runtime.callFunctionOn', {
+    objectId,
+    functionDeclaration,
+    arguments: callArguments(args),
+    returnByValue: true,
+  })) as Evaluated & { result: { value: T } }
+  if (res.exceptionDetails) throw failure('Runtime.callFunctionOn', res)
+  return res.result.value
+}
+
+/** Like `callByValue`, but the result stays remote. */
+export async function callToObject(cdp: CDPSession, objectId: string, functionDeclaration: string, args: readonly unknown[] = []): Promise<string> {
+  const res = (await cdp.send('Runtime.callFunctionOn', {
+    objectId,
+    functionDeclaration,
+    arguments: callArguments(args),
+    returnByValue: false,
+  })) as Evaluated
+  if (res.exceptionDetails || !res.result.objectId) throw failure('Runtime.callFunctionOn', res)
+  return res.result.objectId
+}
+
+export async function releaseObject(cdp: CDPSession, objectId: string): Promise<void> {
+  await cdp.send('Runtime.releaseObject', { objectId }).catch(() => undefined)
+}
+/** backendNodeIds of the elements in a remote array (order kept; failures become null). */
+export async function backendIdsOfObject(cdp: CDPSession, arrayObjectId: string): Promise<Array<number | null>> {
+  const { result: props } = (await cdp.send('Runtime.getProperties', {
+    objectId: arrayObjectId,
+    ownProperties: true,
+  })) as { result: Array<{ name: string; value?: RemoteObject }> }
+  const items = props.filter((p) => /^\d+$/.test(p.name)).sort((a, b) => Number(a.name) - Number(b.name))
+  const out: Array<number | null> = []
+  for (const p of items) {
+    out.push(p.value?.objectId ? await backendIdOfObject(cdp, p.value.objectId) : null)
+  }
+  return out
+}
+
 /**
  * Evaluate a JS expression that returns an array of DOM elements and resolve
  * each element to its backendNodeId (array order kept; failures become null).
+ * Throws when the expression throws, so callers can record a CollectionError.
  */
 export async function backendIdsOf(cdp: CDPSession, expression: string): Promise<Array<number | null>> {
-  const { result } = (await cdp.send('Runtime.evaluate', { expression, returnByValue: false })) as {
+  const evaluated = (await cdp.send('Runtime.evaluate', { expression, returnByValue: false })) as {
     result: RemoteObject
+    exceptionDetails?: { text?: string; exception?: { description?: string } }
+  }
+  const { result } = evaluated
+  if (evaluated.exceptionDetails || result.subtype === 'error') {
+    const detail = evaluated.exceptionDetails?.exception?.description ?? evaluated.exceptionDetails?.text ?? 'expression threw'
+    throw new Error(`Runtime.evaluate failed: ${detail}`)
   }
   if (!result.objectId) return []
   try {
-    const { result: props } = (await cdp.send('Runtime.getProperties', {
-      objectId: result.objectId,
-      ownProperties: true,
-    })) as { result: Array<{ name: string; value?: RemoteObject }> }
-    const items = props
-      .filter((p) => /^\d+$/.test(p.name))
-      .sort((a, b) => Number(a.name) - Number(b.name))
-    const out: Array<number | null> = []
-    for (const p of items) {
-      out.push(p.value?.objectId ? await backendIdOfObject(cdp, p.value.objectId) : null)
-    }
-    return out
+    return await backendIdsOfObject(cdp, result.objectId)
   } finally {
     await cdp.send('Runtime.releaseObject', { objectId: result.objectId }).catch(() => undefined)
   }
 }
-
 /**
  * The deepest focused element: follows `shadowRoot.activeElement` through open
  * shadow roots and `contentDocument.activeElement` through same-origin frames.
@@ -128,4 +184,46 @@ export async function injectInspectorStyles(cdp: CDPSession, cssText: string): P
   if (top === undefined) throw new Error('page has no frame tree')
   await apply(top)
   for (const id of children) await apply(id).catch(() => undefined)
+}
+
+const ANCESTORS_FN = `function () {
+  const out = []
+  const up = (n) => n.parentElement || (n.getRootNode && n.getRootNode().host) || null
+  for (let n = up(this); n && out.length < 24; n = up(n)) out.push(n)
+  return out
+}`
+
+/**
+ * Run `work` while every ancestor of the element is forced into `:focus-within`.
+ * Moving focus off an element would otherwise collapse a `:focus-within` submenu
+ * that contains it, and the element could no longer take focus back.
+ * Failures to force the state are ignored: `work` then runs without it.
+ */
+export async function withForcedFocusWithin<T>(cdp: CDPSession, objectId: string, work: () => Promise<T>): Promise<T> {
+  const forced: number[] = []
+  try {
+    const { result } = (await cdp.send('Runtime.callFunctionOn', {
+      objectId,
+      functionDeclaration: ANCESTORS_FN,
+      returnByValue: false,
+    })) as { result: RemoteObject }
+    if (result.objectId) {
+      const backendNodeIds = (await backendIdsOfObject(cdp, result.objectId)).filter((x): x is number => x !== null)
+      await cdp.send('DOM.getDocument', { depth: 0 })
+      const { nodeIds } = (await cdp.send('DOM.pushNodesByBackendIdsToFrontend', { backendNodeIds })) as { nodeIds: number[] }
+      for (const nodeId of nodeIds.filter((n) => n > 0)) {
+        await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus-within'] })
+        forced.push(nodeId)
+      }
+    }
+  } catch {
+    /* run without forced state */
+  }
+  try {
+    return await work()
+  } finally {
+    for (const nodeId of forced) {
+      await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] }).catch(() => undefined)
+    }
+  }
 }

@@ -10,7 +10,9 @@
 <body>
 <main>
   <h1>Veiled</h1>
-  <div id="real" class="box" aria-hidden="true"><button>visible control</button></div>
+  <div id="real" class="box" aria-hidden="true"><button id="real-btn">visible control</button></div>
+  <div id="inert-box" class="box" aria-hidden="true">decorative <div inert><button id="inert-btn">cannot focus</button></div></div>
+  <div id="disabled-box" class="box" aria-hidden="true"><button id="disabled-btn" disabled>off</button></div>
   <div id="none" class="box" aria-hidden="true">decorative <button style="display: none">gone</button></div>
   <div id="hidden-link" class="box" aria-hidden="true">decorative <a href="#x" style="visibility: hidden">gone</a></div>
   <div id="fieldset" class="box" aria-hidden="true">decorative <fieldset disabled><input aria-label="off"></fieldset></div>
