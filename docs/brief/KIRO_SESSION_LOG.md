@@ -465,3 +465,24 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `vitest --run`: **480/480** (30 files)
   - `playwright test`: **90/90**
   - Cursed Shop `npm run verify`: VERIFY PASSED
+
+## 2026-11-24 · Runs 29, 34, 35 and 36a–d: Kiro amends the spirit-sight-ui spec for 52 review findings (owner account)
+- **Review (Claude Code workflow, 3 reviewers plus verifiers):** 52 confirmed findings, 15 of them blockers. Among them:
+  - the signature fog moment could not happen (overlays were always visible and the fog was a flat grey box)
+  - boxes drifted on full-page screenshots
+  - the global rate limit would have blocked the progress polling
+  - the sample demo path returned 404
+  - there was no `onProgress`
+  - the self-audit did not cover the views
+  - Evidence: `review-notes/spirit-sight-ui-spec-review-1.md`. Instructions: `prompts/29` (decisions A–N).
+- **What happened:**
+  - **Run 29:** Kiro amended `requirements.md` only and deferred design and tasks "due to length". It had also read the review note truncated (findings 45–52).
+  - **Run 34 (`--resume-id`):** **our own `spec-types-drift` hook fired in the headless CLI** the moment Kiro saved `design.md`. Its agent-action prompt took over the turn, and the run ended after a drift report. This proves PostFileSave agent hooks fire in CLI V3, and teaches that agent-action hooks can hijack long headless edits.
+  - **Run 35:** the hook was paused, but the long resumed session hit Kiro's context limit partway through.
+  - **Runs 36a–d:** the work was split into four fresh-session parts (overlays/geometry, walks, daylight/self-audit/routing, tasks).
+    - **First attempt, with `--agent unseen-spec-writer`:** it wrote nothing. Its permission rules were "allow `.kiro/specs/**`" plus "deny `**`", and **in Kiro V3 deny always wins**. Kiro printed the content instead and asked us to apply it.
+    - **Retry, with `unseen-builder`:** all four parts wrote, and part A also fixed the spec-writer to least-privilege allow rules.
+- **Product-lead check (grep):**
+  - present: `/sample/:id`, `build-samples`, `UNSEEN_DEV_ALLOW_PRIVATE`, `global: false`, `pngSize`, `onProgress`, `buildSpeechTrack`
+  - gone: `alert(`, `spirit-sight-canvas`, any Dockerfile task
+  - `design.md` grew to about 135 KB, so a final consistency check is running before the IDE build.

@@ -1,468 +1,480 @@
-# Implementation Plan: Spirit Sight UI
+# Tasks Document
 
-## Overview
+## Phase 1: Vertical Slice (Landing → Séance → Spirit Sight → Daylight → Export)
 
-This plan implements a production-ready web application combining a React + Vite SPA with a Fastify API server in a single Docker image. The implementation is ordered for maximum demo impact: vertical slice first (working end-to-end on Cursed Shop sample), then polish, then edge cases.
+The vertical slice delivers one complete user path: submit a Cursed Shop demo → real progress → score + overlays + WCAG report → export → self-audit proof. All subsequent features build on this foundation.
 
-**Strategy**: Get one complete flow working fast (sample → Spirit Sight → self-audit proof), then layer on polish that judges will see.
+### Task 1.1: Add `onProgress` callback to `auditAndClassify` (additive core change)
 
-## Tasks
+**Requirements**: Requirement 3 (Execute Audits with Progress Tracking)
 
-### Phase 1: Vertical Slice (Priority: MUST for demo)
+**Design**: Section "Audit Job Queue > Job Worker" and Requirement 3 acceptance criteria 2–3
 
-- [ ] 1. Set up apps/web workspace structure
-  - Create directory structure: `apps/web/src/{client,server}`, `apps/web/public`, `apps/web/tests`
-  - Configure `apps/web/package.json` with dependencies: React 18, Vite 5, Fastify, Playwright, @the-unseen/core
-  - Configure `apps/web/tsconfig.json` extending `tsconfig.base.json` with client and server paths
-  - Configure `apps/web/vite.config.ts` with React plugin, dev server port 5173, and build output to `dist/client`
-  - Configure `apps/web/vitest.config.ts` with jsdom environment and React Testing Library
-  - _Requirements: 1.1, 1.3, 20.1, 20.2, 24.2_
+**Acceptance Criteria**:
+- `auditAndClassify(url, options)` in `packages/core/src/index.ts` accepts an optional `onProgress?: (stage: 'loading'|'tree'|'walking'|'classifying', atMs: number) => void` callback in `options`
+- When the page load completes, call `onProgress('loading', Date.now())`
+- When the AX tree collection completes, call `onProgress('tree', Date.now())`
+- When the Tab walk completes, call `onProgress('walking', Date.now())`
+- When classification starts, call `onProgress('classifying', Date.now())`
+- If `onProgress` is not provided, skip the calls (no-op)
+- The callback is never called with the same stage twice in one audit
+- If an error occurs before a stage is reached, do not call `onProgress` for that stage
+- `OnProgressCallback` type exported from `packages/core/src/types.ts`: `type OnProgressCallback = (stage: 'loading' | 'tree' | 'walking' | 'classifying', atMs: number) => void`
+- `AuditOptions` type amended to include `onProgress?: OnProgressCallback`
+- Tests: add a property test that calls `auditAndClassify` with a mock `onProgress` callback and asserts that stages are called in order (loading < tree < walking < classifying)
 
-- [ ] 2. Create Fastify server factory and health endpoint
-  - [ ] 2.1 Implement server factory in `apps/web/src/server/server.ts`
-    - Export `createServer(options?: ServerOptions)` function returning FastifyInstance
-    - Register `@fastify/helmet` with strict CSP (allow self, Vite inline script hashes, no external domains)
-    - Register health route at `GET /health` returning `{ status: "ok" }`
-    - In production mode, register `@fastify/static` serving from `dist/client` with SPA fallback
-    - Configure logger: pretty-print in dev, structured JSON in production
-    - _Requirements: 1.1, 1.2, 1.4, 1.5, 25.3, 25.4, 25.5_
-  
-  - [ ] 2.2 Add server startup script
-    - Create `apps/web/src/server/index.ts` that calls `createServer()` and listens on PORT
-    - Read PORT from `process.env.PORT` (default 3000)
-    - Bind to `0.0.0.0` for Docker compatibility
-    - _Requirements: 1.5, 25.1_
+**Checkpoint**: `npm run typecheck -w @the-unseen/core`, `npx vitest --run -w @the-unseen/core`, `npx playwright test -w @the-unseen/core` all pass
 
-- [ ] 3. Implement pre-audited samples endpoint
-  - [ ] 3.1 Create sample JSON files
-    - Create `apps/web/src/server/samples/cursed-shop-index.json` with pre-audited Cursed Shop home page
-    - Create `apps/web/src/server/samples/cursed-shop-product.json` with pre-audited product page
-    - Create `apps/web/src/server/samples/cursed-shop-checkout.json` with pre-audited checkout page
-    - Each JSON file contains: `{ id, name, url, result: ClassifiedAudit }`
-    - _Requirements: 5.3_
-  
-  - [ ] 3.2 Implement samples route handler
-    - Create `apps/web/src/server/routes/samples.ts`
-    - Load all JSON files from `samples/` directory at server startup
-    - Export `samplesRoutes` Fastify plugin
-    - Implement `GET /api/samples` returning array of Sample objects
-    - _Requirements: 5.1, 5.2, 5.4, 5.5_
+**Note in audit-engine spec**: Add this change to `.kiro/specs/audit-engine/tasks.md` Notes section under "Drift from spec": "Task 1.1 (spirit-sight-ui): Added optional `onProgress` callback to `auditAndClassify` for real-time stage reporting. No breaking change; additive only."
 
-- [ ] 4. Create React app shell with routing and contexts
-  - [ ] 4.1 Set up design tokens
-    - Create `apps/web/src/client/styles/tokens.css` with CSS custom properties from `.kiro/steering/design-system.md`
-    - Create `apps/web/src/client/tokens.ts` exporting TypeScript constants mirroring CSS tokens
-    - Install `@fontsource/atkinson-hyperlegible` and `@fontsource/cormorant-garamond`
-    - Create `apps/web/src/client/styles/global.css` with reset and base styles
-    - _Requirements: 20.1, 20.2, 20.3, 20.4, 20.6_
-  
-  - [ ] 4.2 Implement React contexts
-    - Create `apps/web/src/client/contexts/ReducedMotionContext.tsx` reading `prefers-reduced-motion` media query
-    - Create `apps/web/src/client/contexts/SoundContext.tsx` with localStorage-persisted sound toggle
-    - Export `useReducedMotion()` and `useSound()` hooks
-    - _Requirements: 18.1, 18.2, 19.1, 19.2_
-  
-  - [ ] 4.3 Set up routing
-    - Create `apps/web/src/client/App.tsx` with react-router-dom
-    - Define routes: `/` (Landing), `/seance/:id` (Séance), `/spirit-sight/:id` (Spirit Sight)
-    - Wrap in ReducedMotionProvider and SoundProvider
-    - Create `apps/web/src/client/main.tsx` mounting React app
-    - Import fonts and global styles in main.tsx
-    - _Requirements: 20.3_
+---
 
-- [ ] 5. Build Landing view with sample cards
-  - [ ] 5.1 Create Landing view component
-    - Create `apps/web/src/client/views/LandingView.tsx`
-    - Render hero section with tagline "Which site do you dare to see through their eyes?"
-    - Render `<h1>THE UNSEEN</h1>`
-    - Create form with labeled URL input and submit button
-    - On submit, POST to `/api/audit` and navigate to `/seance/:id`
-    - _Requirements: 6.1, 6.2, 6.3, 6.6, 6.7_
-  
-  - [ ] 5.2 Create sample card component
-    - Create `apps/web/src/client/components/SampleCard.tsx`
-    - Fetch samples from `/api/samples` on mount
-    - Render cards showing sample name and Haunting Score badge
-    - On click, navigate to `/spirit-sight/:id` with cached result
-    - Use `<button>` elements with accessible names "Load sample: [name]"
-    - _Requirements: 6.4, 6.5_
-  
-  - [ ]* 5.3 Add Landing accessibility verification
-    - Verify one `<h1>` element
-    - Verify form label with `htmlFor` matching input id
-    - Verify visible focus indicators using `--color-ecto`
-    - Verify text contrast ≥4.5:1 on all elements
-    - _Requirements: 6.6, 6.7, 6.8_
+### Task 1.2: Generate sample data with `build-samples.mjs` and serve sample endpoints
 
-- [ ] 6. Implement audit job queue and worker
-  - [ ] 6.1 Create job store
-    - Create `apps/web/src/server/jobs/store.ts`
-    - Implement `JobStore` class with in-memory Map
-    - Implement methods: `set`, `get`, `update`, `delete`
-    - Implement TTL cleanup running every 5 minutes (1-hour TTL)
-    - _Requirements: 3.8_
-  
-  - [ ] 6.2 Create job queue
-    - Create `apps/web/src/server/jobs/queue.ts`
-    - Implement `JobQueue` class with FIFO queue and concurrency limit
-    - Read `UNSEEN_MAX_CONCURRENCY` from env (default 2)
-    - Implement `enqueue(jobId)` throwing QueueFullError when depth exceeds 20
-    - _Requirements: 2.9, 2.10, 25.2_
-  
-  - [ ] 6.3 Implement audit worker
-    - Create `apps/web/src/server/jobs/worker.ts`
-    - Implement `executeJob(jobId)` calling `auditUrl` from `@the-unseen/core`
-    - Pass `RestrictiveSafeFetchPolicy`, 60s timeout, and `onProgress` callback
-    - On progress callback, update job status and stages timestamps
-    - Call `classify(rawAudit)` to produce ClassifiedAudit
-    - On completion, mark job as done with result
-    - On error, map to user-safe error messages per design.md
-    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
+**Requirements**: Requirement 5 (Provide Pre-Audited Samples)
 
-- [ ] 7. Create audit API endpoints
-  - [ ] 7.1 Implement POST /api/audit endpoint
-    - Create `apps/web/src/server/routes/audit.ts`
-    - Validate URL format (http/https, well-formed)
-    - Perform SSRF pre-check (resolve DNS, check blocked ranges)
-    - Return 400 for invalid URLs, 403 for SSRF blocks
-    - Create job with `crypto.randomUUID()`, enqueue, return 202 with job ID
-    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
-  
-  - [ ] 7.2 Implement GET /api/audit/:id endpoint
-    - Return 404 if job not found
-    - Return status: queued, loading/tree/walking/classifying with stages, done with result, or error with message
-    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
+**Design**: Section "Sample Generation" and "API Layer Design > Route: GET /api/samples"
 
-- [ ] 8. Create Séance loading view with polling
-  - Create `apps/web/src/client/views/SeanceView.tsx`
-  - Implement polling loop fetching `/api/audit/:id` every 500ms
-  - Display current stage name ("Loading page…", "Reading accessibility tree…", etc.)
-  - Display elapsed time for each completed stage
-  - Announce stage changes via `aria-live="polite"`
-  - On status=done, navigate to `/spirit-sight/:id`
-  - On status=error, display error in `aria-live="assertive"` with retry button
-  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
+**Acceptance Criteria**:
+- `apps/web/scripts/build-samples.mjs` exists and runs with Node ESM (`node --experimental-modules build-samples.mjs`)
+- The script starts a local file server for `apps/cursed-shop` on port 4173 using `packages/core/tests/fixtures/shop-server.js` (the existing fixture server)
+- For each of three pages (`index.html`, `product.html`, `checkout.html`), the script:
+  - Calls `auditAndClassify('http://127.0.0.1:4173/<page>', { allowPrivate: true })`
+  - Rewrites `classified.raw.auditedUrl` to `https://cursed-shop.the-unseen.app/<page>` (the public display URL)
+  - Calls `buildSpeechTrack(classified.raw)` to generate the speech track
+  - Writes `apps/web/samples/<id>.json` with `{ id, name, url, result: ClassifiedAudit, speechTrack: SpeechLine[] }`, where `result.raw.screenshotPng = ''` (stripped)
+  - Writes `apps/web/samples/<id>.png` (the PNG buffer from base64)
+  - Uses `sharp` to generate a 400px-wide JPEG thumbnail and writes `apps/web/samples/<id>-thumb.jpg`
+- The script writes `apps/web/samples/index.json` with an array of `SampleMetadata`: `[{ id, name, url, score, countsByType, thumbnailUrl: '/api/samples/:id/thumbnail.jpg' }]`
+- `apps/web/src/server/routes/samples.ts` reads `samples/index.json` at startup and caches it in memory
+- `GET /api/samples` returns the cached array as JSON
+- `GET /api/samples/:id` reads `samples/<id>.json` and returns it as JSON; returns 404 if the file doesn't exist
+- `GET /api/samples/:id/screenshot.png` reads `samples/<id>.png` and returns it as `image/png`; returns 404 if the file doesn't exist
+- `GET /api/samples/:id/thumbnail.jpg` reads `samples/<id>-thumb.jpg` and returns it as `image/jpeg`; returns 404 if the file doesn't exist
+- `apps/web/package.json` has a `"build-samples"` script: `"build-samples": "node --experimental-modules scripts/build-samples.mjs"`
+- `apps/web/samples/.gitignore` excludes `*.png` and `*.jpg` (JSON files are committed)
+- Tests: run `npm run build-samples -w apps/web` manually; verify `samples/index.json`, `samples/cursed-shop-index.json`, and all PNGs are created; verify `GET /api/samples` returns 3 samples with correct scores
 
-- [ ] 9. Build Spirit Sight view with screenshot and overlay
-  - [ ] 9.1 Implement scale computation hook
-    - Create `apps/web/src/client/utils/scale.ts` with pure `computeScale` function
-    - Create `apps/web/src/client/hooks/useScale.ts` hook wrapping ResizeObserver
-    - Compute scale factor as min(containerW/screenshotW, containerH/screenshotH)
-    - Return ScaleState with screenshotWidth, screenshotHeight, containerWidth, containerHeight, scaleFactor, scaledWidth, scaledHeight
-    - _Requirements: 8.3, 8.4_
-  
-  - [ ] 9.2 Create Spirit Sight view shell
-    - Create `apps/web/src/client/views/SpiritSightView.tsx`
-    - Fetch audit result from `/api/audit/:id`
-    - Render screenshot as `<img>` with base64 PNG from `audit.screenshotPng`
-    - Render SVG overlay layer with same scaledWidth and scaledHeight
-    - Use `useScale` hook to compute positioning on resize
-    - _Requirements: 8.1, 8.2, 8.5, 8.6_
-  
-  - [ ]* 9.3 Test scale computation properties
-    - **Property 1: Scale is deterministic** — same inputs produce same output
-    - **Property 2: Scale is bounded** — scaleFactor in [0, 1] when container ≤ screenshot
-    - **Property 3: Aspect ratio preserved** — scaledWidth/scaledHeight = screenshotWidth/screenshotHeight
-    - Use fast-check arbitraries for screenshot and container dimensions
-    - _Validates: Requirements 8.3, 8.4_
+**Checkpoint**: `npm run typecheck -w apps/web` passes; `npm run build-samples -w apps/web` completes without error; `samples/index.json` exists and contains 3 samples
 
-- [ ] 10. Checkpoint - Vertical slice complete
-  - Ensure all tests pass
-  - Verify: can load sample → Spirit Sight displays screenshot
-  - Ask user if questions arise
+---
 
-### Phase 2: Haunting Rendering and Interactivity
+### Task 1.3: Implement Fastify server with rate limit, SSRF guard, and static serving
 
-- [ ] 11. Render basic haunting overlays (Nameless Spirit, Hollow Portrait, The Fog)
-  - [ ] 11.1 Create HauntingOverlay component
-    - Create `apps/web/src/client/components/HauntingOverlay.tsx`
-    - Accept props: `haunting: Haunting`, `onClick: () => void`
-    - Position using SVG foreignObject with bounding box coordinates
-    - Render focusable `<button>` with accessible name "[Type]: [role] at [location], [severity]"
-    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
-  
-  - [ ] 11.2 Implement visual treatments for Nameless Spirit, Hollow Portrait, The Fog
-    - **Nameless Spirit**: translucent ghost gradient with faded role text
-    - **Hollow Portrait**: dashed border with two hollow eye circles
-    - **The Fog**: fog pattern rect with opacity based on contrast deficit
-    - Implement `computeFogDensity(contrastRatio, isLargeText)` in `apps/web/src/client/utils/fog.ts`
-    - _Requirements: 9.1, 9.2, 9.3_
-  
-  - [ ]* 11.3 Test fog density computation
-    - **Property 4: Fog density is bounded** — output in [0, 0.8]
-    - **Property 5: Fog density monotonic in deficit** — density increases as contrast decreases
-    - Use fast-check to generate contrast ratios
-    - _Validates: Requirements 9.3_
+**Requirements**: Requirement 1 (Serve the Spirit Sight UI Application), Requirement 2 (Accept Audit Requests)
 
-- [ ] 12. Render remaining haunting overlays (Lost Soul, Cursed Loop, Invisible Wanderer, Whispering Field, The Veiled)
-  - **Lost Soul**: frosted glass gradient with X-mark lines
-  - **Cursed Loop**: glowing red ellipse with pulsing/glowing animation class
-  - **Invisible Wanderer**: ghost footprint path icons
-  - **Whispering Field**: dashed border rect with wavy mouth path
-  - **The Veiled**: thick fog pattern with darken blend mode (distinct from contrast fog)
-  - Respect `prefers-reduced-motion` for Cursed Loop animation (replace with static ring)
-  - _Requirements: 9.4, 9.5, 9.6, 9.7, 9.10, 18.3_
+**Design**: Section "API Layer Design > Fastify Server Factory" and "Route: POST /api/audit"
 
-- [ ] 13. Render page-level hauntings (Silent Tongue, Shattered Order)
-  - **Silent Tongue**: page-level banner text at top of SVG overlay
-  - **Shattered Order**: render in sidebar outline panel (not in SVG overlay)
-  - _Requirements: 9.8, 9.9_
+**Acceptance Criteria**:
+- `apps/web/src/server/server.ts` exports `createServer(options?: ServerOptions): FastifyInstance`
+- `ServerOptions` type: `{ maxConcurrency?: number; logger?: boolean | object }`
+- The server registers `@fastify/helmet` with strict CSP (no inline scripts, no external domains except self)
+- The server registers `@fastify/rate-limit` with `global: false` (applies only to routes that opt in)
+- The server registers `auditRoutes` at `/api` prefix with `maxConcurrency` passed through
+- The server registers `samplesRoutes` at `/api` prefix
+- The server registers `healthRoutes` at `/api` prefix
+- The server serves `apps/cursed-shop` statically at `/haunted/` without helmet (so inline scripts work) using `@fastify/static` with `decorateReply: false`
+- In production (`NODE_ENV=production`), the server refuses to start if `process.env.UNSEEN_DEV_ALLOW_PRIVATE === '1'` (throws an error with message "UNSEEN_DEV_ALLOW_PRIVATE=1 is forbidden in production (NODE_ENV=production)")
+- In production, the server registers `@fastify/static` serving `dist/client/` at `/` with SPA fallback (`setNotFoundHandler` sends `index.html`)
+- `apps/web/src/server/main.ts` exists and calls `createServer({ maxConcurrency: Number(process.env.UNSEEN_MAX_CONCURRENCY) || 2 }).listen({ port: Number(process.env.PORT) || 3000, host: '0.0.0.0' })`
+- `apps/web/package.json` has scripts: `"dev": "vite"`, `"dev:api": "tsx watch src/server/main.ts"`, `"build": "vite build && tsc -p tsconfig.server.json"`, `"start": "NODE_ENV=production node dist/server/main.js"`
+- `POST /api/audit` accepts `{ url: string }` or `{ demo: 'cursed-shop-index'|'cursed-shop-product'|'cursed-shop-checkout' }` (JSON schema with `additionalProperties: false` enforces exactly one field)
+- When `demo` is provided, the route builds `url = 'http://127.0.0.1:' + PORT + '/haunted/' + <page>.html` (where `<page>` is `index.html`, `product.html`, or `checkout.html` based on `demo`)
+- When `url` is invalid (not `http://` or `https://`, not well-formed), return `400 { "error": "INVALID_URL", "message": "URL must be a valid http or https URL" }`
+- When SSRF pre-check fails (private IP, loopback, metadata endpoint per `.kiro/steering/security.md`), return `403 { "error": "SSRF_BLOCKED", "message": "Cannot audit private or internal URLs" }`
+- Rate limiting on `POST /api/audit` only: 5 requests per minute per IP, 30 requests per hour per IP; return `429 { "error": "RATE_LIMIT", "message": "Too many requests", "retryAfter": <seconds> }` when exceeded
+- No rate limiting on `GET /api/audit/:id`, `GET /api/samples*`, static assets, or `GET /api/health`
+- When the global concurrent audit limit (from `UNSEEN_MAX_CONCURRENCY` env var, default 2) is reached, enqueue the job up to a depth of 20; when the queue is full, return `503 { "error": "QUEUE_FULL", "message": "Server is at capacity, please try again later" }`
+- When a valid request is accepted, create a job with `crypto.randomUUID()` and return `202 { "id": "uuid" }` immediately (before enqueueing)
+- The job is enqueued after the response is sent; if `queue.enqueue` throws `QueueFullError`, delete the job from the store and return 503
+- `GET /api/health` returns `200 { "status": "ok" }`
+- Tests: Vitest integration test that starts the server, posts a URL, receives a 202, posts 25 more URLs from the same IP, receives 429 on the 6th request within 1 minute; verify that `GET /api/audit/:id` polling is not rate-limited
 
-- [ ] 14. Build haunting sidebar with grouping and score
-  - [ ] 14.1 Implement haunting grouping logic
-    - Create `apps/web/src/client/utils/hauntings.ts` with `groupHauntings(hauntings)` function
-    - Group by type, count instances, determine most severe in group
-    - Return HauntingGroup[] with type, count, severity, instances, expanded state
-    - _Requirements: 11.1, 11.2_
-  
-  - [ ] 14.2 Create HauntingSidebar component
-    - Create `apps/web/src/client/components/HauntingSidebar.tsx`
-    - Display Haunting Score at top with progress bar
-    - Render collapsible groups for each haunting type
-    - Use severity colors: Wraith=ember, Restless=candle, Banished=mist
-    - On group header click, toggle expand/collapse
-    - On instance click, call `onHauntingClick(haunting)` callback
-    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
+**Checkpoint**: `npm run typecheck -w apps/web` passes; `npm run dev:api -w apps/web` starts without error; `GET /api/health` returns 200; `POST /api/audit` with an invalid URL returns 400; `POST /api/audit` with a private IP returns 403
 
-- [ ] 15. Create haunting detail dialog with focus trap
-  - Create `apps/web/src/client/components/HauntingDetailDialog.tsx`
-  - Use `focus-trap-react` library for focus management
-  - Set `role="dialog"` and `aria-modal="true"`
-  - Display: haunting type, severity badge, persona line, WCAG criterion with link, HTML snippet, fix suggestion
-  - Provide "Copy as Kiro prompt" button using `generateKiroPrompt` utility
-  - Close on Escape key, close button click, or outside click
-  - Return focus to trigger element on close
-  - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9, 15.10, 23.1, 23.2, 23.3, 23.4, 23.5, 23.6_
+---
 
-- [ ] 16. Implement Whisper Walk with Web Speech
-  - [ ] 16.1 Create Web Speech hook
-    - Create `apps/web/src/client/hooks/useWebSpeech.ts`
-    - Accept props: utterances array, pitch, rate, voice
-    - Manage playback state, currentIndex, play/pause/stepNext/stepPrev controls
-    - Use Web Speech Synthesis API with utterance callbacks
-    - Return: currentIndex, playbackState, control functions
-    - _Requirements: 13.1_
-  
-  - [ ] 16.2 Create WhisperWalk component
-    - Create `apps/web/src/client/components/WhisperWalk.tsx`
-    - Build utterances array from `audit.hauntings[].speech`
-    - Set whisper effect: pitch=0.8, rate=0.85
-    - Render play/pause/step controls with accessible labels
-    - Render speed select (0.5x, 0.75x, 1x, 1.25x, 1.5x)
-    - Render voice select populated from `speechSynthesis.getVoices()`
-    - Display live caption synchronized with current utterance
-    - Highlight corresponding element on screenshot during playback
-    - Require sound enabled; show alert if disabled
-    - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9_
+### Task 1.4: Implement job queue, store, and worker with stage tracking
 
-- [ ] 17. Implement Keyboard Walk with ghost animation
-  - [ ] 17.1 Create KeyboardWalk component
-    - Create `apps/web/src/client/components/KeyboardWalk.tsx`
-    - Render SVG ghost icon positioned using transform
-    - Implement `animateStep(index)` walking through `audit.tabWalkResult.steps`
-    - Use 300ms ease-in-out transitions unless `prefers-reduced-motion` is set
-    - Provide play button and speed select
-    - _Requirements: 14.1, 14.2, 14.7_
-  
-  - [ ] 17.2 Add Lost Soul and Cursed Loop rendering
-    - Detect Lost Soul elements (in hauntings but not in Tab walk)
-    - Show frosted glass effect when ghost walks past Lost Soul
-    - Detect Cursed Loop elements (cycle in Tab walk)
-    - For inescapable traps: ghost circles indefinitely with glowing ember ring
-    - For escapable traps: ghost circles twice then breaks free
-    - _Requirements: 14.4, 14.5, 14.6_
+**Requirements**: Requirement 3 (Execute Audits with Progress Tracking), Requirement 4 (Return Audit Status and Results)
 
-- [ ] 18. Build Daylight mode WCAG report
-  - [ ] 18.1 Implement WCAG grouping
-    - Create `groupByWCAG(hauntings)` in `apps/web/src/client/utils/hauntings.ts`
-    - Group by primary WCAG criterion ID
-    - Return: criterionId, title, level, url, count, severity
-    - _Requirements: 16.3, 16.4_
-  
-  - [ ] 18.2 Create DaylightReport component
-    - Create `apps/web/src/client/components/DaylightReport.tsx`
-    - Render table with columns: WCAG Criterion, Level, Affected Elements, Severity
-    - Render "needs manual check" section for uncertain findings
-    - Display coverage disclaimer prominently: "Automated checks find 30-40% of issues..."
-    - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
-  
-  - [ ] 18.3 Add Daylight mode toggle to Spirit Sight view
-    - Add toggle button in header
-    - Default to Daylight mode when `prefers-reduced-motion` is set
-    - Switch between Spirit Sight canvas and Daylight report
-    - _Requirements: 16.1, 16.7, 16.8, 18.5_
+**Design**: Section "Audit Job Queue > Job Store", "Job Queue", and "Job Worker"
 
-- [ ] 19. Checkpoint - Core interactions complete
-  - Verify: can click haunting overlays → dialog opens
-  - Verify: Whisper Walk plays utterances with caption
-  - Verify: Keyboard Walk animates ghost through Tab sequence
-  - Verify: Daylight mode displays WCAG table
+**Acceptance Criteria**:
+- `apps/web/src/server/jobs/store.ts` exports `JobStore` class with methods: `set(job: Job)`, `get(id: string): Job | undefined`, `update(id: string, updater: (job: Job) => Partial<Job>)`, `startCleanup(): NodeJS.Timeout`
+- `Job` type: `{ id: string; url: string; status: JobStatus; stages: Stages; result?: ClassifiedAudit; error?: { code: string; message: string }; createdAt: number; updatedAt: number }`
+- `JobStatus` type: `'queued' | 'loading' | 'tree' | 'walking' | 'classifying' | 'done' | 'error'`
+- `Stages` type: `{ queued: number; loading?: number; tree?: number; walking?: number; classifying?: number; done?: number }`
+- The store is an in-memory Map with TTL of 1 hour; `startCleanup()` runs every 5 minutes and removes jobs older than 1 hour
+- The store also drops `result` from done jobs older than 15 minutes (to save memory), and keeps at most 50 done jobs (LRU)
+- `update(id, updater)` is a functional update: it reads the current job, calls `updater(job)` to get a patch, merges the patch into the job, sets `updatedAt: Date.now()`, and stores the updated job
+- `apps/web/src/server/jobs/queue.ts` exports `JobQueue` class with methods: `enqueue(jobId: string): void`, `processNext(): Promise<void>`
+- The queue is a FIFO queue with a concurrency limit (from `maxConcurrency` option, default 2) and a queue depth limit of 20
+- When `enqueue` is called and the queue length is ≥20, throw `QueueFullError` (a custom error class)
+- When `enqueue` is called and the queue length is <20, push the job ID to the queue and call `processNext()`
+- `processNext()` checks if `running.size >= maxConcurrency` or `queue.length === 0`; if so, return early
+- Otherwise, `processNext()` shifts the first job ID from the queue, adds it to `running`, calls `executeJob(jobId)` in a try/finally block, removes the job ID from `running` in the finally block, and calls `processNext()` again
+- `apps/web/src/server/jobs/worker.ts` exports `executeJob(jobId: string): Promise<void>`
+- `executeJob` reads the job from the store, determines if it is a demo (URL starts with `http://127.0.0.1:`), chooses the appropriate safe fetch policy (demos use `OriginScopedPolicy('http://127.0.0.1:' + PORT, new RestrictiveSafeFetchPolicy())`; real URLs use the default restrictive policy), and calls `auditAndClassify(url, { allowPrivate: isDev && UNSEEN_DEV_ALLOW_PRIVATE === '1', safeFetchPolicy, timeoutMs: 60000, onProgress })` where `isDev = NODE_ENV !== 'production'`
+- The `onProgress` callback updates the job status and stages using `jobStore.update(jobId, (j) => ({ status: stage, stages: { ...j.stages, [stage]: atMs } }))`
+- When `auditAndClassify` completes, `executeJob` strips the screenshot from the result (`result.raw.screenshotPng = ''`) and updates the job with `status: 'done'`, the stripped result, and `stages: { ...job.stages, done: Date.now() }`
+- When any error occurs, `executeJob` calls `mapErrorToResponse(error)` to get a user-safe error code and message, and updates the job with `status: 'error'` and the error response
+- `mapErrorToResponse(error: unknown): { code: string; message: string }` returns specific error responses for `SsrfBlockedError`, `AuditTimeoutError`, and `AuditResourceLimitError`, and a generic `NETWORK_ERROR` response for all other errors
+- `GET /api/audit/:id` reads the job from the store and returns `404 { "error": "NOT_FOUND" }` if the job doesn't exist, `200 { "status": "queued" }` if status is queued, `200 { "status": <stage>, "stages": <Stages> }` if status is loading/tree/walking/classifying, `200 { "status": "done", "result": <ClassifiedAudit>, "stages": <Stages> }` if status is done, or `200 { "status": "error", "error": <code>, "message": <message> }` if status is error
+- `GET /api/audit/:id/screenshot.png` reads the job from the store, extracts the PNG buffer from `result.raw.screenshotPng` (which is still base64 in the full job, only stripped in the GET response), and returns it as `image/png` with a Buffer; returns 404 if the job doesn't exist or status is not done
+- Tests: Vitest integration test that posts a Cursed Shop demo URL, polls `GET /api/audit/:id` every 500ms, verifies that stages progress in order (queued → loading → tree → walking → classifying → done), verifies that the final result is a `ClassifiedAudit` with score > 0, and verifies that `GET /api/audit/:id/screenshot.png` returns a PNG
 
-### Phase 3: Polish and Accessibility
+**Checkpoint**: `npm run typecheck -w apps/web` passes; `npm run dev:api -w apps/web` starts without error; posting a demo URL and polling returns a done result within 20 seconds
 
-- [ ] 20. Implement Spirit Sight fog toggle animation
-  - Create `apps/web/src/client/components/FogToggle.tsx`
-  - Implement fog wave animation dissolving top-to-bottom over 800ms
-  - Use CSS clip-path animation or canvas rendering
-  - Apply animation only to screenshot layer, never app UI
-  - Disable animation when `prefers-reduced-motion` is set
-  - Use `aria-pressed` for toggle button state
-  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 18.3_
+---
 
-- [ ] 21. Add sound controls and header UI
-  - Create sound toggle button in app header with mute/unmute icon
-  - Use `aria-label="Toggle sound"`
-  - Persist sound preference in SoundContext (localStorage)
-  - Ensure sound is off by default
-  - Disable ambient drone when `prefers-reduced-motion` is set
-  - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
+### Task 1.5: Implement routing, app shell, and Landing view
 
-- [ ] 22. Implement export functionality
-  - [ ] 22.1 Create export utility functions
-    - Create `apps/web/src/client/utils/export.ts`
-    - Implement `generateMarkdownReport(audit)` producing formatted markdown
-    - Implement `generateJSONReport(audit)` serializing ClassifiedAudit
-    - Implement `generateFilename(audit, ext)` sanitizing domain and timestamp
-    - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5, 17.6_
-  
-  - [ ] 22.2 Add export buttons to Daylight report
-    - Add "Export as Markdown" and "Export as JSON" buttons
-    - Trigger file downloads using Blob and URL.createObjectURL
-    - _Requirements: 17.1, 17.4_
-  
-  - [ ]* 22.3 Test filename sanitization
-    - **Property 6: Filenames are valid** — contain only alphanumeric, hyphens, periods
-    - **Property 7: Filenames have correct extension** — .md or .json
-    - Use fast-check to generate arbitrary URLs and timestamps
-    - _Validates: Requirements 17.3, 17.6_
+**Requirements**: Requirement 6 (Display Landing Page), Requirement 22 (Ensure App Self-Accessibility)
 
-- [ ] 23. Add keyboard shortcuts dialog
-  - Create `apps/web/src/client/components/KeyboardShortcutsDialog.tsx`
-  - Provide button in header to open shortcuts dialog
-  - Display table: Key, Action
-  - List shortcuts: Tab, Enter/Space, Escape, ?
-  - Use `?` key to open dialog (register global keydown handler)
-  - _Requirements: 30.1, 30.2, 30.3, 30.4, 30.5_
+**Design**: Section "Routing and URL Structure" and "Component Architecture > Views"
 
-- [ ] 24. Add rate limiting to API
-  - Register `@fastify/rate-limit` plugin
-  - Configure: 5 requests/minute per IP, 30 requests/hour per IP
-  - Return 429 with `retryAfter` header when exceeded
-  - Only enable in production mode
-  - _Requirements: 2.7, 2.8_
+**Acceptance Criteria**:
+- `apps/web/src/client/main.tsx` renders `<BrowserRouter><App /></BrowserRouter>` where `App` is the root component
+- `apps/web/src/client/App.tsx` renders `<ReducedMotionProvider><SoundProvider><Routes>...</Routes></SoundProvider></ReducedMotionProvider>` where `Routes` is the route switch
+- `apps/web/src/client/components/AppShell.tsx` renders `<><header><a href="#main" className="skip-link">Skip to main content</a><button aria-label="Toggle sound" onClick={toggleSound}>{soundEnabled ? 'Sound on' : 'Sound off'}</button></header><main id="main" tabindex="-1">{children}</main><footer>© THE UNSEEN</footer></>`
+- The skip link is visually hidden by default and visible on focus using CSS: `.skip-link { position: absolute; top: -40px; left: 0; background: var(--color-ecto); color: var(--color-ink); padding: 8px; z-index: 1000; } .skip-link:focus { top: 0; }`
+- `apps/web/src/client/views/LandingView.tsx` renders the Landing view with h1 "THE UNSEEN", a text input with label "Enter a URL to audit", a submit button with accessible name "Begin audit", and sample cards
+- Sample cards are fetched from `GET /api/samples` on mount and rendered as clickable buttons with the sample name and thumbnail
+- When a sample card is clicked, navigate to `/sample/:id` (not `/sample/:id/spirit-sight`; the base route is Spirit Sight by default)
+- When the form is submitted, post to `/api/audit` with `{ url }` or `{ demo }` (depending on whether the URL matches a demo pattern), read the job ID from the response, and navigate to `/seance/:jobId`
+- `apps/web/index.html` has `<html lang="en">`, a `<title>THE UNSEEN</title>`, and a `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+- Every view sets `document.title` on mount using a custom hook `useDocumentTitle(title: string)`
+- Every route wraps its content in `<main id="main" tabindex="-1">` (or the `AppShell` does this once for all routes)
+- When a route changes, focus moves to `#main` using a `useEffect` that calls `document.getElementById('main')?.focus()` after navigation
+- Tests: Playwright e2e test that loads `/`, verifies the h1 "THE UNSEEN", tabs through the skip link and sample cards, clicks a sample card, and verifies navigation to `/sample/cursed-shop-index`
 
-- [ ] 25. Implement comprehensive error handling
-  - Create `apps/web/src/server/middleware/error-handler.ts`
-  - Map error types to user-safe messages per design.md
-  - Display errors in UI with appropriate severity (toast, dialog, or inline)
-  - Log detailed errors server-side only
-  - _Requirements: 26.1, 26.2, 26.3, 26.4, 26.5, 26.6, 26.7_
+**Checkpoint**: `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/` without error; clicking a sample card navigates to `/sample/:id`
 
-- [ ] 26. Write design token contrast tests
-  - Create `apps/web/tests/contrast.test.ts`
-  - Import COLORS from `tokens.ts` and `computeContrastRatio` from `@the-unseen/core`
-  - Test: bone-on-ink ≥7:1, ecto-on-ink ≥7:1, ember-on-ink ≥4.5:1, candle-on-ink ≥4.5:1, mist-on-ink ≥4.5:1
-  - _Requirements: 21.1, 21.2, 21.3, 21.4_
+---
 
-- [ ] 27. Ensure app-wide accessibility compliance
-  - [ ] 27.1 Audit all views for WCAG 2.2 AA
-    - Verify exactly one `<h1>` per page
-    - Verify correct heading hierarchy (no skipped levels)
-    - Verify all interactive elements keyboard-accessible
-    - Verify visible focus indicators (--color-ecto outline ≥2px with ≥3:1 contrast)
-    - Verify all inputs have labels
-    - Verify all images have alt text (use alt="" for decorative)
-    - Verify semantic HTML usage (button, a, nav, main, etc.)
-    - _Requirements: 22.3, 22.4, 22.5, 22.6, 22.7, 22.8, 22.9_
-  
-  - [ ] 27.2 Add aria-live regions for dynamic content
-    - Séance progress announcements
-    - Error messages
-    - Toast notifications
-    - _Requirements: 22.10_
+### Task 1.6: Implement Spirit Sight view with geometry, overlays, score, and fog toggle
 
-- [ ] 28. Write self-audit Playwright test (CRITICAL for demo)
-  - Create `apps/web/tests/self-audit.spec.ts`
-  - Start dev server on localhost:3000
-  - Call `auditUrl('http://localhost:3000')` with `allowPrivate: true`
-  - Call `classify(rawAudit)`
-  - Assert: `classified.hauntings.length === 0` and `classified.score === 0`
-  - If test fails, log all hauntings found with type, explanation, and HTML snippet
-  - _Requirements: 22.1, 22.2, 28.4_
+**Requirements**: Requirement 8 (Render Spirit Sight View with Screenshot and Overlay), Requirement 9 (Render All Ten Haunting Visual Treatments), Requirement 10 (Make Haunting Overlays Keyboard-Accessible), Requirement 11 (Display Haunting List Sidebar), Requirement 12 (Animate Spirit Sight Fog Toggle)
 
-### Phase 4: Deployment and Testing
+**Design**: Section "Component Architecture > Views > AuditResultView" and "Spirit Sight View"
 
-- [ ] 29. Create Dockerfile
-  - Base on `mcr.microsoft.com/playwright:v1.40.0-focal`
-  - Install Node.js 22 if not present
-  - Copy workspace root package files and run `npm ci`
-  - Build `@the-unseen/core` package
-  - Build React SPA in `apps/web`
-  - Set environment variables: NODE_ENV=production, PORT=3000, UNSEEN_MAX_CONCURRENCY=2
-  - Add health check using `/health` endpoint
-  - Expose port and run Fastify server
-  - _Requirements: 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8_
+**Acceptance Criteria**:
+- `apps/web/src/client/views/AuditResultView.tsx` reads route params to determine source (`{ kind: 'job', id }` or `{ kind: 'sample', id }`), fetches the matching endpoint once and caches the result
+- The view shows a 404 state if the job expired or the sample doesn't exist
+- The view reads the current sub-route (`/keyboard`, `/whisper`, `/daylight`, or base) from `useLocation()` and renders the matching panel
+- The base route renders the Spirit Sight view: screenshot + sidebar + overlays
+- `apps/web/src/client/components/SpiritSightView.tsx` fetches the screenshot separately from `/api/audit/:id/screenshot.png` or `/api/samples/:id/screenshot.png`
+- The screenshot is rendered in an `<img>` element with `alt="Audited page screenshot"`
+- A custom hook `useScale(screenshotWidth, screenshotHeight, containerRef)` computes the scale factor: `scaleFactor = min(1, containerWidth / screenshotWidth)`
+- The PNG's intrinsic dimensions are read from the `<img>` element's `naturalWidth` and `naturalHeight` properties after load (not from `viewportWidth`/`Height`)
+- An SVG overlay layer is rendered with the same `viewBox` as the PNG dimensions: `<svg viewBox="0 0 ${pngWidth} ${pngHeight}" width={scaledWidth} height={scaledHeight}>`
+- When the viewport is resized, the scale factor is recomputed and all overlay elements are repositioned
+- The view opens with the clean screenshot and overlays hidden; the primary button is "Open Spirit Sight" with `aria-pressed="false"`
+- When "Open Spirit Sight" is clicked and `prefers-reduced-motion` is NOT set, a `<canvas id="spirit-sight">` layer is absolutely positioned over the screenshot and draws a 2D value-noise fog (precomputed 256×256 noise tile, tinted from `--color-mist`)
+- The fog wave is masked by a soft-edged band sweeping from y=0 to y=scaledHeight over 800ms `ease-in-out`
+- Each haunting overlay fades in (400ms) as the wave passes its `box.y`, so overlays appear in reading order
+- When the wave ends, focus remains on the toggle, and a polite status line announces "Spirit Sight open: N hauntings, score S"
+- If sound is enabled, the first Wraith's speech plays through the whisper engine (the toggle click is the user gesture)
+- When `prefers-reduced-motion` IS set, no canvas animation is applied; a CSS `filter` on the `<img>` is applied instantly, and all overlays appear at once
+- Overlays are absent from the DOM before activation and present after it
+- Each overlay is rendered as a `<button>` element inside the SVG with `role="button"`, positioned using the haunting's bounding box, with an accessible name in the format: `"[Haunting Display Name]: [role] at [name or landmark], [severity]"` (e.g. "Nameless Spirit: button named Add to cart, Wraith")
+- Each overlay button has a hit area of at least 24×24 CSS px (expand around small boxes; centre on the box)
+- Each overlay button has visible focus indicators: `outline: 3px solid var(--color-ecto)` with `box-shadow: 0 0 0 2px var(--color-ink), 0 0 0 7px var(--color-ink)` (ink halo ensures ≥3:1 contrast against any screenshot background)
+- When an overlay button is clicked or activated with Enter/Space, open the haunting detail dialog for that haunting
+- Overlay buttons have `pointer-events: auto`; decorative layers (screenshot, fog canvas) have `pointer-events: none`
+- The DOM order is: skip link, h1, sidebar (score + haunting list), overlay buttons
+- The sidebar displays the Haunting Score (0-100) prominently at the top, hauntings grouped by type (10 groups), counts per type, and severity colors (`--color-ember` for Wraith, `--color-candle` for Restless, `--color-mist` for Banished)
+- When a haunting type group is clicked, the instance list for that type expands/collapses
+- When a specific haunting instance in the sidebar is clicked, open the haunting detail dialog for that instance
+- Tests: Playwright e2e test that loads `/sample/cursed-shop-index`, clicks "Open Spirit Sight", waits for overlays to appear, tabs through overlay buttons, verifies that each button has an accessible name, clicks an overlay button, and verifies that the dialog opens
 
-- [ ] 30. Write component unit tests
-  - Test scale computation with different viewport sizes
-  - Test haunting grouping logic (count, severity, expand state)
-  - Test WCAG grouping logic (sort by criterion ID)
-  - Test Whisper Walk state management (play/pause/step)
-  - Test reduced motion context (media query listener)
-  - _Requirements: 27.1, 27.2, 27.3_
+**Checkpoint**: `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/sample/cursed-shop-index` without error; clicking "Open Spirit Sight" reveals overlays; tabbing through overlays works; clicking an overlay opens a dialog
 
-- [ ] 31. Write end-to-end Playwright tests
-  - Create `apps/web/tests/e2e/full-flow.spec.ts`
-  - Test complete flow: paste Cursed Shop URL → séance → Spirit Sight → haunting click → dialog → Whisper Walk → Keyboard Walk → Daylight → export MD/JSON
-  - Verify sample cards load and navigate correctly
-  - Verify error handling for invalid URLs and SSRF blocks
-  - _Requirements: 28.1, 28.2, 28.3, 28.5_
+---
 
-- [ ] 32. Final checkpoint - Demo readiness check
-  - Verify vertical slice works end-to-end on Cursed Shop
-  - Verify self-audit test passes (zero hauntings proof)
-  - Verify all 10 haunting visual treatments render correctly
-  - Verify Whisper Walk and Keyboard Walk function
-  - Verify Daylight mode and export work
-  - Verify Docker image builds and runs
+### Task 1.7: Implement Daylight mode with WCAG report and export
+
+**Requirements**: Requirement 16 (Render Daylight Mode Report), Requirement 17 (Export Audit Results)
+
+**Design**: Section "Component Architecture > Views > DaylightReport"
+
+**Acceptance Criteria**:
+- The user navigates to `/audit/:id/daylight` or `/sample/:id/daylight` (via a "Daylight mode" button in the Spirit Sight view)
+- The view hides the screenshot overlay and displays a table-based WCAG report
+- The report groups findings by WCAG criterion (using `groupByWCAG(audit.hauntings)`)
+- Each criterion row displays: criterion number (e.g. "1.1.1"), name ("Non-text Content"), level (A/AA/AAA), affected element count, and severity (Wraith/Restless/Banished)
+- A "Needs manual check" section displays nodes from `audit.needsManualCheck` with the reason (e.g. "Contrast uncertain: image background")
+- A prominent note at the top of the report states: "Automated checks find approximately 30-40% of WCAG issues. Manual testing is required for full compliance. This tool never claims a site is 'compliant'."
+- The report provides two export buttons: "Export as Markdown" and "Export as JSON"
+- When "Export as Markdown" is clicked, generate a Markdown document containing the Haunting Score, hauntings grouped by WCAG criterion, and the coverage disclaimer, and trigger a file download with filename `unseen-audit-[domain]-[timestamp].md`
+- When "Export as JSON" is clicked, serialize the full `ClassifiedAudit` object as JSON and trigger a file download with filename `unseen-audit-[domain]-[timestamp].json`
+- The filename uses `new URL(audit.raw.auditedUrl).hostname` for the domain and `Date.now()` for the timestamp
+- When `prefers-reduced-motion` is set, the Spirit Sight view defaults to Daylight mode on load (the route is `/audit/:id/daylight` or `/sample/:id/daylight`)
+- Tests: Playwright e2e test that loads `/sample/cursed-shop-index/daylight`, verifies the report heading, verifies that the first criterion row contains "1.1.1", clicks "Export as Markdown", and verifies that a file download is triggered
+
+**Checkpoint**: `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/sample/cursed-shop-index/daylight` without error; clicking "Export as Markdown" downloads a file; the file contains the Haunting Score and criterion groups
+
+---
+
+### Task 1.8: Self-audit test on Landing and Daylight views
+
+**Requirements**: Requirement 22 (Ensure App Self-Accessibility)
+
+**Design**: Requirement 22 acceptance criteria 1–13
+
+**Acceptance Criteria**:
+- Playwright e2e test that starts the dev server, runs `auditAndClassify('http://127.0.0.1:5173/', { allowPrivate: true })`, and asserts that `result.hauntings.length === 0` and `result.axeCrossCheck.unmapped.length === 0`
+- Playwright e2e test that runs `auditAndClassify('http://127.0.0.1:5173/sample/cursed-shop-index', { allowPrivate: true })` and asserts zero hauntings and zero unmapped axe violations
+- Playwright e2e test that runs `auditAndClassify('http://127.0.0.1:5173/sample/cursed-shop-index/daylight', { allowPrivate: true })` and asserts zero hauntings and zero unmapped axe violations
+- If any test fails, the test output must include the full list of hauntings and unmapped violations
+- Tests: run `npx playwright test -w apps/web` and verify that all three self-audit tests pass
+
+**Checkpoint**: `npx playwright test -w apps/web` passes with zero hauntings on all three routes
+
+---
+
+## Phase 2: Séance, Whisper Walk, and Keyboard Walk
+
+Phase 2 completes the three audit lenses: real-time progress (Séance), AX-tree speech (Whisper Walk), and Tab sequence animation (Keyboard Walk).
+
+### Task 2.1: Implement Séance view with real stage polling
+
+**Requirements**: Requirement 7 (Display Séance Loading Stage)
+
+**Design**: Section "Routing and URL Structure" and "Component Architecture > Views > SeanceView"
+
+**Acceptance Criteria**:
+- `apps/web/src/client/views/SeanceView.tsx` reads the job ID from route params and polls `GET /api/audit/:id` every 500ms while status is queued/loading/tree/walking/classifying
+- The view displays the current stage name in human-readable form: "Loading page…", "Reading accessibility tree…", "Walking the keyboard path…", "Classifying hauntings…"
+- Each new stage is announced to screen readers via an `aria-live="polite"` region
+- The polite live region is rendered empty on mount, before the first poll, and only its text content changes (no DOM node replacement)
+- The view displays the elapsed time for each completed stage (e.g. "Loading page… 1.2s")
+- When status becomes `"done"`, polling stops immediately and the view auto-navigates to `/audit/:id` (the base route, which is Spirit Sight by default)
+- When status becomes `"error"`, polling stops immediately, the error message is displayed in an `aria-live="assertive"` region, and a "Try another URL" button is provided that navigates back to `/`
+- On arrival at Spirit Sight from Séance, focus moves to the h1, and a persistent app-level polite region announces "Audit complete: {n} hauntings found, Haunting Score {score}"
+- Tests: Playwright e2e test that posts a demo URL, navigates to `/seance/:id`, waits for the Séance view to display "Loading page…", waits for auto-navigation to `/audit/:id`, and verifies that the Spirit Sight view is rendered
+
+**Checkpoint**: `npm run typecheck -w apps/web` passes; posting a demo URL and navigating to `/seance/:id` shows real stage updates and auto-navigates to Spirit Sight when done
+
+---
+
+### Task 2.2: Implement Whisper Walk with Web Speech and synchronized highlighting
+
+**Requirements**: Requirement 13 (Implement Whisper Walk with Web Speech)
+
+**Design**: Section "Component Architecture > Views > WhisperWalk"
+
+**Acceptance Criteria**:
+- The user navigates to `/audit/:id/whisper` or `/sample/:id/whisper` (via a "Whisper walk" button in the Spirit Sight view)
+- `apps/web/src/client/views/WhisperWalk.tsx` builds utterances from `buildSpeechTrack(audit.raw): SpeechLine[]` exported by `@the-unseen/core`, which walks `axNodes` in tree order and returns `{ backendDOMNodeId, text: announce(node, raw), note?: announceNote(node), box }` for each visible, non-ignored node
+- The view provides play, pause, step back, step forward, and speed controls (0.5x, 0.75x, 1x)
+- Speed controls map to `rate = clamp(0.85 * speed, 0.4, 0.85)` so speeds above 1× shorten pauses instead of raising the rate
+- The view provides a voice selection dropdown populated from `window.speechSynthesis.getVoices()`
+- The view provides a "Captions only" toggle that advances captions on a timer (max(1500 ms, 60 ms × characters)) with no audio
+- When an utterance is spoken, the corresponding element on the screenshot is highlighted with a yellow box
+- A live caption is displayed synchronized with utterances; the caption has `aria-live="off"` during audio playback and `"polite"` in captions-only or manual-step mode
+- Pressing Play is the user gesture and sets `soundEnabled=true` if it was off; no alert blocks playback
+- The Whisper Walk drives `currentIndex`, caption, and highlight from app state when an utterance is queued, and advances on `onend`, `onerror`, or a timeout of 2× the estimated duration
+- All controls have accessible labels
+- Tests: Playwright e2e test that loads `/sample/cursed-shop-index/whisper`, clicks Play, waits for the first utterance to complete, verifies that the caption updates, clicks Pause, clicks Step forward, and verifies that the caption advances
+
+**Checkpoint**: `npm run typecheck -w apps/web` passes; loading `/sample/cursed-shop-index/whisper` and clicking Play speaks the first utterance and highlights the corresponding element
+
+---
+
+### Task 2.3: Implement Keyboard Walk with ghost animation and Lost Soul reveals
+
+**Requirements**: Requirement 14 (Animate Keyboard Walk)
+
+**Design**: Section "Component Architecture > Views > KeyboardWalk"
+
+**Acceptance Criteria**:
+- The user navigates to `/audit/:id/keyboard` or `/sample/:id/keyboard` (via a "Keyboard walk" button in the Spirit Sight view)
+- `apps/web/src/client/views/KeyboardWalk.tsx` displays an animated ghost following the Tab sequence from `audit.raw.tabWalkResult.steps`
+- When `prefers-reduced-motion` is NOT set, the ghost transitions between focus positions with 300ms `ease-in-out` easing
+- When `prefers-reduced-motion` IS set, the ghost uses 300ms step intervals with no CSS transition (not 0ms, which causes instant completion and endless loops)
+- Before moving from step i to step i+1, the walk reveals every Lost Soul (from `audit.hauntings` with type `LostSoul`) whose box lies in reading order between the two step boxes, using the glass treatment with 600ms fade (instant under reduced motion)
+- When the walk encounters an escapable cycle (from `audit.raw.tabWalkResult.cycles.filter(c => c.escapable)`), the ghost circles the members twice, then breaks free and continues
+- When the walk encounters an inescapable Cursed Loop (a haunting with type `CursedLoop`), the ghost circles at most 3 times, an ember ring pulses, and the walk stops with the status "Trapped: keyboard users cannot leave this dialog"
+- The view provides Play/Pause (one button with `aria-pressed`), Step back, Step forward, Restart, and Speed controls
+- A visible step caption in a polite live region reads "Step {i} of {n}: {speech of focused node}", plus "Lost Soul skipped: {label}" and "Cursed Loop: trapped" events
+- The ghost is rendered as a `<g>` inside the SAME overlay SVG (same `viewBox`), not a separate unscaled layer
+- Tests: Playwright e2e test that loads `/sample/cursed-shop-index/keyboard`, clicks Play, waits for the ghost to move through the first 5 steps, clicks Pause, clicks Step back, and verifies that the ghost moves backward
+
+**Checkpoint**: `npm run typecheck -w apps/web` passes; loading `/sample/cursed-shop-index/keyboard` and clicking Play animates the ghost through the Tab sequence
+
+---
+
+## Phase 3: Polish, Product States, and Self-Audit
+
+Phase 3 completes the demo-ready polish: "takes form" animation, ambient drone, error states, and self-audit proof on every route.
+
+### Task 3.1: Implement "Takes Form" celebration animation on exorcism
+
+**Requirements**: Requirement 18 (Respect Reduced Motion Preference)
+
+**Design**: Section "Motion rules" in `.kiro/steering/design-system.md`
+
+**Acceptance Criteria**:
+- When a haunting is fixed (simulated by clicking a "Fix" button in the haunting detail dialog, which removes the haunting from the list and decrements the score), trigger a "Takes form" animation on the overlay element
+- When `prefers-reduced-motion` is NOT set, the animation uses 600ms `cubic-bezier(0.34, 1.56, 0.64, 1)` easing (a bounce)
+- When `prefers-reduced-motion` IS set, the animation is a simple opacity fade (100ms)
+- The overlay element fades out and is removed from the DOM after the animation completes
+- Tests: Playwright e2e test that loads `/sample/cursed-shop-index`, opens a haunting detail dialog, clicks "Fix" (a mock button that removes the haunting from state), and verifies that the overlay element is removed
+
+**Checkpoint**: `npm run typecheck -w apps/web` passes; clicking "Fix" in a haunting detail dialog removes the overlay with the "Takes form" animation
+
+---
+
+### Task 3.2: Implement optional ambient drone with reduced-motion respect
+
+**Requirements**: Requirement 19 (Provide Sound Controls)
+
+**Design**: Section "Sound rules" in `.kiro/steering/design-system.md`
+
+**Acceptance Criteria**:
+- When sound is enabled by user gesture (the sound toggle button in the app header) AND `prefers-reduced-motion` is NOT set, start an ambient drone using Web Audio API (a low-frequency oscillator with reverb)
+- The drone volume is low enough to not interfere with Web Speech (≤20% of the master volume)
+- When `prefers-reduced-motion` IS set, do not start the drone even if sound is enabled
+- When sound is disabled, stop the drone immediately
+- The drone loops continuously until stopped
+- Tests: manual test that enables sound and verifies that the drone starts (listen with headphones); verify that disabling sound stops the drone
+
+**Checkpoint**: `npm run typecheck -w apps/web` passes; enabling sound starts the ambient drone; disabling sound stops it; setting `prefers-reduced-motion` prevents the drone from starting
+
+---
+
+### Task 3.3: Handle product states: 404, error, empty audit
+
+**Requirements**: Requirement 7 (Display Séance Loading Stage, error handling), Routing and URL Structure
+
+**Design**: Section "Routing and URL Structure > 404 Handling" and "API Layer Design > Route: GET /api/audit/:id"
+
+**Acceptance Criteria**:
+- A `NotFoundView` component is rendered for unmatched routes, displaying h1 "Page not found" and a link back to `/`
+- When `GET /api/audit/:id` returns 404 (job expired or never existed), the `AuditResultView` displays a 404 state with h1 "Audit not found" and a link back to `/`
+- When `GET /api/samples/:id` returns 404 (sample doesn't exist), the `AuditResultView` displays a 404 state with h1 "Sample not found" and a link back to `/`
+- When an audit completes with zero hauntings (score 0), the Spirit Sight view displays a success message: "No hauntings detected. This page passed all automated checks." and a note: "Automated checks find approximately 30-40% of WCAG issues. Manual testing is still required."
+- When an audit errors (status `"error"` from `GET /api/audit/:id`), the Séance view displays the error message in an `aria-live="assertive"` region and provides a "Try another URL" button
+- Tests: Playwright e2e test that navigates to `/audit/nonexistent-id` and verifies the 404 state; test that posts a URL that times out (mock a 60s delay) and verifies the error state
+
+**Checkpoint**: `npm run typecheck -w apps/web` passes; navigating to `/audit/nonexistent-id` displays the 404 state; auditing a URL that errors displays the error state
+
+---
+
+### Task 3.4: Self-audit test on Séance, Spirit Sight, Whisper, and Keyboard routes
+
+**Requirements**: Requirement 22 (Ensure App Self-Accessibility)
+
+**Design**: Requirement 22 acceptance criteria 1–13
+
+**Acceptance Criteria**:
+- Playwright e2e test that runs `auditAndClassify('http://127.0.0.1:5173/seance/mock-id', { allowPrivate: true })` (with a mock job in the store) and asserts zero hauntings and zero unmapped axe violations
+- Playwright e2e test that runs `auditAndClassify('http://127.0.0.1:5173/sample/cursed-shop-index/whisper', { allowPrivate: true })` and asserts zero hauntings and zero unmapped axe violations
+- Playwright e2e test that runs `auditAndClassify('http://127.0.0.1:5173/sample/cursed-shop-index/keyboard', { allowPrivate: true })` and asserts zero hauntings and zero unmapped axe violations
+- If any test fails, the test output must include the full list of hauntings and unmapped violations
+- Tests: run `npx playwright test -w apps/web` and verify that all self-audit tests pass on all routes
+
+**Checkpoint**: `npx playwright test -w apps/web` passes with zero hauntings on all routes (Landing, Séance, Spirit Sight, Whisper, Keyboard, Daylight)
+
+---
+
+### Task 3.5: E2E test of the full vertical slice on Cursed Shop
+
+**Requirements**: All Phase 1–3 requirements
+
+**Design**: Full user flow from Landing to Daylight export
+
+**Acceptance Criteria**:
+- Playwright e2e test that:
+  1. Loads `/`
+  2. Clicks the "Cursed Shop: Home" sample card
+  3. Verifies navigation to `/sample/cursed-shop-index`
+  4. Clicks "Open Spirit Sight"
+  5. Waits for overlays to appear
+  6. Verifies that the score matches the expected score from `samples/cursed-shop-index.json`
+  7. Clicks an overlay button
+  8. Verifies that the haunting detail dialog opens
+  9. Closes the dialog
+  10. Clicks "Whisper walk"
+  11. Verifies navigation to `/sample/cursed-shop-index/whisper`
+  12. Clicks Play
+  13. Waits for the first utterance to complete
+  14. Clicks Pause
+  15. Clicks "Keyboard walk"
+  16. Verifies navigation to `/sample/cursed-shop-index/keyboard`
+  17. Clicks Play
+  18. Waits for the ghost to move through 3 steps
+  19. Clicks Pause
+  20. Clicks "Daylight mode"
+  21. Verifies navigation to `/sample/cursed-shop-index/daylight`
+  22. Clicks "Export as Markdown"
+  23. Verifies that a file download is triggered
+  24. Navigates back to `/` using the browser back button
+  25. Verifies that the Landing view is rendered again
+- Tests: run `npx playwright test -w apps/web` and verify that the full vertical slice test passes
+
+**Checkpoint**: `npx playwright test -w apps/web` passes; the full vertical slice test completes without error
+
+---
+
+## Final Checkpoint
+
+**Run all three package test suites**:
+1. `npm run typecheck -w @the-unseen/core` and `npx vitest --run -w @the-unseen/core` and `npx playwright test -w @the-unseen/core` all pass
+2. `npm run typecheck -w apps/web` and `npx vitest --run -w apps/web` and `npx playwright test -w apps/web` all pass
+3. `npm run build-samples -w apps/web` completes without error
+4. `npm run build -w apps/web` completes without error (Vite build + server TypeScript compile)
+5. `npm run start -w apps/web` starts the production server without error (requires `npm run build` first)
+
+**Self-audit proof**:
+- All self-audit tests pass: Landing, Séance, Spirit Sight, Whisper, Keyboard, Daylight
+- Zero hauntings and zero unmapped axe violations on every route
+- The app itself is WCAG 2.2 AA compliant
+
+**Demo readiness**:
+- The full vertical slice test passes: Landing → sample click → Spirit Sight → Whisper → Keyboard → Daylight → export
+- The Cursed Shop demo loads and audits successfully
+- All animations respect `prefers-reduced-motion`
+- Sound is off by default and respects the user's gesture
+- The design system tokens are applied consistently
+- All text has ≥4.5:1 contrast (verified by the design token test)
+- All interactive elements are keyboard-accessible with visible focus indicators
+- All form inputs have accessible labels
+- All images have alt text
+- The app has correct heading hierarchy on every route
+
+---
 
 ## Notes
 
-- **Demo Priority**: The vertical slice (tasks 1-10) is MUST-HAVE. Everything else is HIGH or LOWER priority.
-- **Parallel Work**: Tasks within phases 1, 2, and 3 can often run in parallel (e.g., API and React infrastructure are independent).
-- **Testing Strategy**: Property tests only for pure functions (scale, fog density, filename sanitization). Component tests for React behavior. E2E tests for full flows.
-- **Self-Audit Test**: Task 28 is the proof that the app itself is accessible. This is a powerful demo moment.
-- **Optional Tasks**: Test-related sub-tasks (marked with `*`) can be skipped for faster MVP, but property tests add rigor.
+### Deviations from Original Spec
 
-## Task Dependency Graph
+None. This `tasks.md` follows the phase structure decided in `docs/brief/prompts/29-spirit-sight-ui-spec-amend.md` and the requirements in `requirements.md`.
 
-```json
-{
-  "waves": [
-    { "id": 0, "tasks": ["1"] },
-    { "id": 1, "tasks": ["2.1", "2.2", "3.1", "4.1"] },
-    { "id": 2, "tasks": ["3.2", "4.2", "4.3"] },
-    { "id": 3, "tasks": ["5.1", "5.2", "6.1"] },
-    { "id": 4, "tasks": ["5.3", "6.2"] },
-    { "id": 5, "tasks": ["6.3", "7.1"] },
-    { "id": 6, "tasks": ["7.2", "8"] },
-    { "id": 7, "tasks": ["9.1"] },
-    { "id": 8, "tasks": ["9.2", "9.3"] },
-    { "id": 9, "tasks": ["10"] },
-    { "id": 10, "tasks": ["11.1"] },
-    { "id": 11, "tasks": ["11.2", "11.3"] },
-    { "id": 12, "tasks": ["12", "13", "14.1"] },
-    { "id": 13, "tasks": ["14.2", "15"] },
-    { "id": 14, "tasks": ["16.1", "17.1", "18.1"] },
-    { "id": 15, "tasks": ["16.2", "17.2", "18.2"] },
-    { "id": 16, "tasks": ["18.3", "19"] },
-    { "id": 17, "tasks": ["20", "21", "22.1"] },
-    { "id": 18, "tasks": ["22.2", "22.3", "23", "24"] },
-    { "id": 19, "tasks": ["25", "26", "27.1"] },
-    { "id": 20, "tasks": ["27.2", "28"] },
-    { "id": 21, "tasks": ["29", "30"] },
-    { "id": 22, "tasks": ["31"] },
-    { "id": 23, "tasks": ["32"] }
-  ]
-}
-```
+### Dependencies on Other Specs
+
+- **audit-engine** (`.kiro/specs/audit-engine/`): Task 1.1 adds `onProgress` to `auditAndClassify`. This is an additive change and is noted in the audit-engine spec's Notes section.
+- **haunting-classifier** (`.kiro/specs/haunting-classifier/`): The classifier exports `ClassifiedAudit`, which is the data contract for the UI. No changes required.
+- **cursed-shop** (`apps/cursed-shop/`): The shop must be buildable and servable by the sample generation script. No changes required.
+
+### Tech Stack Decisions
+
+- **React Router**: `react-router-dom` v6 for routing
+- **Vite**: Build tool for the React SPA
+- **Fastify**: API server
+- **Web Speech API**: For Whisper Walk utterances
+- **Web Audio API**: For optional ambient drone
+- **Canvas 2D**: For fog wave animation (not WebGL; simpler for the demo scope)
+- **sharp**: For thumbnail generation in `build-samples.mjs`
+- **@fontsource/atkinson-hyperlegible** and **@fontsource/cormorant-garamond**: Self-hosted fonts
+- **@fastify/helmet**: CSP enforcement
+- **@fastify/rate-limit**: Per-route rate limiting
+- **@fastify/static**: Static file serving
+- **playwright**: E2e testing
+- **vitest**: Unit and integration testing
+
+### Open Questions
+
+None. All decisions are finalized in the requirements and design documents.

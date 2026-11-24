@@ -10,12 +10,12 @@
       },
       {
         "capability": "fs_write",
-        "match": [".kiro/specs/**"],
+        "match": [".kiro/specs/**", ".kiro/hooks/*.json"],
         "effect": "allow"
       },
       {
         "capability": "fs_write",
-        "match": ["**"],
+        "match": ["apps/cursed-shop/expected-hauntings.json", "docs/brief/**", ".env*"],
         "effect": "deny"
       }
     ]

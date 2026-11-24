@@ -1,5 +1,6 @@
 {
   "version": "v1",
+  "enabled": true,
   "hooks": [
     {
       "name": "Spec Types Drift Check",

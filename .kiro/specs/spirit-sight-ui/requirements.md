@@ -44,10 +44,11 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 4. WHEN a valid URL is received, THE Audit_API SHALL perform an SSRF pre-check by resolving DNS and checking against blocked ranges per `.kiro/steering/security.md`
 5. WHEN the SSRF pre-check fails, THE Audit_API SHALL return `403 { "error": "SSRF_BLOCKED", "message": "Cannot audit private or internal URLs" }`
 6. WHEN the SSRF pre-check passes, THE Audit_API SHALL create an audit job with a unique ID and return `202 { "id": string }` immediately
-7. THE Audit_API SHALL enforce rate limiting: 5 requests per minute per IP, 30 requests per hour per IP, using `@fastify/rate-limit`
+7. THE Audit_API SHALL enforce rate limiting on `POST /api/audit` only: 5 requests per minute per IP, 30 requests per hour per IP, using `@fastify/rate-limit` with `global: false`
 8. WHEN rate limits are exceeded, THE Audit_API SHALL return `429 { "error": "RATE_LIMIT", "message": "Too many requests", "retryAfter": number }`
-9. WHEN the global concurrent audit limit (from `UNSEEN_MAX_CONCURRENCY` env var, default 2) is reached, THE Audit_API SHALL queue the job up to a depth of 20
-10. WHEN the queue is full, THE Audit_API SHALL return `503 { "error": "QUEUE_FULL", "message": "Server is at capacity, please try again later" }`
+9. THE Audit_API SHALL NOT apply rate limiting to `GET /api/audit/:id` polling, `GET /api/samples*`, static assets, or `GET /api/health`
+10. WHEN the global concurrent audit limit (from `UNSEEN_MAX_CONCURRENCY` env var, default 2) is reached, THE Audit_API SHALL queue the job up to a depth of 20
+11. WHEN the queue is full, THE Audit_API SHALL return `503 { "error": "QUEUE_FULL", "message": "Server is at capacity, please try again later" }`
 
 ### Requirement 3: Execute Audits with Progress Tracking
 
@@ -55,14 +56,14 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE Audit_Worker SHALL call `auditUrl(url, options)` from `@the-unseen/core` with `RestrictiveSafeFetchPolicy` and a 60-second timeout
-2. THE Audit_Worker SHALL pass an `onProgress` callback to `auditUrl` that receives stage updates: `"loading"`, `"tree"`, `"walking"`, `"classifying"`
-3. WHEN `onProgress` is called, THE Audit_Worker SHALL update the job status and record the timestamp for each stage
-4. THE Audit_Worker SHALL call `classify(rawAudit)` from `@the-unseen/core` to produce a `ClassifiedAudit`
-5. WHEN classification completes, THE Audit_Worker SHALL mark the job as `"done"` and store the `ClassifiedAudit` result
-6. WHEN any error occurs (timeout, SSRF block, resource limit, network error), THE Audit_Worker SHALL mark the job as `"error"` and store an error code and user-safe message
-7. THE Audit_Worker SHALL NOT include resolved IPs, internal stack traces, or raw URLs in error messages returned to clients
-8. THE Audit_Worker SHALL remove completed jobs after 1 hour (TTL)
+1. THE Audit_Worker SHALL call `auditAndClassify(url, options)` from `@the-unseen/core` with a 60-second timeout
+2. THE Audit_Worker SHALL pass an `onProgress?: (stage: 'loading'|'tree'|'walking'|'classifying', atMs: number) => void` callback in `options` that receives stage updates
+3. WHEN `onProgress` is called, THE Audit_Worker SHALL update the job status and record the timestamp for each stage in the `stages` object
+4. WHEN `auditAndClassify` completes, THE Audit_Worker SHALL mark the job as `"done"` and store the `ClassifiedAudit` result
+5. WHEN any error occurs (timeout, SSRF block, resource limit, network error), THE Audit_Worker SHALL mark the job as `"error"` and store an error code and user-safe message
+6. THE Audit_Worker SHALL NOT include resolved IPs, internal stack traces, or raw URLs in error messages returned to clients
+7. THE Audit_Worker SHALL remove completed jobs after 1 hour (TTL)
+8. THE Audit_Worker SHALL call `auditAndClassify` with the default `safeFetchPolicy` (the restrictive policy), never passing an `allowPrivate` or policy option from client input
 
 ### Requirement 4: Return Audit Status and Results
 
@@ -83,11 +84,13 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE Audit_API SHALL accept `GET /api/samples`
-2. THE Audit_API SHALL return an array of samples: `[{ "id": string, "name": string, "url": string, "result": ClassifiedAudit }]`
-3. THE Samples SHALL include all three Cursed Shop pages: `index.html`, `product.html`, `checkout.html`
+1. THE Audit_API SHALL accept `GET /api/samples` returning an array of sample metadata: `[{ "id": string, "name": string, "url": string, "score": number, "countsByType": Record<HauntingType,number>, "thumbnail": string }]`
+2. THE Audit_API SHALL accept `GET /api/samples/:id` returning one full Sample object: `{ "id": string, "name": string, "url": string, "result": ClassifiedAudit, "speechTrack": SpeechLine[] }`
+3. THE Samples SHALL include all three Cursed Shop pages: `cursed-shop-index`, `cursed-shop-product`, `cursed-shop-checkout`
 4. THE Samples MAY include 2-3 pre-audited public sites
-5. THE Sample results SHALL be generated offline (not at request time) and committed as JSON files in `apps/web/src/server/samples/`
+5. THE Sample results SHALL be generated offline via `apps/web/scripts/generate-samples.ts` (not at request time) and committed as JSON files in `apps/web/samples/`
+6. THE Sample generation script SHALL run `auditAndClassify(url, { allowPrivate: true })` for Cursed Shop pages, rewrite `raw.auditedUrl` to the public display URL, and write `samples/<id>.json` plus a 400px JPEG thumbnail per sample
+7. THE Fastify server SHALL also serve `apps/cursed-shop` statically at `/haunted/` without helmet, and SHALL accept `POST /api/audit` with either `{ url }` or `{ demo: 'cursed-shop-index'|'cursed-shop-product'|'cursed-shop-checkout' }`, where `demo` audits `http://127.0.0.1:${PORT}/haunted/<page>.html` with `OriginScopedPolicy('http://127.0.0.1:'+PORT, new RestrictiveSafeFetchPolicy())`
 
 ### Requirement 6: Display Landing Page
 
@@ -116,6 +119,9 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 4. THE Séance_View SHALL display the elapsed time for each completed stage
 5. WHEN status becomes `"done"`, THE Séance_View SHALL transition to the Spirit Sight view
 6. WHEN status becomes `"error"`, THE Séance_View SHALL display the error message in an `aria-live="assertive"` region and provide a "Try another URL" button
+7. THE Polite live region SHALL be rendered empty on mount, before the first poll, and only its text content SHALL change
+8. WHEN status is `"done"` or `"error"`, polling SHALL stop immediately
+9. ON every route change, focus SHALL move to the new view's `<h1>` (`tabindex="-1"`), and a persistent app-level polite region SHALL announce "Audit complete: {n} hauntings found, Haunting Score {score}" on arrival at Spirit Sight
 
 ### Requirement 8: Render Spirit Sight View with Screenshot and Overlay
 
@@ -123,12 +129,13 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE Spirit_Sight_View SHALL display the base64 PNG screenshot from `ClassifiedAudit.screenshotPng` in an `<img>` element with `alt="Audited page screenshot"`
-2. THE Spirit_Sight_View SHALL render an SVG overlay layer with the same pixel dimensions as the screenshot
-3. THE Spirit_Sight_View SHALL scale both the screenshot and overlay together to fit the viewport while maintaining aspect ratio
-4. WHEN the viewport is resized, THE Spirit_Sight_View SHALL recompute the scale factor and reposition all overlay elements
-5. THE Spirit_Sight_View SHALL render one overlay element per haunting instance positioned using the haunting's bounding box
-6. THE Overlay elements SHALL never drift from their screenshot positions (both are scaled by the same factor from the same render)
+1. THE Spirit_Sight_View SHALL display the base64 PNG screenshot from `ClassifiedAudit.raw.screenshotPng` in an `<img>` element with `alt="Audited page screenshot"`
+2. THE Spirit_Sight_View SHALL render an SVG overlay layer with the same pixel dimensions as the PNG screenshot
+3. THE Spirit_Sight_View SHALL determine the screenshot's intrinsic size from the PNG's natural dimensions (from `<img>` load or a pure `pngSize(base64)` helper), never from `viewportWidth`/`Height`
+4. THE Spirit_Sight_View SHALL scale to fit the container width only: `scaleFactor = min(1, containerWidth / pngWidth)`; the stage SHALL scroll vertically
+5. WHEN the viewport is resized, THE Spirit_Sight_View SHALL recompute the scale factor and reposition all overlay elements
+6. THE Spirit_Sight_View SHALL render one overlay element per haunting instance positioned using the haunting's bounding box
+7. THE Overlay elements SHALL never drift from their screenshot positions (both are scaled by the same factor from the same render)
 
 ### Requirement 9: Render All Ten Haunting Visual Treatments
 
@@ -154,10 +161,14 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 #### Acceptance Criteria
 
 1. THE Overlay elements SHALL be focusable via Tab key
-2. THE Overlay elements SHALL have accessible names in the format: `"[Haunting Type]: [role or element] at [location or name], [severity]"` (e.g. "Nameless Spirit: button at Add to cart, Wraith")
+2. THE Overlay elements SHALL have accessible names in the format: `"[Haunting Display Name]: [role] at [name or landmark], [severity]"` (e.g. "Nameless Spirit: button named Add to cart, Wraith")
 3. THE Overlay elements SHALL use `<button>` elements semantically
 4. WHEN an overlay element is clicked or activated with Enter/Space, THE Spirit_Sight_View SHALL open the haunting detail dialog for that haunting
-5. THE Overlay elements SHALL have visible focus indicators using `--color-ecto` with ≥3:1 contrast
+5. THE Overlay elements SHALL have visible focus indicators using a dual-tone ring: `outline: 3px solid var(--color-ecto)` with `box-shadow: 0 0 0 2px var(--color-ink), 0 0 0 7px var(--color-ink)` (ink halo ensures ≥3:1 contrast against any screenshot background)
+6. THE DOM order SHALL be: `<h1>`, haunting list sidebar (score, groups, walk controls), then overlay buttons; a skip link "Skip to the haunting list" SHALL be the first focusable element on Spirit Sight
+7. EACH overlay button SHALL have a hit area of at least 24×24 CSS px (expand around small boxes; centre on the box), OR the equivalent sidebar instance button (≥24×24 px) satisfies 2.5.8
+8. WHEN an overlay button receives focus, it SHALL scroll into view with `scroll-margin` ≥ the height of any sticky header, and no sticky header or toast SHALL cover the focused element (2.4.11)
+9. THE Overlay buttons SHALL receive `pointer-events: auto`; decorative layers (screenshot, fog canvas, ghost) SHALL have `pointer-events: none`
 
 ### Requirement 11: Display Haunting List Sidebar
 
@@ -178,11 +189,15 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE Spirit_Sight_View SHALL provide a toggle button with accessible name "Toggle Spirit Sight"
-2. WHEN the toggle is activated AND `prefers-reduced-motion` is NOT set, THE Spirit_Sight_View SHALL animate a fog wave dissolving from top to bottom over the screenshot over 800ms with `ease-in-out` easing
-3. WHEN the toggle is activated AND `prefers-reduced-motion` IS set, THE Spirit_Sight_View SHALL apply the fog instantly with no animation
-4. THE Fog wave animation SHALL apply ONLY to the screenshot canvas layer, never to the app's own UI text or controls
-5. THE Toggle button SHALL use `aria-pressed` to announce its state
+1. THE Spirit_Sight_View SHALL open with the clean screenshot ('mortal eyes') and overlays hidden; the single primary button is "Open Spirit Sight" (`aria-pressed="false"`), whose state lives in `SpiritSightView`
+2. WHEN the toggle is activated AND `prefers-reduced-motion` is NOT set, A `<canvas id="spirit-sight">` absolutely positioned over the screenshot `<img>` only SHALL draw a 2D value-noise fog (precomputed 256×256 noise tile, tinted from `--color-mist` read via `getComputedStyle`)
+3. THE Fog wave SHALL be masked by a soft-edged band (64px feather) sweeping from y=0 to y=scaledHeight over 800ms `ease-in-out`, and each haunting overlay SHALL fade in (400ms) as the wave passes its `box.y`, so overlays appear in reading order
+4. WHEN the wave ends, focus SHALL remain on the toggle, and a polite status line SHALL announce "Spirit Sight open: N hauntings, score S"; IF sound is on, the first Wraith's speech SHALL play through the whisper engine (the toggle click is the user gesture)
+5. WHEN `prefers-reduced-motion` IS set, THE App SHALL apply no canvas animation; a CSS `filter` on the `<img>` SHALL be applied instantly, and all overlays SHALL appear at once
+6. THE Toggle button SHALL use `aria-pressed` to announce its state
+7. THE Canvas layer SHALL apply ONLY to the screenshot, never to the app's own UI text or controls
+8. ACCEPTANCE TEST: Overlays SHALL be absent from the DOM before activation and present after it
+9. NO `aria-hidden` subtree SHALL contain text nodes or focusable elements
 
 ### Requirement 13: Implement Whisper Walk with Web Speech
 
@@ -190,15 +205,17 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE Whisper_Walk_View SHALL use the Web Speech Synthesis API to read speech announcements from `ClassifiedAudit.hauntings[].speech`
-2. THE Whisper_Walk SHALL set `pitch <= 0.8` and `rate <= 0.85` to produce a whisper effect
+1. THE Whisper_Walk_View SHALL build utterances from `buildSpeechTrack(audit.raw): SpeechLine[]` exported by `@the-unseen/core`, which walks `axNodes` in tree order and returns `{ backendDOMNodeId, text: announce(node, raw), note?: announceNote(node), box }` for each visible, non-ignored node
+2. THE Whisper_Walk SHALL set `pitch <= 0.8` and `rate <= 0.85` to produce a whisper effect; speed controls SHALL map to `rate = clamp(0.85 * speed, 0.4, 0.85)` so speeds above 1× shorten pauses instead of raising the rate
 3. THE Whisper_Walk SHALL provide play, pause, and step (next/previous) controls
-4. THE Whisper_Walk SHALL provide a speed control (0.5x, 0.75x, 1x, 1.25x, 1.5x)
+4. THE Whisper_Walk SHALL provide a speed control (0.5x, 0.75x, 1x) only, capped to enforce the rate limit
 5. THE Whisper_Walk SHALL provide a voice selection dropdown populated from `window.speechSynthesis.getVoices()`
 6. WHEN an utterance is spoken, THE Whisper_Walk SHALL highlight the corresponding element on the screenshot
-7. THE Whisper_Walk SHALL display a live caption synchronized with utterances
-8. THE Whisper_Walk SHALL NOT start automatically; sound shall remain off until the user clicks play
+7. THE Whisper_Walk SHALL display a live caption synchronized with utterances; the caption SHALL have `aria-live="off"` during audio playback and `"polite"` in captions-only or manual-step mode
+8. PRESSING Play in the Whisper walk SHALL be the user gesture and SHALL enable speech (setting `soundEnabled=true` if it was off); no alert SHALL block playback
 9. THE Whisper_Walk controls SHALL all have accessible labels
+10. THE Whisper_Walk SHALL provide a "Captions only" toggle that advances captions on a timer (max(1500 ms, 60 ms × characters)) with no audio
+11. THE Whisper_Walk SHALL drive `currentIndex`, caption and highlight from app state when an utterance is queued, and advance on `onend`, `onerror`, or a timeout of 2× the estimated duration
 
 ### Requirement 14: Animate Keyboard Walk
 
@@ -206,13 +223,15 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE Keyboard_Walk_View SHALL display an animated ghost following the Tab sequence from `ClassifiedAudit.tabWalkResult.steps`
+1. THE Keyboard_Walk_View SHALL display an animated ghost following the Tab sequence from `ClassifiedAudit.raw.tabWalkResult.steps`
 2. WHEN `prefers-reduced-motion` is NOT set, THE Ghost SHALL transition between focus positions with 300ms `ease-in-out` easing
-3. WHEN `prefers-reduced-motion` IS set, THE Ghost SHALL jump instantly to each position with no transition
-4. WHEN the walk encounters a Lost Soul (element with click handler not in Tab sequence), THE Ghost SHALL walk past it, and the Lost Soul SHALL appear behind glass
-5. WHEN the walk encounters a Cursed Loop (inescapable keyboard trap), THE Ghost SHALL circle the trapped region repeatedly, and a glowing ember ring SHALL appear
-6. WHEN the walk encounters an escapable cycle, THE Ghost SHALL briefly circle then break free
-7. THE Keyboard_Walk SHALL provide play, pause, and speed controls
+3. WHEN `prefers-reduced-motion` IS set, THE Ghost SHALL use 300ms step intervals with no CSS transition (not 0ms, which causes instant completion and endless loops)
+4. BEFORE moving from step i to step i+1, THE Walk SHALL reveal every Lost Soul (from `hauntings` with type `LostSoul`) whose box lies in reading order between the two step boxes, using the glass treatment with 600ms fade (instant under reduced motion)
+5. WHEN the walk encounters an escapable cycle (from `raw.tabWalkResult.cycles.filter(c => c.escapable)`), THE Ghost SHALL circle the members twice, then break free and continue
+6. WHEN the walk encounters an inescapable Cursed Loop (a haunting with type `CursedLoop`), THE Ghost SHALL circle at most 3 times, an ember ring SHALL pulse, and the walk SHALL stop with the status "Trapped: keyboard users cannot leave this dialog"
+7. THE Keyboard_Walk SHALL provide Play/Pause (one button with `aria-pressed`), Step back, Step forward, Restart, and Speed controls
+8. A visible step caption in a polite live region SHALL read "Step {i} of {n}: {speech of focused node}", plus "Lost Soul skipped: {label}" and "Cursed Loop: trapped" events
+9. THE Ghost SHALL be rendered as a `<g>` inside the SAME overlay SVG (same `viewBox`), not a separate unscaled layer
 
 ### Requirement 15: Display Haunting Detail Dialog
 
@@ -221,11 +240,11 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 #### Acceptance Criteria
 
 1. WHEN a haunting overlay or sidebar item is activated, THE Spirit_Sight_View SHALL open a modal dialog with `role="dialog"` and `aria-modal="true"`
-2. THE Dialog SHALL display the haunting type name and severity
+2. THE Dialog SHALL display the haunting type display name (e.g. "Nameless Spirit", not "NamelessSpirit") and severity
 3. THE Dialog SHALL display a persona line explaining who is affected (e.g. "A blind shopper using NVDA hears only 'button'")
 4. THE Dialog SHALL display the WCAG criterion number and name with a link to the official WCAG documentation
 5. THE Dialog SHALL display the offending HTML snippet from `haunting.htmlSnippet`
-6. THE Dialog SHALL display a suggested fix snippet from `haunting.fixSuggestion`
+6. THE Dialog SHALL display a suggested fix from `haunting.fix.instruction` and `haunting.fix.codeSnippet`
 7. THE Dialog SHALL provide a "Copy as Kiro prompt" button that copies a formatted fix request to the clipboard
 8. THE Dialog SHALL trap focus while open using a focus trap library
 9. WHEN the dialog is closed, THE Dialog SHALL return focus to the trigger element
@@ -237,7 +256,7 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE Spirit_Sight_View SHALL provide a "Daylight mode" toggle
+1. THE Spirit_Sight_View SHALL provide a "Daylight mode" toggle or the view mode SHALL be reflected in the URL as `?view=daylight` and SHALL render from that parameter on load
 2. WHEN Daylight mode is enabled, THE Spirit_Sight_View SHALL hide the screenshot overlay and display a table-based WCAG report
 3. THE Daylight_Report SHALL group findings by WCAG criterion
 4. THE Daylight_Report SHALL display the criterion number, name, level (A/AA/AAA), affected element count, and severity
@@ -271,6 +290,7 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 4. WHEN `reducedMotion` is true, THE App SHALL replace animations with instant transitions or static equivalents
 5. WHEN `reducedMotion` is true, THE App SHALL default to Daylight mode on the Spirit Sight view
 6. WHEN `reducedMotion` is true, THE App SHALL NOT start the ambient drone even if sound is enabled
+7. ANY animation that loops SHALL stop after 5 seconds or be controlled by a visible Pause button (WCAG 2.2.2)
 
 ### Requirement 19: Provide Sound Controls
 
@@ -291,7 +311,7 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE App SHALL define CSS custom properties for all tokens in `.kiro/steering/design-system.md` on the `:root` element
+1. THE App SHALL define CSS custom properties for all tokens in `.kiro/steering/design-system.md` on the `:root` element; `html` and `body` SHALL have `background-color: var(--color-ink)` (opaque)
 2. THE App SHALL export TypeScript constants in `apps/web/src/client/tokens.ts` mirroring the CSS custom properties
 3. THE App SHALL use `@fontsource/atkinson-hyperlegible` for all UI text, body, labels, inputs, and buttons
 4. THE App SHALL use `@fontsource/cormorant-garamond` only for display headings (`<h1>`, hero text)
@@ -315,8 +335,8 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE App SHALL pass its own audit when `auditUrl('http://localhost:PORT')` is run with `@the-unseen/core`
-2. THE App SHALL report zero hauntings on the Landing, Spirit Sight, and Daylight views
+1. THE App SHALL pass its own audit when `auditAndClassify(url, { allowPrivate: true })` is run against each of: `/`, `/sample/cursed-shop-index`, `/sample/cursed-shop-index?view=daylight`
+2. THE App SHALL report zero hauntings and zero unmapped axe violations on the Landing, Spirit Sight, and Daylight views
 3. THE App SHALL have exactly one `<h1>` per page
 4. THE App SHALL use correct heading hierarchy with no skipped levels
 5. THE App SHALL provide visible focus indicators with `--color-ecto` outline ≥2px with ≥3:1 contrast
@@ -325,6 +345,9 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 8. THE App SHALL provide alt text for all images (use `alt=""` for decorative images)
 9. THE App SHALL use semantic HTML (`<button>`, `<a href>`, `<nav>`, `<main>`, `<header>`, `<footer>`) instead of `<div>` with click handlers
 10. THE App SHALL announce dynamic content updates via `aria-live` regions
+11. THE App shell SHALL render `<header>` (sound toggle, shortcuts button), `<main id="main" tabindex="-1">` wrapping every route, and `<footer>`; `index.html` SHALL have `<html lang="en">`
+12. THE heading outline per view SHALL be: Landing h1 "THE UNSEEN" > h2 "Try a sample"; Séance h1 "The séance"; Spirit Sight h1 "Spirit Sight: {hostname}" > h2 "Hauntings", h2 "Whisper walk", h2 "Keyboard walk"; Daylight h1 "Daylight report: {hostname}" > h2 "Findings by WCAG criterion", h2 "Needs manual check"; dialogs h2; ErrorBoundary h1
+13. EACH route SHALL set `document.title` to "{view} – THE UNSEEN"`
 
 ### Requirement 23: Implement Modal Dialog Accessibility
 
@@ -345,14 +368,11 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 #### Acceptance Criteria
 
-1. THE Dockerfile SHALL be based on `mcr.microsoft.com/playwright` (official Playwright image with Chromium pre-installed)
-2. THE Dockerfile SHALL install Node.js 22 dependencies via `npm ci` in the workspace root
-3. THE Dockerfile SHALL build the React SPA via `npm run build` in `apps/web`
-4. THE Dockerfile SHALL copy the built SPA from `apps/web/dist/client/` into the image
-5. THE Dockerfile SHALL expose the port specified by the `PORT` environment variable (default 3000)
-6. THE Dockerfile SHALL run the Fastify server as the CMD, binding to `0.0.0.0:$PORT`
-7. THE Dockerfile SHALL set appropriate `NODE_ENV=production` and Playwright environment variables
-8. THE Dockerfile SHALL be sized reasonably (target <2GB uncompressed)
+1. THE Dockerfile SHALL be delivered by `docs/brief/prompts/16-deploy.md` (out of scope for this spec)
+2. THE Base image SHALL be `mcr.microsoft.com/playwright:v1.65.1-noble` (the tag MUST match `packages/core`'s exact playwright version in `package.json`)
+3. THE `apps/web/package.json` SHALL provide scripts: `"build": "vite build && tsc -p tsconfig.server.json"` (outputs `dist/client/` and `dist/server/`) and `"start": "node dist/server/index.js"`
+4. THE Server SHALL use `fileURLToPath(new URL('../client', import.meta.url))` for the static root path (resolves `dist/server/` → `dist/client/`)
+5. THE Health route SHALL be `GET /api/health` returning `200 { "status": "ok" }`
 
 ### Requirement 25: Provide Environment Configuration
 
@@ -389,7 +409,7 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 1. THE App SHALL use Vitest + React Testing Library for component tests
 2. THE Component tests SHALL verify: tokens render correctly, hauntings display with correct severity colors, Whisper Walk controls update state, Keyboard Walk respects reduced motion, Daylight mode renders all WCAG criteria
 3. THE Component tests SHALL run via `npm test` in `apps/web`
-4. THE Component tests SHALL use fast-check for pure UI helper functions (box scaling, overlay positioning)
+4. THE Component tests SHALL use fast-check for pure UI helper functions: `computeScale` (deterministic, bounded, aspect ratio preserved), `orderOverlays` (reading-order permutation, stable), `overlayLabel` (non-empty and unique per audit)
 
 ### Requirement 28: Test End-to-End with Playwright
 
@@ -398,10 +418,13 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 #### Acceptance Criteria
 
 1. THE App SHALL use Playwright Test for end-to-end tests
-2. THE E2E tests SHALL start the Fastify server and audit a local Cursed Shop fixture
-3. THE E2E tests SHALL verify: paste Cursed Shop URL → séance progress → Spirit Sight with haunting overlays → Whisper Walk plays → Keyboard Walk animates → Daylight mode displays WCAG table → export Markdown and JSON
-4. THE E2E tests SHALL verify the app audits itself with zero hauntings (run `auditUrl('http://localhost:PORT')` and assert no hauntings)
+2. THE E2E tests SHALL start the production Fastify server (`npm run build && npm run start`) and audit `http://127.0.0.1:3000` with the Cursed Shop served at `/haunted/`
+3. THE E2E tests SHALL verify: paste Cursed Shop URL → séance progress → Spirit Sight with haunting overlays → Whisper Walk caption advances → Keyboard Walk animates → Daylight mode displays WCAG table → export Markdown and JSON
+4. THE E2E tests SHALL verify the app audits itself with zero hauntings (run `auditAndClassify(url, { allowPrivate: true })` for each of `/`, `/sample/cursed-shop-index`, `/sample/cursed-shop-index?view=daylight`) and assert `hauntings.length === 0` and `axeCrossCheck.unmapped.length === 0`; before the assertion, assert each view rendered correctly (presence of h1 text, overlay buttons for the sample view, table for Daylight)
 5. THE E2E tests SHALL run via `npm run test:e2e` in `apps/web`
+6. THE E2E tests SHALL stub `window.speechSynthesis` via `page.addInitScript` (speak() calls onstart, then onend after 10ms) and assert that the caption advances
+7. THE Test timeout SHALL be 240,000 ms (4 minutes) to accommodate multiple full audits
+8. PLAYWRIGHT config SHALL use `testDir: './e2e'`, `testMatch: '**/*.spec.ts'`, `channel: process.env.UNSEEN_CHROMIUM_CHANNEL ?? 'chromium'`, and `webServer: { command: 'npm run build && npm run start', url: 'http://127.0.0.1:3000/api/health', env: { NODE_ENV: 'production', PORT: '3000' }, timeout: 120_000 }`
 
 ### Requirement 29: Optimize Performance
 
@@ -423,7 +446,39 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 
 1. THE App SHALL provide a "Keyboard shortcuts" button accessible from the app header
 2. THE Shortcuts dialog SHALL list all shortcuts in a table with columns: Key, Action
-3. THE Shortcuts SHALL include: `Tab` (navigate), `Enter/Space` (activate), `Escape` (close dialog), `?` (open shortcuts dialog)
-4. THE Shortcuts SHALL NOT hijack printable keys (letters, numbers) per WCAG 2.1.4 (Character Key Shortcuts)
+3. THE Shortcuts SHALL include: `Tab` (navigate), `Enter/Space` (activate), `Escape` (close dialog)
+4. THE App SHALL register no document-level key handlers except Escape inside an open dialog
 5. THE Shortcuts dialog SHALL be keyboard-accessible and closable via Escape
+
+### Requirement 31: Journey and Product States
+
+**User Story:** As a user, I want clear navigation and product states, so that I understand what to do next and what the results mean.
+
+#### Acceptance Criteria
+
+1. EACH view SHALL declare exactly one primary action styled with `--color-ecto` background: Landing "Begin audit", Séance "Cancel" link, Spirit Sight "Open Spirit Sight" (before reveal), then a numbered step bar (1 Reveal, 2 Walk, 3 Listen, 4 Report) that is always visible
+2. THE header wordmark SHALL link to `/`, and the Spirit Sight header SHALL have an "Audit another site" link
+3. WHEN zero hauntings are found, THE App SHALL display "No hauntings detected by automated checks" plus the coverage note, never the word "compliant", with the needs-manual-check list shown
+4. WHEN `GET /api/audit/:id` returns 404 during polling or on Spirit Sight view load, THE App SHALL show "This séance has ended (results expire after 1 hour or when the server restarts)" with "Audit again" (re-POST the same URL) and "Back to home" buttons
+5. WHEN a network failure occurs during polling, THE Séance SHALL retry 3 times with exponential backoff, then display an assertive error with "Retry" button
+
+### Requirement 32: Re-audit and Takes Form (Polish)
+
+**User Story:** As a user, I want to re-audit a page and see which hauntings were fixed, so that I can verify my changes.
+
+#### Acceptance Criteria
+
+1. THE Spirit Sight view for a job SHALL provide a "Re-audit this page" button
+2. ON completion of a re-audit, hauntings SHALL be matched across audits by `(type, kind, normalised htmlSnippet)` using a pure `matchHauntings(before, after)` function with a fast-check property: matching is symmetric and one-to-one
+3. UNMATCHED 'before' hauntings SHALL play the "takes form" animation (600ms cubic-bezier(0.34,1.56,0.64,1): the ghost gradient resolves to a crisp ecto outline), and their new accessible name SHALL be spoken if sound is on
+
+### Requirement 33: Ambient Drone (Polish)
+
+**User Story:** As a user, I want optional atmospheric sound, so that the experience is immersive.
+
+#### Acceptance Criteria
+
+1. THE App SHALL provide an ambient drone: two detuned sine oscillators at 55/55.4Hz through a lowpass filter at 400Hz, gain 0.04, with a 2s fade-in
+2. THE Drone SHALL be started only by the header Sound toggle, never automatically, and never under `prefers-reduced-motion`
+3. THE Header sound toggle SHALL control the drone and chimes (not Web Speech); sound SHALL be off by default and SHALL NOT be persisted across page loads
 
