@@ -531,3 +531,14 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `playwright test`: **101/101**
   - Cursed Shop verify: VERIFY PASSED
 - **The adversarial probe:** the independent probe workflow had 2 of its 3 agents **stopped by Anthropic's safety filter** (flagged as a cyber-security category) because they were framed as a penetration test, even against our own local test servers. The product lead did not try to work around the filter. Coverage is instead checked by reviewing Kiro's spec-required tests against the vector checklist. The third agent (malformed proxy requests, DNS behaviour) was not blocked.
+
+## 2026-11-24 · Safe-fetch verification result (the unblocked probe agent)
+- It tried 22 proxy and DNS vectors against Kiro's guard on local test servers, including malformed CONNECT authorities and ports, DNS slot starvation, robustness and proxy exposure.
+- **1 confirmed low-severity weakness:** `auditHtml`'s allowed synthetic authority is dialled by hostname without pinning. It is reachable through WebSockets, which bypass `page.route`. It is only exploitable if the hosted resolver answers the `.invalid` name.
+- Everything else was harmless:
+  - CONNECT and absolute-form parsers disagree on port 0 (no bypass)
+  - DNS slot starvation only stalls the page's own audit
+  - a crash is reachable only through a synchronous-throw test seam
+  - the proxy listens on loopback only and enforces the same deny rules
+- **Queued as `prompts/42-safe-fetch-hardening.md`,** together with the flag merge and the background-traffic noise.
+- **The two blocked agents:** Anthropic's response said Opus 5.5's cyber safeguards flagged them, and suggested an admin apply to the Cyber Verification Program. Not worked around.
