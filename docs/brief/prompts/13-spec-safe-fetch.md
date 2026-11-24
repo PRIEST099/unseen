@@ -34,3 +34,13 @@ Keep `requirements.md` under about 15 KB.
 
 ## Tasks
 Replace the existing `safe-fetch.ts` internals behind the same exported API (`RestrictiveSafeFetchPolicy`, `PermissiveSafeFetchPolicy`, `installSafeFetchPolicy`) so audit-engine callers do not change. The last task re-runs the full `packages/core` test suite.
+
+## Addendum (2026-11-24, after the audit-engine reviews)
+- `installSafeFetchPolicy` now aborts with `'blockedbyclient'`. The old `'blocked'` code was invalid, so every block threw. Keep that.
+- The re-verification of finding 21 (`review-notes/audit-engine-reverify-1.md`) found new gaps hidden by the current mocks:
+  - With a resolver that rejects with `ENODATA` for AAAA-only names (c-ares commonly does this), the current code fails open.
+  - IPv6 cases were only mocked as `resolve4 → []`.
+
+  The spec's tests must use a fake resolver that models `ENODATA`/`ENOTFOUND`/`EAI_AGAIN` and AAAA-only hosts, and `dns.lookup({all:true, verbatim:true})` semantics.
+- `auditUrl`'s resource metering now lives in `runner/resource-limits.ts`, and the audit lifecycle in `audit-guard.ts`. If you choose the in-process proxy design (option b), integrate it with these. Do not duplicate the request counting.
+- In headless spec mode, write all three files (`requirements.md`, `design.md`, `tasks.md`) in this run. The product lead approves the requirements up front.
