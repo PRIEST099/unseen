@@ -566,3 +566,26 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `vitest --run`: **626/626**
   - `playwright test`: **103/103**
   - Cursed Shop verify: VERIFY PASSED
+
+## 2026-11-24 · UI build in the Kiro IDE: tasks 1.0–2.2, product-lead verification
+- **How it ran:** the owner ran the whole `spirit-sight-ui` task list nonstop from the **Kiro IDE**: Autopilot mode, trusted commands, Claude Sonnet 4.5, and a "Execute all incomplete tasks" prompt. The IDE marks the running task `[-]` and queued tasks `[~]`. Claude Code watched `tasks.md` and verified each tick as it landed: tests, typecheck, code review, and a browser check for the UI tasks.
+- **Verified and committed, one commit per task:**
+  - 1.0 scaffold
+  - 1.0a `buildSpeechTrack`
+  - 1.1 `onProgress` (core suite 634/107 green)
+  - 1.2 samples
+  - 1.3 Fastify server (scoped helmet, opt-in rate limit, prod guard)
+  - 1.4 job queue and worker
+  - 1.5 app shell and landing
+  - 1.6 Spirit Sight
+  - 1.7 Daylight
+  - 2.1 séance
+  - 2.2 Whisper walk (Kiro added a `./speech` subpath export to core so the browser bundle avoids Playwright; accepted)
+- **Self-audit (1.8), run independently by Claude Code on the production build:** **5/5 passed.** Landing, Spirit Sight, Daylight and 404 all have **zero hauntings, zero unmapped axe violations, score 0**. The opened Spirit Sight view has zero axe violations and zero incomplete items. THE UNSEEN finds nothing haunted in itself.
+- **Fix list** (`review-notes/ui-build-fixlist.md`, 8 items):
+  - `onProgress` fires at stage end instead of start
+  - sample PNGs are gitignored
+  - an invented display domain
+  - landing atmosphere and score wording
+  - **the fog wave clears itself, so the signature reveal looks flat (demo-critical)**
+  - the browser-backed test runs inside the parallel unit run
