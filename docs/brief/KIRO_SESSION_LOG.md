@@ -290,3 +290,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - Cursed Shop `npm run verify`: VERIFY PASSED
   - Re-running the original reproductions is in progress (see the next entry).
 - **Next:** run 19b (findings 25–47 plus checklist items 1–6), and run 20 (amend the classifier spec).
+
+## 2026-11-24 · Run 20 · started (owner account)
+- Kiro amends the haunting-classifier spec for the 49 confirmed findings in `review-notes/classifier-spec-review-1.md`. Runs in the visible Terminal panel.
