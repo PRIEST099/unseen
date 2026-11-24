@@ -257,3 +257,13 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-24 · Run 12 · started (owner account, 4,000 hackathon credits)
 - Claimed by the owner's Claude Code session (Windows). Spec-only run: `.kiro/specs/haunting-classifier/`.
+
+## 2026-11-24 · Run 12: spec `haunting-classifier` (owner account)
+- **Instruction:** `docs/brief/prompts/12-spec-haunting-classifier.md`
+- **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_write --mode spec --model claude-sonnet-4.5` (prompt via stdin), then `--resume` with an "approved, continue" message (Windows, Kiro CLI 3.5.0).
+- **Kiro surprised us:** in headless spec mode, Kiro asked "What do you want to start with? Requirements | Technical Design". The question could not be answered, so it chose requirements-first by itself, wrote `requirements.md`, and **stopped at the approval gate**. A resumed conversation (`--resume`) carrying the product lead's approval produced `design.md` and `tasks.md`. Spec mode keeps its human-approval checkpoint even headless, which is a good property for an agent-to-agent workflow.
+- **Kiro produced:** `.kiro/specs/haunting-classifier/`:
+  - `requirements.md` (32 EARS requirements, about 29 KB)
+  - `design.md` (about 46 KB, 18 correctness properties)
+  - `tasks.md` (23 tasks, 51 sub-tasks, 5 checkpoints)
+- **Product-lead note:** Kiro marked the property-based-test sub-tasks as optional (`*`). `hauntings.md` requires them, so run 12b makes them mandatory. Credits are not readable headless.
