@@ -411,3 +411,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `playwright test`: **84/84**
   - Cursed Shop `npm run verify`: VERIFY PASSED
   - An anti-overfitting check on fresh, unseen pages is running next.
+
+## 2026-11-24 · Run 27 · started (owner account)
+- Kiro sets up its own workflow surfaces: four steering modes, v1 hooks (protected-file guard, save-time checks, Stop test gate, spec-types drift), three custom agents (builder, spec-writer, reviewer) and Playwright MCP.
