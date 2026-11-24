@@ -387,3 +387,8 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - an honest egress-firewall section
   - a rewrite of `tasks.md`
 - **Product-lead check:** grep for `instanceof Restrictive|--proxy-server|--disable-webrtc` now finds only "do not use" lines.
+
+## 2026-11-24 · Run 14: spec `spirit-sight-ui` (owner account)
+- **Instruction:** `prompts/14-spec-spirit-sight-ui.md`, plus the 2026-11-24 addendum (judges' guidance: one obvious path, the demo slice first, the app self-audits to zero hauntings, the real `auditAndClassify` API, an `onProgress` callback, a never-client-supplied policy, performance budgets). Mode `spec`, model `claude-sonnet-4.5`, run in parallel with run 25.
+- **Kiro produced:** `.kiro/specs/spirit-sight-ui/`: `requirements.md` (about 30 KB), `design.md` (about 77 KB) and `tasks.md` (32 tasks ordered for demo impact; the self-audit test is task 28). This time Kiro wrote all three files in one headless spec run, because the instruction pre-approved the requirements. Compare run 12, which stopped at the approval gate.
+- **Next:** independent spec review (UX/design, the app's own accessibility, feasibility), then the build in the Kiro IDE with Playwright MCP.
