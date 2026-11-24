@@ -9,7 +9,15 @@
       ],
       "env": {},
       "disabled": false,
-      "description": "Playwright MCP server for browser automation, screenshots, and accessibility snapshots"
+      "autoApprove": [
+        "browser_navigate",
+        "browser_snapshot",
+        "browser_take_screenshot",
+        "browser_console_messages",
+        "browser_resize",
+        "browser_press_key",
+        "browser_wait_for"
+      ]
     },
     "unseen": {
       "command": "node",
@@ -17,16 +25,7 @@
         "packages/mcp/dist/server.js"
       ],
       "env": {},
-      "disabled": true,
-      "description": "THE UNSEEN MCP server - audit_url, audit_html, explain_haunting, suggest_fix (enable once packages/mcp is built)"
+      "disabled": true
     }
-  },
-  "autoApprove": {
-    "playwright": [
-      "playwright_navigate",
-      "playwright_screenshot",
-      "playwright_snapshot",
-      "playwright_accessibility_snapshot"
-    ]
   }
 }
