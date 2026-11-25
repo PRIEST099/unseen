@@ -630,3 +630,12 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - **Verdict:** the engineering and the Kiro paper trail are strong. Innovation is the weak criterion: "haunted accessibility" is crowded in Kiroween 2026 (Ghostlight, Ghost Crew, KeyQuest, Skeleton Key).
   - **Biggest drag:** nothing judge-facing exists yet. `main` is 33 commits behind and the README is stale; there is no live URL, video or write-up.
   - **Recommended order:** public repo and README → deploy → Kiro-built MCP and Power → video → write-up and blog; cut Night Shift.
+- **New-idea research (same day, at the user's request):**
+  - Two workflows (16 agents) generated 12 new ideas, shortlisted 4, hunted for competitors, then verified the winner with 4 independent sceptics.
+  - **Result:** no idea survived as both uncontested and clearly stronger.
+  - **ROLL CALL (insurer ghost-network roll call)** scored best at first but failed verification:
+    - prior art in Ghost Network Buster, Ghost Network Watch and Provider Data Workbench;
+    - federal data flagged only 2 of 3,852 real listings, so the demo's main moment would be staged;
+    - ethics, trademark and scope problems.
+  - **Recommendation:** keep THE UNSEEN.
+  - Full notes: `docs/brief/review-notes/new-idea-research-1.md`.
