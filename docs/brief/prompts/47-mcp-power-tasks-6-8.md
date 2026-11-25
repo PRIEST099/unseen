@@ -17,6 +17,18 @@ Finish the `unseen-mcp-and-power` spec. Tasks 0–5 are done and verified by the
 - Remove the comment from the page.
 - Keep that explanation only in `power/DEMO.md` and in the test that checks the scores. The page must still score 15 before the fix and 0 after.
 
+## 1c. `DEMO.md`: what the product lead saw in a live run
+In a live headless Kiro CLI run of the demo prompt:
+- Kiro first added the quantity field and **declined to fix the button**. It offered "I can add it if you want" and tried to end its turn.
+- The gate blocked the turn, and Kiro got a new turn. It called `audit_html`, added `aria-label="Checkout"`, and reported 15 to 0.
+- The CLI did **not** run the Stop hook again after that continued turn. `gate-state.json` showed no pass, and `turn-start.json` was left behind. Running the gate shim by hand afterwards printed `gate passed (score 0, before 15)`.
+
+Add this to `DEMO.md`:
+- Under the expected steps, note that in the CLI the final "gate passed" line may not appear.
+- Under recovery, add: if `.unseen/turn-start.json` is left over, delete `.unseen/` before the next take.
+
+No code change is needed.
+
 ## 2. Task 6: the `unseen-auditor` custom agent
 Build it exactly as the amended spec says, including the `mcp` allow rule for the four tools. Writes to `.kiro/agents/` may be refused in headless mode. If one is, put the complete file content in your final summary and continue; the product lead applies it verbatim.
 

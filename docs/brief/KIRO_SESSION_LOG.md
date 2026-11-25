@@ -676,3 +676,9 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Found in review, for run 47:**
   - The disabled fallback gate uses a per-hook `enabled` field that we have never seen work. It moves to its own file with top-level `enabled`.
   - The demo page announced its own ghost in an HTML comment.
+- **Live test of the ghost gate (product lead, real `kiro-cli` session, throwaway workspace):**
+  - Setup: the hooks were installed with `unseen-mcp install-hooks`, the unseen MCP server was configured, and the demo prompt was sent unchanged.
+  - **Kiro surprised us.** It added the quantity field, noticed the unnamed checkout button, and *declined to fix it*: "I can add it if you want". Then it tried to end its turn.
+  - **The gate blocked the turn.** Kiro took another turn, called `audit_html`, added `aria-label="Checkout"`, and reported 15 → 0.
+  - **CLI quirk:** the Stop hook did not run again after the forced turn. Running the gate by hand printed `gate passed (score 0, before 15)`.
+  - **Verdict:** the demo-critical loop works end to end in a real Kiro session.
