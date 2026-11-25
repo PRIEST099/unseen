@@ -43,6 +43,15 @@ Accessibility checkers already exist. What they lack is a way to make developers
 
 The rules are defined in [`.kiro/steering/hauntings.md`](.kiro/steering/hauntings.md), the single source of truth.
 
+### What THE UNSEEN cannot catch
+Automated checks cover only part of WCAG. THE UNSEEN cannot tell you:
+- whether alt text is *accurate*
+- whether a reading order *makes sense*
+- whether captions match the audio
+- whether a flow is understandable
+
+Contrast over images or gradients can't be measured honestly, so it is reported as "needs a manual check", never as a haunting or a pass. **A clean audit is not proof of accessibility.** Test with real assistive-technology users too.
+
 ## For judges: how Kiro built it
 **Claude Code acted as product lead:** it wrote every instruction sent to Kiro and independently verified each result. **Kiro wrote the product.**
 
