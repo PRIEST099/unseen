@@ -660,3 +660,19 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - dirty files are found by mtime and audited directly when there is no dev server;
   - a deterministic haunted demo page.
 - **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --agent unseen-builder --model auto`, with `UNSEEN_CHROMIUM_CHANNEL=chromium`.
+- **Run 46 result (Kiro):**
+  - Part A rewrote the spec for decisions D1–D8 and the 33 findings.
+  - Part B built tasks 0–5:
+    - `packages/mcp`: 4 tools, the CLI with `audit`, `on-save`, `gate` and `install-hooks`, and pure modules with property-based tests;
+    - `power/`: `plugin.json`, a schema-valid `mcp.json`, 3 skills, `DEMO.md`, and the haunted demo page (15 before, 0 after);
+    - core: `auditHtmlAndClassify`, and `WCAG_BY_TYPE`/`SOUND_CUE_BY_TYPE` moved into core. Core's only test edit appends 10 export names.
+  - **Kiro's own end-to-end check passes:** the installed shim, in a path with a space, exits 1 with the Nameless Spirit, then exits 0 with before and after after the fix.
+  - Kiro could not write `.kiro/settings/mcp.json` and printed the entry instead. That was expected.
+- **Product-lead verification (independent rerun):**
+  - Build and typecheck clean.
+  - Core 644 unit and 108 Playwright. The first pass under load gave 107 plus one error, and one core unit run counted 628. Neither reproduced in two reruns.
+  - MCP 94 unit and 24 integration. Web 392 unit and 84 e2e. The shop verifier passes.
+  - Commit `7ef87d7`.
+- **Found in review, for run 47:**
+  - The disabled fallback gate uses a per-hook `enabled` field that we have never seen work. It moves to its own file with top-level `enabled`.
+  - The demo page announced its own ghost in an HTML comment.
