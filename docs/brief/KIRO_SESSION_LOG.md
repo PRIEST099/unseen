@@ -718,3 +718,8 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - **Unit tests:** core 649, mcp 184, web 425.
   - **Integration and e2e:** mcp integration 35; core Playwright 109; shop verify passes; web e2e 84 (self-audit included); replay e2e 13.
   - I ran the shell guard live: it blocks `cp …` and `git checkout -- …` against the golden file, and allows `cat`.
+- **Run 49 result:** Kiro wrote the night-shift spec: 8 tasks, with handoff through `kirocrew-core` spawn and wait. The local repo commit is `d68ceb7`.
+- **Run 49b (build) incident, a product-lead error:** the lead started the build twice. The first start was a shell `&` that looked dead but was not; the second was a proper background run. **Two Kiro sessions then worked on the same `tasks.md` at once and overwrote each other's files.**
+  - One session noticed, stopped without finishing a task, removed its own orphan files, and reported the PIDs. Neither session touched `../the-unseen`.
+  - The other session continues alone.
+  - **Lesson:** never start a Kiro run with a shell `&`. Use only tracked background runs, and check `kiro-cli` processes before resending.
