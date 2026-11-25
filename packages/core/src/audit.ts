@@ -1,11 +1,21 @@
 import type { Browser, BrowserContext, Page } from 'playwright'
-import type { AuditOptions, AXNode, CollectionError, DomNodeInfo, RawAudit, SafeFetchPolicy, TabWalkResult } from './types.js'
+import type {
+  AuditOptions,
+  AXNode,
+  CollectionError,
+  DomNodeInfo,
+  OnProgressCallback,
+  RawAudit,
+  SafeFetchPolicy,
+  TabWalkResult,
+} from './types.js'
 import { AuditTimeoutError, HtmlSizeError, NonHtmlContentError, SsrfBlockedError } from './types.js'
 import { SsrfGuardProxy } from './runner/ssrf-guard-proxy.js'
 import type { BlockedEntry, DialFn } from './runner/ssrf-guard-proxy.js'
 import type { LookupFn } from './runner/dns-resolver.js'
 import type { ContextProxy } from './runner/browser.js'
 import { AuditGuard } from './audit-guard.js'
+import { emitProgress } from './progress.js'
 import { classify } from './classifier/classify.js'
 import type { ClassifiedAudit } from './classifier/types.js'
 import { DEFAULT_VIEWPORT, PageLoader, getPool } from './runner/browser.js'
@@ -20,8 +30,9 @@ import {
 import { collectAxTree } from './runner/ax-tree.js'
 import { runAxe } from './runner/axe.js'
 import { walkTabsWithErrors } from './runner/tab-walker.js'
-import { ResourceMeter } from './runner/resource-limits.js'
+import { ResourceMeter, resolveResourceLimits } from './runner/resource-limits.js'
 import { PermissiveSafeFetchPolicy, RestrictiveSafeFetchPolicy } from './runner/safe-fetch.js'
+import { UNSEEN_VERSION } from './version.js'
 
 export const FULL_AUDIT_TIMEOUT_MS = 60_000
 export const MAX_HTML_BYTES = 10_485_760
@@ -58,8 +69,8 @@ export type AuditHooks = {
   beforeClose?: (page: Page, raw: RawAudit) => Promise<void>
   /** Registers page routes that answer requests (auditHtml's synthetic origin). Runs before the policy is installed. */
   serve?: (page: Page) => Promise<void>
-  /** Egress proxy seams: a fake resolver and dialler for tests, and exact authorities that skip DNS and range checks. */
-  proxy?: { lookup?: LookupFn; dial?: DialFn; allowAuthorities?: readonly string[] }
+  /** Egress proxy seams: a fake resolver and dialler for tests, and authorities served in-process that the proxy refuses to dial. */
+  proxy?: { lookup?: LookupFn; dial?: DialFn; servedAuthorities?: readonly string[] }
 }
 
 /** Per-audit egress state: the proxy's address (absent in permissive mode) and the log it writes to. */
@@ -98,7 +109,16 @@ export async function auditUrl(url: string, options: AuditOptions = {}): Promise
 
 /** Audit a live URL and classify the evidence: hauntings, severity, score. Errors from the audit propagate unchanged. */
 export async function auditAndClassify(url: string, options: AuditOptions = {}): Promise<ClassifiedAudit> {
-  return classify(await auditUrl(url, options))
+  const raw = await auditUrl(url, options)
+  emitProgress(options.onProgress, 'classifying')
+  return classify(raw)
+}
+
+/** Audit an HTML string and classify the evidence, like `auditAndClassify` does for a URL. */
+export async function auditHtmlAndClassify(html: string, options: AuditOptions = {}): Promise<ClassifiedAudit> {
+  const raw = await auditHtml(html, options)
+  emitProgress(options.onProgress, 'classifying')
+  return classify(raw)
 }
 
 export async function auditUrlWithHooks(url: string, options: AuditOptions, hooks: AuditHooks): Promise<RawAudit> {
@@ -182,7 +202,14 @@ async function runAudit(
     const loader = new PageLoader()
     const context = await createContextGuarded(loader, browser, options, guard, egress.context)
     try {
-      return await collectAudit(url, policy, options, guard, { loader, context, crashed, hooks, blockedLog: egress.blockedLog })
+      return await collectAudit(url, policy, options, guard, {
+        loader,
+        context,
+        crashed,
+        hooks,
+        blockedLog: egress.blockedLog,
+        chromiumVersion: browser.version(),
+      })
     } finally {
       await closeContext(context, browser)
     }
@@ -198,6 +225,7 @@ type AuditParts = {
   crashed: () => AuditTimeoutError
   hooks: AuditHooks
   blockedLog: readonly BlockedEntry[]
+  chromiumVersion: string
 }
 
 async function collectAudit(
@@ -207,7 +235,9 @@ async function collectAudit(
   guard: AuditGuard,
   parts: AuditParts
 ): Promise<RawAudit> {
-  const meter = new ResourceMeter((limit) => guard.fail(limit))
+  const meter = new ResourceMeter((limit) => guard.fail(limit), resolveResourceLimits(options.resourceLimits))
+  // Each stage is reported when it starts, so the caller can show the slow step while it runs.
+  emitProgress(options.onProgress, 'loading')
   const loaded = await guard.race(
     parts.loader.loadPage(parts.context, url, meter.wrapPolicy(policy), options, async (page) => {
       // A renderer crash at any later point must end the audit, not hang it.
@@ -220,8 +250,9 @@ async function collectAudit(
   loaded.page.on('close', () => guard.fail(parts.crashed()))
   try {
     const collectionErrors: CollectionError[] = []
-    const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks)
+    const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks, options.onProgress)
     const raw = assemble(url, options, loaded, meter, evidence, collectionErrors, parts.blockedLog)
+    raw.engine = { unseenVersion: UNSEEN_VERSION, axeVersion: evidence.axe.version, chromiumVersion: parts.chromiumVersion }
     await parts.hooks.beforeClose?.(loaded.page, raw)
     return raw
   } finally {
@@ -275,8 +306,10 @@ async function collectEvidence(
   page: Page,
   guard: AuditGuard,
   collectionErrors: CollectionError[],
-  hooks: AuditHooks
+  hooks: AuditHooks,
+  onProgress: OnProgressCallback | undefined
 ): Promise<Evidence> {
+  emitProgress(onProgress, 'tree')
   const axNodes = await guard.race(collectAxTree(page))
   const [axe, listeners, meta, mapping] = await guard.race(
     Promise.all([
@@ -293,6 +326,7 @@ async function collectEvidence(
   // Two snapshots, one before and one after the Tab walk: the walk can open or remove elements.
   const referenced = new Set(axNodes.map((n) => n.backendDOMNodeId).filter((id) => id > 0))
   const before = await guard.race(collectDomNodes(page, referenced))
+  emitProgress(onProgress, 'walking')
   const tabWalkResult = await walkOrRecord(page, guard, collectionErrors, hooks)
   const after = await guard.race(collectDomNodes(page, referenced))
   collectionErrors.push(...before.errors, ...after.errors)
@@ -394,6 +428,6 @@ export async function auditHtml(html: string, options: AuditOptions = {}): Promi
   const policy = new OriginScopedPolicy(STABLE_HTML_ORIGIN, selectPolicy(options))
   return auditUrlWithHooks(`${STABLE_HTML_ORIGIN}/`, { ...options, safeFetchPolicy: policy }, {
     serve: (page) => serveHtml(page, html),
-    proxy: { allowAuthorities: [`${new URL(STABLE_HTML_ORIGIN).host}:80`] },
+    proxy: { servedAuthorities: [`${new URL(STABLE_HTML_ORIGIN).host}:80`] },
   })
 }

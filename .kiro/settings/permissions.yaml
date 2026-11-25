@@ -1,0 +1,7 @@
+rules:
+  - capability: shell
+    match: ["npm *", "npx *", "node *", "git status*", "git diff*"]
+    effect: allow
+  - capability: shell
+    match: []
+    effect: deny

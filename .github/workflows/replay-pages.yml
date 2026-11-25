@@ -1,0 +1,50 @@
+# Builds the replay edition (a fully static site of pre-recorded audits) and publishes it to GitHub Pages.
+# It does nothing until the owner turns Pages on: Settings > Pages > Source: "GitHub Actions"
+# (see "Replay edition on GitHub Pages" in apps/web/DEPLOY.md).
+name: replay-pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The replay imports the compiled speech module from core.
+      - run: npm run build -w @the-unseen/core
+      - run: npm run build:replay -w @the-unseen/web
+        env:
+          # GitHub Pages serves this repository (PRIEST099/unseen) under /unseen/.
+          UNSEEN_REPLAY_BASE: /unseen/
+          # Repository variable (Settings > Secrets and variables > Actions > Variables). Empty leaves the sentence out.
+          UNSEEN_LIVE_URL: ${{ vars.UNSEEN_LIVE_URL }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist-replay
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

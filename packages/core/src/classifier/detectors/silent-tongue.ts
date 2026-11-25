@@ -1,7 +1,7 @@
 import type { RawAudit } from '../../types.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_3_1_1 } from '../wcag.js'
+import { SOUND_CUE_BY_TYPE, WCAG_BY_TYPE } from '../wcag.js'
 import { findBox, hauntingId, snippet } from '../util.js'
 
 export const BCP47_PRIMARY = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/
@@ -15,11 +15,11 @@ export function detectSilentTongue(raw: RawAudit): UnclassifiedHaunting[] {
     {
       id: hauntingId('SilentTongue', htmlId),
       type: 'SilentTongue',
-      wcag: [WCAG_3_1_1],
+      wcag: [...WCAG_BY_TYPE.SilentTongue],
       nodeIds: [htmlId],
       box: findBox(raw.boundingBoxes, htmlId),
       speech: undefined,
-      soundCue: 'garbled-whisper',
+      soundCue: SOUND_CUE_BY_TYPE.SilentTongue,
       htmlSnippet: snippet(raw, htmlId),
       explanation: generateExplanation('SilentTongue', { lang }),
       persona: generatePersona('SilentTongue'),

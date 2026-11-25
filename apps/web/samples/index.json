@@ -1,0 +1,59 @@
+[
+  {
+    "id": "cursed-shop-index",
+    "name": "Cursed Shop — Home",
+    "url": "/cursed-shop/index.html",
+    "score": 98,
+    "countsByType": {
+      "NamelessSpirit": 9,
+      "HollowPortrait": 4,
+      "TheFog": 7,
+      "LostSoul": 8,
+      "CursedLoop": 0,
+      "InvisibleWanderer": 18,
+      "WhisperingField": 0,
+      "SilentTongue": 0,
+      "ShatteredOrder": 0,
+      "TheVeiled": 1
+    },
+    "thumbnailUrl": "/api/samples/cursed-shop-index/thumbnail.jpg"
+  },
+  {
+    "id": "cursed-shop-product",
+    "name": "Cursed Shop — Product",
+    "url": "/cursed-shop/product.html",
+    "score": 85,
+    "countsByType": {
+      "NamelessSpirit": 3,
+      "HollowPortrait": 4,
+      "TheFog": 4,
+      "LostSoul": 10,
+      "CursedLoop": 0,
+      "InvisibleWanderer": 6,
+      "WhisperingField": 0,
+      "SilentTongue": 0,
+      "ShatteredOrder": 1,
+      "TheVeiled": 0
+    },
+    "thumbnailUrl": "/api/samples/cursed-shop-product/thumbnail.jpg"
+  },
+  {
+    "id": "cursed-shop-checkout",
+    "name": "Cursed Shop — Checkout",
+    "url": "/cursed-shop/checkout.html",
+    "score": 70,
+    "countsByType": {
+      "NamelessSpirit": 3,
+      "HollowPortrait": 2,
+      "TheFog": 2,
+      "LostSoul": 0,
+      "CursedLoop": 1,
+      "InvisibleWanderer": 0,
+      "WhisperingField": 2,
+      "SilentTongue": 1,
+      "ShatteredOrder": 2,
+      "TheVeiled": 2
+    },
+    "thumbnailUrl": "/api/samples/cursed-shop-checkout/thumbnail.jpg"
+  }
+]

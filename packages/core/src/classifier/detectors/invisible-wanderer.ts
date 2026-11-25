@@ -2,7 +2,7 @@ import type { ComputedStyleMap, RawAudit, TabStep } from '../../types.js'
 import { contrastRatio } from '../contrast.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_2_4_7, WCAG_2_4_13 } from '../wcag.js'
+import { WCAG_2_4_13, WCAG_BY_TYPE } from '../wcag.js'
 import { blend, findBox, hauntingId, parseCssColor, snippet } from '../util.js'
 import type { RGBA } from '../util.js'
 
@@ -134,7 +134,7 @@ export function detectInvisibleWanderer(raw: RawAudit): UnclassifiedHaunting[] {
     out.push({
       id: hauntingId('InvisibleWanderer', id),
       type: 'InvisibleWanderer',
-      wcag: [WCAG_2_4_7],
+      wcag: [...WCAG_BY_TYPE.InvisibleWanderer],
       guidance: WCAG_2_4_13,
       nodeIds: [id],
       box: findBox(raw.boundingBoxes, id),

@@ -16,7 +16,8 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint packages/core/src/classifier",
-    "shop": "npm run start -w cursed-shop"
+    "shop": "npm run start -w cursed-shop",
+    "unseen:install-global": "node scripts/install-global.mjs"
   },
   "devDependencies": {
     "eslint": "^9.39.5",

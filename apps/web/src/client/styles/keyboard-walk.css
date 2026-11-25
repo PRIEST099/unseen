@@ -1,0 +1,127 @@
+/* Keyboard walk. The ghost, the focus box and the revealed Lost Souls live only inside .spirit-stage. */
+
+.walk-layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .walk-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.walk-panel {
+  position: sticky;
+  top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-mist);
+  border-radius: 0.25rem;
+  background-color: var(--color-ink);
+}
+
+@media (max-width: 60rem) {
+  .walk-panel {
+    position: static;
+  }
+}
+
+.walk-panel h2 {
+  margin-top: 0;
+  font-size: var(--text-2xl);
+}
+
+.walk-caption {
+  min-height: 4.5rem;
+  margin-bottom: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-left: 4px solid var(--color-ecto);
+  background-color: var(--color-ink);
+}
+
+.walk-caption p {
+  margin: 0;
+}
+
+.walk-step {
+  color: var(--color-bone);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.walk-events {
+  min-height: 3rem;
+  margin-bottom: var(--space-4);
+}
+
+.walk-events p {
+  margin: 0 0 var(--space-1);
+  color: var(--color-candle);
+}
+
+.walk-controls,
+.walk-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.walk-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.walk-field label {
+  font-weight: 700;
+}
+
+.walk-field select {
+  min-height: 2.75rem;
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-mist);
+  border-radius: 0.25rem;
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+  font-family: inherit;
+  font-size: var(--text-base);
+}
+
+/* The element the ghost is on: an ecto box on an ink halo, readable on any screenshot. */
+.walk-focus rect {
+  vector-effect: non-scaling-stroke;
+}
+
+.walk-focus-halo {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 8;
+}
+
+.walk-focus-box {
+  fill: var(--color-ecto);
+  fill-opacity: 0.15;
+  stroke: var(--color-ecto);
+  stroke-width: 4;
+}
+
+.ghost-aura {
+  fill: var(--color-ecto);
+  opacity: 0.85;
+  stroke: var(--color-ink);
+  stroke-width: 2;
+}
+
+.ghost-body {
+  fill: var(--color-bone);
+}
+
+.ghost-eye {
+  fill: var(--color-ink);
+}

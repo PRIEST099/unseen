@@ -220,6 +220,11 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   - **Seen, not fixed (outside the findings):** `collectBoundingBoxes` in `browser.ts` pairs element rects with ids by index from two snapshots and throws on a count mismatch, so a page that adds or removes elements at load time can fail `loadPage`. A page that only reorders elements is fine.
   - **Known limits:** a trap inside a cross-origin frame or closed shadow root ends as `composite-stuck` and is never `trapDetected`. Layers with `pointer-events: none` are found by geometry only. Per-node listener CDP errors (Req 8.4) have no test of their own.- Property tests (tasks 4 and 6) use `fast-check` and must each run a minimum of 100 iterations as required by the testing strategy in the design document
 
+### Drift from spec
+
+- Task 1.0a (spirit-sight-ui): Added `buildSpeechTrack(raw): SpeechLine[]` exported by name from `src/index.ts`. This builds the AX-tree speech track for the Whisper Walk. `SpeechLine` type also exported. No breaking change; additive only.
+- Task 1.1 (spirit-sight-ui): Added optional `onProgress` callback to `auditAndClassify` for real-time stage reporting. Stages emitted: loading, tree, walking, classifying. No breaking change; additive only.
+
 ## Task Dependency Graph
 
 ```json
@@ -237,3 +242,10 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   ]
 }
 ```
+
+## Notes
+
+### Implementation notes (2026-11-27 run, deploy and replay)
+
+- **Additive drift in `RawAudit` and `AuditOptions`, no schema version bump.** `RawAudit.engine?: { unseenVersion, axeVersion, chromiumVersion }` records the versions an audit ran with (axe from `results.testEngine.version`, Chromium from `browser.version()`, THE UNSEEN from `packages/core/package.json` through `src/version.ts`). It is optional so audits recorded earlier still validate. `AuditOptions.resourceLimits?` overrides the page weight limits of security.md (500 requests, 50 MB total, 10 MB per resource) so the hosted server can set them from environment variables; absent or unusable values keep the defaults. Tests: `tests/engine-versions.int.spec.ts`, `src/runner/resource-limits.test.ts`.
+- **`playwright` moved to `dependencies` of core** (pinned 1.65.1, `peerDependencies` entry removed; `@playwright/test` pinned 1.65.1). Found by the Docker smoke test: with only a dev and peer entry, `npm ci --omit=dev` left Playwright out of the runtime image and the server failed to start.

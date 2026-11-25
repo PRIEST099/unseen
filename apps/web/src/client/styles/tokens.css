@@ -1,0 +1,63 @@
+:root {
+  /* Colours */
+  --color-ink: #0B0A10;
+  --color-bone: #ECE6D6;
+  --color-ecto: #7CF5C8;
+  --color-ember: #FF5A4E;
+  --color-candle: #F4B860;
+  --color-mist: #8E8AA8;
+
+  /* Manor theme: panels every text sits on (all solid, so contrast stays measurable) and gilt. */
+  --color-velvet: #15101B;
+  --color-velvet-raised: #1D1626;
+  --color-velvet-deep: #0E0A12;
+  --color-gilt: #C9A45C;
+  --color-gilt-dim: rgb(201 164 92 / 0.4);
+  /* Pure black: the inside of a picture frame and the shadows panels cast. */
+  --color-void: #000000;
+
+  /* Type scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+  --text-display: 3rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Fonts (self-hosted via @fontsource) */
+  --font-body: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-title: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  --font-heading: 'Cinzel', Georgia, serif;
+  --font-flavor: 'IM Fell English', Georgia, serif;
+}
+
+/*
+ * Daylight mode: the morning after. The same token names, re-valued as dark ink on parchment,
+ * so every component in the report re-themes itself. Each text colour keeps at least 4.5:1 on
+ * every parchment panel (and links, focus rings and severity words stay distinguishable).
+ */
+.view-daylight {
+  --color-ink: #F7F0E1;
+  --color-bone: #21180F;
+  --color-mist: #574C63;
+  --color-ember: #9E2418;
+  --color-candle: #6E4300;
+  --color-ecto: #0A6249;
+  --color-velvet: #EFE5CF;
+  --color-velvet-raised: #E6D9BC;
+  --color-velvet-deep: #F7F0E1;
+  --color-gilt-dim: rgb(138 104 40 / 0.5);
+}

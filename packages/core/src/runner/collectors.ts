@@ -10,6 +10,7 @@ import type {
   TextNodeStyle,
 } from '../types.js'
 import { DOM_ATTR_NAMES } from '../types.js'
+import { SNIPPET_MAX_CHARS, clipSnippet } from '../snippet.js'
 import { backendIdOfObject, backendIdsOfObject, callByValue, callToObject, evaluateToObject, openCdp, releaseObject } from './cdp.js'
 import {
   HEADING_TAGS_FN,
@@ -404,11 +405,11 @@ const MAPPING_EXPR = `Array.from(document.querySelectorAll('body, body *'))`
 // Task 0 (haunting-classifier): DOM node snapshot (ancestry, attributes, snippets)
 // ---------------------------------------------------------------------------
 
-export const SNIPPET_MAX_CHARS = 300
+export { SNIPPET_MAX_CHARS }
 const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'])
 const DOM_ATTR_SET: ReadonlySet<string> = new Set<string>(DOM_ATTR_NAMES)
 
-type CdpDomNode = {
+export type CdpDomNode = {
   nodeType: number
   nodeName: string
   localName?: string
@@ -431,9 +432,14 @@ function startTag(tag: string, attributes: string[] | undefined): string {
   return `${out}>`
 }
 
-/** Serialise a node into `out`, stopping as soon as the budget is spent. */
-function serialize(node: CdpDomNode, out: { s: string }, budget: number): void {
-  if (out.s.length >= budget) return
+type SnippetBuffer = { s: string; truncated: boolean }
+
+/** Serialise a node into `out`, stopping as soon as the budget is spent. Anything left out marks the buffer truncated. */
+function serialize(node: CdpDomNode, out: SnippetBuffer, budget: number): void {
+  if (out.s.length >= budget) {
+    out.truncated = true
+    return
+  }
   if (node.nodeType === 3) {
     out.s += escText(node.nodeValue ?? '')
     return
@@ -443,17 +449,22 @@ function serialize(node: CdpDomNode, out: { s: string }, budget: number): void {
   out.s += startTag(tag, node.attributes)
   if (VOID_TAGS.has(tag)) return
   for (const child of node.children ?? []) {
-    if (out.s.length >= budget) return
+    if (out.s.length >= budget) {
+      out.truncated = true
+      return
+    }
     serialize(child, out, budget)
   }
   if (out.s.length < budget) out.s += `</${tag}>`
+  else out.truncated = true
 }
 
-function snippetOf(node: CdpDomNode): string {
-  const out = { s: '' }
+/** The node's outerHTML, at most SNIPPET_MAX_CHARS long; a shortened snippet ends with "…". Exported for tests. */
+export function snippetOf(node: CdpDomNode): string {
+  const out: SnippetBuffer = { s: '', truncated: false }
   if (node.nodeType === 1) serialize(node, out, SNIPPET_MAX_CHARS)
   else out.s = escText((node.nodeValue ?? '').trim())
-  return out.s.length > SNIPPET_MAX_CHARS ? out.s.slice(0, SNIPPET_MAX_CHARS) : out.s
+  return clipSnippet(out.s, out.truncated)
 }
 
 function pickAttrs(attributes: string[] | undefined): DomNodeInfo['attrs'] {

@@ -23,7 +23,7 @@ afterEach(async () => {
 })
 
 /** An echo/HTTP upstream on 127.0.0.1, a fake resolver and a fake dialler that always lands on the upstream. */
-async function harness(opts: { lookup?: LookupFn; allow?: string[]; dial?: (target: DialTarget, upstreamPort: number) => net.Socket; redirect?: boolean } = {}): Promise<Harness> {
+async function harness(opts: { lookup?: LookupFn; served?: string[]; dial?: (target: DialTarget, upstreamPort: number) => net.Socket; redirect?: boolean } = {}): Promise<Harness> {
   const upstreamHeaders: http.IncomingHttpHeaders[] = []
   const upstreamUrls: string[] = []
   const sockets = new Set<net.Socket>()
@@ -65,7 +65,7 @@ async function harness(opts: { lookup?: LookupFn; allow?: string[]; dial?: (targ
   }
   const lookup = vi.fn<LookupFn>(opts.lookup ?? (async () => [{ address: PUBLIC_V4, family: 4 }]))
   const log: BlockedEntry[] = []
-  const proxy = new SsrfGuardProxy({ blockedLog: log, lookup, dial: wrappedDial, allowAuthorities: opts.allow })
+  const proxy = new SsrfGuardProxy({ blockedLog: log, lookup, dial: wrappedDial, servedAuthorities: opts.served })
   const proxyPort = await proxy.start()
   cleanups.push(async () => {
     await proxy.stop()
@@ -190,16 +190,35 @@ describe('CONNECT', () => {
     expect(h.dialed.map((d) => d.address)).toEqual([PUBLIC_V4, PUBLIC_V4])
   })
 
-  it('dials an allow-listed authority without DNS or range checks', async () => {
-    const h = await harness({ allow: ['internal.test:8080'] })
-    const reply = await raw(h.proxyPort, `${connectReq('internal.test:8080')}hi`)
-    expect(reply).toContain('200 Connection Established')
+  it.each(['audit.test:80', 'AUDIT.TEST:80', 'audit.test.:80', 'Audit.Test.:80'])('refuses the served authority %s with 403 and never dials or resolves it', async (authority) => {
+    const h = await harness({ served: ['audit.test:80'], lookup: async () => [{ address: '127.0.0.1', family: 4 }] })
+    expect(await raw(h.proxyPort, connectReq(authority))).toMatch(/^HTTP\/1\.1 403 /)
+    expect(h.log).toHaveLength(1)
+    expect(h.log[0]?.url).toBe(`connect://${authority}`)
+    expect(h.dialed).toEqual([])
     expect(h.lookup).not.toHaveBeenCalled()
-    expect(h.dialed[0]?.address).toBe('internal.test')
-    // a different port on the same host is not exempt
-    expect(await raw(h.proxyPort, connectReq('127.0.0.1:8080'))).toMatch(/^HTTP\/1\.1 403 /)
   })
 
+  it('normalises case and trailing dots in the configured served authority too', async () => {
+    const h = await harness({ served: ['AUDIT.Test.:80'] })
+    expect(await raw(h.proxyPort, connectReq('audit.test:80'))).toMatch(/^HTTP\/1\.1 403 /)
+    expect(h.dialed).toEqual([])
+  })
+
+  it('a canary resolver that maps the served name to loopback gets zero hits', async () => {
+    const canary = vi.fn<LookupFn>(async () => [{ address: '127.0.0.1', family: 4 }])
+    const h = await harness({ served: ['audit.test:80'], lookup: canary })
+    await raw(h.proxyPort, connectReq('AUDIT.TEST.:80'))
+    await raw(h.proxyPort, 'GET http://Audit.Test./ HTTP/1.1\r\nHost: audit.test\r\n\r\n')
+    expect(canary).not.toHaveBeenCalled()
+    expect(h.dialed).toEqual([])
+  })
+
+  it('a served name on another port is not served and takes the normal validation path', async () => {
+    const h = await harness({ served: ['audit.test:80'] })
+    expect(await raw(h.proxyPort, connectReq('audit.test:443'))).toContain('200 Connection Established')
+    expect(h.dialed).toHaveLength(1)
+  })
   it('survives a client reset in the middle of a tunnel', async () => {
     const h = await harness()
     const uncaught = vi.fn()
@@ -320,5 +339,86 @@ describe('stop', () => {
     await live?.()
     expect(Date.now() - t0).toBeLessThan(1_500)
     socket.destroy()
+  })
+})
+
+describe('served authorities over absolute-form HTTP', () => {
+  it.each(['http://audit.test/', 'http://AUDIT.TEST/x', 'http://audit.test./x', 'http://audit.test:80/x'])('refuses %s with 403', async (url) => {
+    const h = await harness({ served: ['audit.test:80'] })
+    expect(await raw(h.proxyPort, `GET ${url} HTTP/1.1\r\nHost: audit.test\r\n\r\n`)).toMatch(/^HTTP\/1\.1 403 /)
+    expect(h.log).toHaveLength(1)
+    expect(h.dialed).toEqual([])
+    expect(h.lookup).not.toHaveBeenCalled()
+  })
+})
+
+describe('strict authority parsing is shared', () => {
+  it('absolute-form port 0 is a 400 with no dial, like CONNECT', async () => {
+    const h = await harness()
+    expect(await raw(h.proxyPort, 'GET http://example.test:0/ HTTP/1.1\r\nHost: example.test\r\n\r\n')).toMatch(/^HTTP\/1\.1 400 /)
+    expect(await raw(h.proxyPort, connectReq('example.test:0'))).toMatch(/^HTTP\/1\.1 400 /)
+    expect(h.dialed).toEqual([])
+    expect(h.lookup).not.toHaveBeenCalled()
+  })
+
+  it('parseAuthority lowercases and strips one trailing dot', () => {
+    expect(parseAuthority('Example.TEST.:80')).toEqual({ host: 'example.test', port: 80 })
+  })
+})
+
+describe('dial robustness', () => {
+  it('a synchronous throw from dial() is a 502 plus a log entry, never an uncaughtException', async () => {
+    const uncaught = vi.fn()
+    process.on('uncaughtException', uncaught)
+    try {
+      const h = await harness({
+        dial: () => {
+          throw new Error('sync boom')
+        },
+      })
+      expect(await raw(h.proxyPort, connectReq('example.test:80'))).toMatch(/^HTTP\/1\.1 502 /)
+      expect(await raw(h.proxyPort, 'GET http://example.test/ HTTP/1.1\r\nHost: example.test\r\n\r\n')).toMatch(/^HTTP\/1\.1 502 /)
+      expect(h.log.some((l) => l.reason.includes('sync boom'))).toBe(true)
+      expect(uncaught).not.toHaveBeenCalled()
+    } finally {
+      process.off('uncaughtException', uncaught)
+    }
+  })
+
+  it('a throw on a later Happy Eyeballs attempt falls through to nothing worse than 502', async () => {
+    const uncaught = vi.fn()
+    process.on('uncaughtException', uncaught)
+    try {
+      const h = await harness({
+        lookup: async () => [
+          { address: PUBLIC_V6, family: 6 },
+          { address: PUBLIC_V4, family: 4 },
+        ],
+        dial: (target) => {
+          if (target.family === 4) throw new Error('late boom')
+          const dead = new net.Socket()
+          setImmediate(() => dead.destroy(new Error('ENETUNREACH')))
+          return dead
+        },
+      })
+      expect(await raw(h.proxyPort, connectReq('dual.test:80'), 800)).toMatch(/^HTTP\/1\.1 502 /)
+      expect(uncaught).not.toHaveBeenCalled()
+    } finally {
+      process.off('uncaughtException', uncaught)
+    }
+  })
+
+  it('a throw on the first attempt still lets a later address connect', async () => {
+    const h = await harness({
+      lookup: async () => [
+        { address: PUBLIC_V6, family: 6 },
+        { address: PUBLIC_V4, family: 4 },
+      ],
+      dial: (target, upstreamPort) => {
+        if (target.family === 6) throw new Error('first boom')
+        return net.connect({ host: '127.0.0.1', port: upstreamPort })
+      },
+    })
+    expect(await raw(h.proxyPort, `${connectReq('dual.test:80')}x`)).toContain('200 Connection Established')
   })
 })

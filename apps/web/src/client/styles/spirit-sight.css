@@ -1,0 +1,892 @@
+/* Spirit Sight view. Fog, desaturation and overlays live only inside .spirit-stage (the screenshot). */
+
+.view-wide {
+  max-width: 96rem;
+}
+
+.view-wide h1 {
+  font-size: var(--text-3xl);
+  overflow-wrap: anywhere;
+}
+
+/* Toolbar above the screenshot */
+.spirit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.status-line {
+  flex: 1 1 16rem;
+  /* Room for two lines: longer preview messages wrap, and a growing status line would push the
+     screenshot down mid-animation (fix list item 20). */
+  min-height: 3rem;
+  margin: 0;
+  color: var(--color-ecto);
+  font-weight: 700;
+}
+
+a.button {
+  text-decoration: none;
+}
+
+/*
+ * The extra skip link rests higher than "Skip to main content", so the two never stack on the
+ * same off-screen spot (the audit engine reads stacked painted boxes as an uncertain contrast).
+ */
+#skip-link-slot .skip-link {
+  top: -12rem;
+}
+
+#skip-link-slot .skip-link:focus {
+  top: var(--space-2);
+}
+
+/* Two columns: haunting list, then the screenshot */
+.spirit-layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .spirit-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.spirit-sidebar {
+  position: sticky;
+  top: var(--space-4);
+  max-height: calc(100vh - var(--space-8));
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--color-mist);
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 60rem) {
+  .spirit-sidebar {
+    position: static;
+    max-height: none;
+  }
+}
+
+.spirit-sidebar h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-2xl);
+}
+
+.spirit-sidebar h3 {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+/* Score */
+.score {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.score-value {
+  font-size: var(--text-display);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-clean {
+  color: var(--color-ecto);
+}
+
+.score-wraith {
+  color: var(--color-ember);
+}
+
+.score-restless {
+  color: var(--color-candle);
+}
+
+.score-banished {
+  color: var(--color-mist);
+}
+
+.score-bar {
+  height: 0.5rem;
+  margin-bottom: var(--space-4);
+  background-color: var(--color-ink);
+  border: 1px solid var(--color-mist);
+}
+
+.score-bar > span {
+  display: block;
+  height: 100%;
+  background-color: var(--color-mist);
+}
+
+.score-bar.score-clean > span {
+  background-color: var(--color-ecto);
+}
+
+.score-bar.score-wraith > span {
+  background-color: var(--color-ember);
+}
+
+.score-bar.score-restless > span {
+  background-color: var(--color-candle);
+}
+
+/* Groups */
+.group-list,
+.instance-list,
+.lens-nav {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-list > li + li {
+  margin-top: var(--space-1);
+}
+
+.group-toggle,
+.instance-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+  font-family: inherit;
+  font-size: var(--text-base);
+  text-align: left;
+  cursor: pointer;
+}
+
+.group-toggle {
+  font-weight: 700;
+}
+
+.group-toggle:hover,
+.instance-button:hover {
+  border-color: var(--color-ecto);
+}
+
+.group-toggle .chevron {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  transition: transform 150ms ease-out;
+}
+
+.group-toggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+
+/* Fixed-width digits, so a count going down during a fix preview never re-wraps the row. */
+.group-count {
+  min-width: 2ch;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.group-severity {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+/* Every instance previewed as fixed: the severity keeps its room so the row height holds. */
+.group-severity.is-cleared {
+  visibility: hidden;
+}
+
+.group-empty {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-mist);
+}
+
+.instance-list {
+  margin: var(--space-1) 0 var(--space-2) var(--space-4);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-mist);
+}
+
+.instance-list[hidden] {
+  display: none;
+}
+
+.instance-button {
+  font-size: var(--text-base);
+}
+
+/*
+ * An instance previewed as fixed keeps its row, struck through and not interactive. It has the
+ * button's box and line height ("normal", like the button), so the list keeps its height.
+ */
+.instance-taken-out {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  color: var(--color-mist);
+  font-size: var(--text-base);
+  line-height: normal;
+  text-decoration: line-through;
+}
+
+.gravestone {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  fill: var(--color-mist);
+}
+
+.group-structural .instance-list {
+  border-left-color: var(--color-candle);
+}
+
+.clean-note {
+  margin: 0 0 var(--space-4);
+}
+
+.coverage-note {
+  color: var(--color-mist);
+}
+
+.manual-check h3 {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-xl);
+}
+
+.manual-check-list {
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-6);
+}
+
+.manual-check-list li {
+  margin-bottom: var(--space-3);
+}
+
+.manual-check-list code {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-mist);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Lens navigation (the step bar) */
+.lens-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  counter-reset: lens;
+}
+
+.lens-nav li {
+  counter-increment: lens;
+}
+
+.lens-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--color-mist);
+  border-radius: 0.25rem;
+  color: var(--color-bone);
+  text-decoration: none;
+}
+
+.lens-nav a::before {
+  content: counter(lens);
+  color: var(--color-ecto);
+  font-weight: 700;
+}
+
+.lens-nav a[aria-current='page'] {
+  border-color: var(--color-ecto);
+  color: var(--color-ecto);
+}
+
+.lens-nav a:hover {
+  border-color: var(--color-ecto);
+}
+
+.sidebar-nav {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-mist);
+}
+
+.lens-bar {
+  margin-bottom: var(--space-6);
+}
+
+/* Stage: the screenshot and its layers */
+.stage-frame {
+  width: 100%;
+  min-width: 0;
+}
+
+.spirit-stage {
+  position: relative;
+  max-width: 100%;
+  line-height: 0;
+  box-shadow: 0 0 0 1px var(--color-mist);
+}
+
+.spirit-stage img {
+  display: block;
+  max-width: 100%;
+}
+
+.spirit-stage > svg,
+.spirit-stage > canvas,
+.spirit-stage > .haunted-veil,
+.overlay-buttons {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Decorative layers never take pointer events (requirement 10.9). */
+.haunting-overlay,
+.haunted-veil,
+#spirit-sight {
+  pointer-events: none;
+}
+
+/*
+ * The haunted screenshot: dimmed and desaturated (backdrop-filter set inline from HAUNTED_FILTER).
+ * Its height follows the fog wave, then stays at 100% until Spirit Sight closes, which clears it
+ * at once. The fog canvas has no transition for the same reason.
+ */
+.haunted-veil {
+  width: 100%;
+  height: 0;
+}
+
+/* The overlays sit above the fog and glow faintly, so they read through it. */
+.haunting-overlay {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-ecto) 45%, transparent));
+}
+
+.overlay-buttons {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.haunting-overlay-button {
+  position: absolute;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  /* Keeps a focused overlay clear of the top edge (requirement 10.8). */
+  scroll-margin: 80px;
+}
+
+.haunting-overlay-button:hover {
+  background-color: color-mix(in srgb, var(--color-ecto) 18%, transparent);
+}
+
+/* Dual-tone ring: ecto outline on an ink halo, readable on any screenshot (requirement 10.5). */
+.haunting-overlay-button:focus-visible {
+  outline: 3px solid var(--color-ecto);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px var(--color-ink),
+    0 0 0 7px var(--color-ink);
+}
+
+.haunting-overlay-button.is-banner {
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 var(--space-4);
+  border: 2px solid var(--color-ember);
+  background-color: var(--color-ink);
+  color: var(--color-ember);
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: left;
+  overflow: hidden;
+}
+
+.image-error {
+  padding: var(--space-4);
+  border: 2px solid var(--color-ember);
+  color: var(--color-ember);
+}
+
+/* Overlay motion. Loops are finite so nothing moves for longer than 5 seconds (WCAG 2.2.2). */
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ghost-bob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes ember-glow {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fog-drift {
+  to {
+    transform: translateX(48px);
+  }
+}
+
+@keyframes veiled-pulse {
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.overlay-enter {
+  animation: overlay-in 400ms ease-out both;
+}
+
+.overlay-leave {
+  animation: overlay-out 200ms ease-in both;
+}
+
+.ghost-bob {
+  animation: ghost-bob 2.5s ease-in-out 2;
+}
+
+.cursed-loop-glow {
+  animation: ember-glow 2s ease-in-out 2;
+}
+
+.cursed-loop-pulse {
+  animation: ember-glow 1s ease-in-out 2;
+}
+
+.fog-drift {
+  animation: fog-drift 5s linear 1 both;
+}
+
+.veiled-pulse {
+  animation: veiled-pulse 4s ease-in-out 1;
+}
+
+/* Haunting visual treatments (SVG, screenshot layer only) */
+.haunting-visual * {
+  vector-effect: non-scaling-stroke;
+}
+
+.stop-mist {
+  stop-color: var(--color-mist);
+}
+
+.flood-mist {
+  flood-color: var(--color-mist);
+}
+
+.v-desaturate {
+  fill: var(--color-ink);
+  opacity: 0.9;
+  mix-blend-mode: saturation;
+}
+
+.v-mist-dashed {
+  fill: none;
+  stroke: var(--color-mist);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.v-ink-fill {
+  fill: var(--color-ink);
+}
+
+.v-mist-fill {
+  fill: var(--color-mist);
+}
+
+.v-mist-stroke {
+  stroke: var(--color-mist);
+  stroke-width: 2;
+  opacity: 0.7;
+}
+
+.v-ember-ring {
+  fill: none;
+  stroke: var(--color-ember);
+  stroke-width: 3;
+  opacity: 0.8;
+}
+
+.v-mist-print {
+  fill: var(--color-mist);
+  opacity: 0.6;
+}
+
+.v-ecto-dashed {
+  fill: none;
+  stroke: var(--color-ecto);
+  stroke-width: 2;
+  stroke-dasharray: 6 3;
+}
+
+.v-mist-mouth {
+  fill: none;
+  stroke: var(--color-mist);
+  stroke-width: 1.5;
+}
+
+.v-ember-fill {
+  fill: var(--color-ember);
+  opacity: 0.9;
+}
+
+.v-ink-veil {
+  fill: var(--color-ink);
+  opacity: 0.7;
+}
+
+.v-active-ring {
+  fill: none;
+  stroke: var(--color-ecto);
+  stroke-width: 3;
+}
+
+/* Haunting detail dialog */
+.severity-badge {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 2px solid currentColor;
+  border-radius: 0.25rem;
+  font-weight: 700;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.haunting-dialog {
+  max-width: 44rem;
+  /*
+   * Keep focused controls clear of the sticky .dialog-header below (WCAG 2.4.11). The header is
+   * about 5rem tall: space-6 top padding, a 2.75rem button row, space-3 bottom padding, a border.
+   */
+  scroll-padding-top: calc(var(--space-6) + 2.75rem + var(--space-3) + var(--space-4));
+}
+
+/* On a phone the title and Close button can wrap onto two rows, so the header grows by a row. */
+@media (max-width: 24rem) {
+  .haunting-dialog {
+    scroll-padding-top: calc(var(--space-6) + 2 * 2.75rem + 2 * var(--space-3) + var(--space-4));
+  }
+}
+
+.haunting-dialog:focus-visible {
+  outline: none;
+}
+
+/*
+ * Title row with the Close button. It sticks to the top of the scrolling panel, so Close is always
+ * in view; the negative margins pull it over the panel padding so content scrolls under it cleanly.
+ */
+.dialog-header {
+  position: sticky;
+  top: calc(-1 * var(--space-6));
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-3);
+  border-bottom: 1px solid var(--color-mist);
+  background-color: var(--color-ink);
+}
+
+.dialog-header h2 {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.dialog-snippet-note {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.haunting-dialog h3 {
+  margin: var(--space-6) 0 var(--space-2);
+  font-size: var(--text-xl);
+  font-weight: 600;
+}
+
+.dialog-persona {
+  font-size: var(--text-lg);
+}
+
+.dialog-list {
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-6);
+}
+
+.dialog-list li {
+  margin-bottom: var(--space-2);
+}
+
+.dialog-muted {
+  color: var(--color-mist);
+}
+
+.dialog-code {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--color-mist);
+  border-radius: 0.25rem;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dialog-copy-status {
+  order: 1;
+  flex-basis: 100%;
+  min-height: 1.5rem;
+  margin: 0;
+  color: var(--color-mist);
+  text-align: right;
+}
+
+/* Each new copy result fades in, so a repeated success is visible as well as announced. */
+@keyframes dialog-copy-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog-copy-message {
+  animation: dialog-copy-in 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-copy-message {
+    animation: none;
+  }
+}
+
+/*
+ * "Takes form" (a previewed fix), 600ms in all. Separate curves so the moment is visible:
+ * - the bounce (design-system overshoot curve) drives transform only;
+ * - in the first half the treatment fades out while the crisp ecto outline fades in;
+ * - the whole visual stays opaque until 55%, then fades out with ease-out.
+ * Under reduced motion it is a 100ms opacity fade.
+ */
+@keyframes takes-form-bounce {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes takes-form-vanish {
+  0%,
+  55% {
+    opacity: 1;
+    animation-timing-function: ease-out;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes takes-form-treatment-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes takes-form-outline-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes takes-form-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.takes-form {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation:
+    takes-form-bounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    takes-form-vanish 600ms linear both;
+}
+
+.takes-form-treatment {
+  animation: takes-form-treatment-out 300ms ease-in both;
+}
+
+.takes-form .v-takes-form-outline {
+  animation: takes-form-outline-in 300ms ease-out both;
+}
+
+.v-takes-form-outline {
+  fill: none;
+  stroke: var(--color-ecto);
+  stroke-width: 3;
+}
+
+/*
+ * Fix preview slot, in the sidebar under the score. It is always rendered: the hint while idle, the
+ * notice during a preview. All its children share one grid cell, so the slot is as tall as the
+ * tallest of them.
+ */
+.preview-slot {
+  display: grid;
+  margin-bottom: var(--space-4);
+}
+
+.preview-slot > * {
+  grid-area: 1 / 1;
+}
+
+.preview-banner,
+.preview-reserve {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 2px solid var(--color-ecto);
+  border-radius: 0.25rem;
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+}
+
+.preview-banner p,
+.preview-reserve p {
+  margin: 0;
+}
+
+.preview-audited {
+  color: var(--color-mist);
+}
+
+.preview-hint {
+  margin: 0;
+  padding: var(--space-3);
+  border: 2px dashed var(--color-mist);
+  border-radius: 0.25rem;
+  color: var(--color-mist);
+}
+
+/*
+ * The reserve copies hold the room of the largest notice (the widest count, with and without
+ * hauntings left). Two columns: the sidebar sits beside the stage, so they are not needed.
+ */
+.preview-reserve {
+  display: none;
+  visibility: hidden;
+}
+
+/*
+ * One column: the sidebar sits above the stage. The slot keeps the reserved room whether a preview
+ * is on or not, so the screenshot and its overlays never move when one starts or is reset.
+ */
+@media (max-width: 60rem) {
+  .preview-reserve {
+    display: grid;
+  }
+}
+
+.dialog-preview {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-ecto);
+  border-radius: 0.25rem;
+  color: var(--color-bone);
+}
+
+.dialog-preview p {
+  margin: 0 0 var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay-enter,
+  .overlay-leave {
+    animation: none !important;
+  }
+
+  /* More specific than the global "no animation" rule, so the 100ms fade still runs. */
+  .takes-form.takes-form {
+    animation: takes-form-fade 100ms linear both !important;
+  }
+}

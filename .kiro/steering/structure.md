@@ -15,6 +15,8 @@ the-unseen/
 │   ├── web/           # React + Vite SPA + Fastify API + Docker image (planned)
 │   └── cursed-shop/   # Deliberately haunted demo storefront
 ├── power/             # Kiro Power (POWER.md, MCP config, steering, hooks) (planned)
+├── demo/
+│   └── cursed-shop-exorcised/ # Fixed copy of apps/cursed-shop; no package.json, outside the workspaces
 ├── docs/
 │   ├── brief/
 │   │   ├── PRODUCT_BRIEF.md   # Written by the product lead; do not modify

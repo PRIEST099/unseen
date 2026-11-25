@@ -1,0 +1,30 @@
+{
+  "name": "@the-unseen/mcp",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "description": "MCP server and CLI for THE UNSEEN accessibility auditor",
+  "bin": {
+    "unseen-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p . && node scripts/chmod-bin.mjs",
+    "typecheck": "npm run build -w @the-unseen/core && tsc -p . --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "npm run build -w @the-unseen/core && vitest --run",
+    "test:integration": "npm run build -w @the-unseen/core && vitest --run --config vitest.int.config.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@the-unseen/core": "0.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "fast-check": "^3.21.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}

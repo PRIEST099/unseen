@@ -1,7 +1,7 @@
 import type { AXNode, RawAudit } from '../../types.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_1_1_1 } from '../wcag.js'
+import { WCAG_BY_TYPE } from '../wcag.js'
 import { axAncestors, axDescendants, axName, axRole, fileNameFromSrc, findBox, hauntingId, snippet } from '../util.js'
 
 const WRAPPER_ROLES = new Set(['generic', 'none', 'presentation'])
@@ -51,7 +51,7 @@ export function detectHollowPortrait(raw: RawAudit): UnclassifiedHaunting[] {
     out.push({
       id: hauntingId('HollowPortrait', id),
       type: 'HollowPortrait',
-      wcag: [WCAG_1_1_1],
+      wcag: [...WCAG_BY_TYPE.HollowPortrait],
       nodeIds: [id],
       box: findBox(raw.boundingBoxes, id),
       speech: file === null ? 'unlabelled graphic' : `unlabelled graphic, ${file}`,

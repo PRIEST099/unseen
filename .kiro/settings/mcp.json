@@ -24,8 +24,16 @@
       "args": [
         "packages/mcp/dist/server.js"
       ],
-      "env": {},
-      "disabled": true
+      "env": {
+        "UNSEEN_CHROMIUM_CHANNEL": "chromium"
+      },
+      "disabled": false,
+      "autoApprove": [
+        "audit_url",
+        "audit_html",
+        "explain_haunting",
+        "suggest_fix"
+      ]
     }
   }
 }

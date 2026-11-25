@@ -365,7 +365,7 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 5. THE Dialog SHALL have a visible close button with accessible label "Close dialog"
 6. THE Dialog SHALL announce its title to screen readers via `aria-labelledby`
 
-### Requirement 24: Deploy as Docker Container
+### Requirement 13: Deploy as Docker Container
 
 **User Story:** As a platform operator, I want a deployable Docker image, so that I can run the app on Fly.io, Render, or Railway.
 
@@ -461,6 +461,7 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 #### Acceptance Criteria
 
 1. EACH view SHALL declare exactly one primary action styled with `--color-ecto` background: Landing "Begin audit", Séance "Cancel" link, Spirit Sight "Open Spirit Sight" (before reveal), then a numbered step bar (1 Reveal, 2 Walk, 3 Listen, 4 Report) that is always visible
+   - *Deviation (fix list item 25):* the Séance has no step bar. Its single primary action is the "Cancel" link (`button-primary`, to `/`) shown while the audit is queued or running, next to the polite stage line and the "Completed stages" list. On result views the numbered lens navigation (1 Spirit Sight, 2 Keyboard walk, 3 Whisper walk, 4 Daylight mode) plays the step-bar role.
 2. THE header wordmark SHALL link to `/`, and the Spirit Sight header SHALL have an "Audit another site" link
 3. WHEN zero hauntings are found, THE App SHALL display "No hauntings detected by automated checks" plus the coverage note, never the word "compliant", with the needs-manual-check list shown
 4. WHEN `GET /api/audit/:id` returns 404 during polling or on Spirit Sight view load, THE App SHALL show "This séance has ended (results expire after 1 hour or when the server restarts)" with "Audit again" (re-POST the same URL) and "Back to home" buttons

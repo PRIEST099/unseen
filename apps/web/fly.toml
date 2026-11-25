@@ -1,0 +1,31 @@
+# Fly.io configuration for the hosted auditor. Not deployed from this repository's automation:
+# the owner runs the steps in DEPLOY.md. Change `app` to a name that is free on Fly.io.
+# Deploy from the repository root:  fly deploy --config apps/web/fly.toml .
+app = "unseen-web"
+primary_region = "iad" # a single region: jobs and results live in memory, so there is one machine
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  UNSEEN_MAX_CONCURRENCY = "2" # two Chromium instances fit in 1 GB; raise it only with more memory
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off" # a stopped machine would drop queued jobs and finished results
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/api/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

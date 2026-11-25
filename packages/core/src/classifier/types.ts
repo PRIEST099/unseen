@@ -53,12 +53,20 @@ export type Haunting = {
   speech?: string // screen-reader announcement
   speechNote?: string // e.g. "name disappears when typing"
   soundCue?: string // e.g. "garbled-whisper", "chime"; never part of speech
-  htmlSnippet: string // at most 300 chars
+  htmlSnippet: string // at most 300 chars; a shortened snippet ends with "…"
   explanation: string // what is wrong (1-2 sentences)
   persona: string // who is affected (one sentence starting with "As a")
   fix: HauntingFix
   isPrimary: boolean // true for primary hauntings (scored)
   secondary: Haunting[] // lower-precedence hauntings on colliding nodeIds
+}
+
+/** One utterance of the Whisper Walk: what a screen reader says for a visible AX node, in tree order. */
+export type SpeechLine = {
+  backendDOMNodeId: number // 0 when the AX node has no DOM mapping
+  text: string // announce(node, raw)
+  note?: string // announceNote(node), e.g. "name disappears when typing"
+  box: BoundingBox | null // from raw.boundingBoxes; null when none is recorded
 }
 
 export type UnclassifiedHaunting = Omit<Haunting, 'severity' | 'isPrimary' | 'secondary'>

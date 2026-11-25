@@ -1,4 +1,5 @@
 import type { AXNode, AXValueSource, BoundingBox, RawAudit } from '../types.js'
+import { clipSnippet } from '../snippet.js'
 
 export type RGBA = { r: number; g: number; b: number; a: number }
 
@@ -203,11 +204,13 @@ export function domDescendants(raw: RawAudit, id: number): number[] {
   return out
 }
 
-/** `outerHTMLSnippet` of the node, or `<tag>` when the snippet is missing. At most 300 characters. */
+/**
+ * `outerHTMLSnippet` of the node, or `<tag>` when the snippet is missing. At most 300 characters; a snippet
+ * shortened here ends with "…" so the report can say it is partial.
+ */
 export function snippet(raw: RawAudit, id: number): string {
   const info = raw.domNodes[String(id)]
-  const text = info?.outerHTMLSnippet ?? `<${info?.tag ?? 'element'}>`
-  return text.length > 300 ? text.slice(0, 300) : text
+  return clipSnippet(info?.outerHTMLSnippet ?? `<${info?.tag ?? 'element'}>`)
 }
 
 const NATIVE_TAGS = new Set(['button', 'input', 'select', 'textarea', 'summary'])

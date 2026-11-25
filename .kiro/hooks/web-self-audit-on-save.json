@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Web Self-Audit on Save",
+      "description": "Runs the app's self-audit against a fresh build when a client file changes and prints one line",
+      "trigger": "PostFileSave",
+      "matcher": "apps/web/src/client/.*\\.(tsx|ts|css)$",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/hooks/scripts/web-self-audit.mjs",
+        "timeout": 180
+      }
+    }
+  ]
+}

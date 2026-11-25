@@ -68,10 +68,10 @@ describe('buildLaunchArgs', () => {
     expect(buildLaunchArgs({ channel: 'msedge' }).channel).toBe('msedge')
   })
 
-  it('adds --disable-quic and --disable-features=DnsOverHttps, and keeps exactly one --disable-features switch', () => {
+  it('adds --disable-quic and the merged --disable-features switch, and keeps exactly one --disable-features switch', () => {
     const args = buildLaunchArgs().args
     expect(args).toContain('--disable-quic')
-    expect(args).toContain('--disable-features=DnsOverHttps')
+    expect(args).toContain('--disable-features=DnsOverHttps,WebRtcHideLocalIpsWithMdns')
     expect(args.filter((a) => a.startsWith('--disable-features='))).toHaveLength(1)
     expect(args).not.toContain('--disable-webrtc')
     expect(args.some((a) => a.startsWith('--proxy-server'))).toBe(false)
@@ -246,5 +246,24 @@ describe('BrowserPool fairness and launch failures (findings 36, 37)', () => {
     closeDone()
     await releasing
     expect(launches).toBe(2)
+  })
+})
+
+describe('launch flags: single merged --disable-features and background-traffic switches', () => {
+  it('emits exactly one --disable-features switch with the exact merged value', () => {
+    const switches = buildLaunchArgs().args.filter((a) => a.startsWith('--disable-features'))
+    expect(switches).toEqual(['--disable-features=DnsOverHttps,WebRtcHideLocalIpsWithMdns'])
+  })
+
+  it('merges a caller-supplied --disable-features value instead of dropping either side', () => {
+    const switches = buildLaunchArgs({ extraArgs: ['--disable-features=Foo,DnsOverHttps'] }).args.filter((a) => a.startsWith('--disable-features'))
+    expect(switches).toEqual(['--disable-features=DnsOverHttps,WebRtcHideLocalIpsWithMdns,Foo'])
+  })
+
+  it('passes the background-networking switches', () => {
+    const args = buildLaunchArgs().args
+    for (const flag of ['--disable-background-networking', '--disable-component-update', '--disable-domain-reliability', '--no-pings', '--disable-sync', '--metrics-recording-only']) {
+      expect(args).toContain(flag)
+    }
   })
 })

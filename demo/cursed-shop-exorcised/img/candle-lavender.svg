@@ -1,0 +1,38 @@
+<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+  <!-- Backdrop -->
+  <rect width="240" height="240" fill="#E1BEE7"/>
+  
+  <!-- Candle glass -->
+  <rect x="70" y="60" width="100" height="140" rx="14" fill="url(#glassGradient)" stroke="#8E24AA" stroke-width="3"/>
+  
+  <!-- Glow -->
+  <circle cx="120" cy="35" r="40" fill="#FFB74D" opacity="0.3"/>
+  
+  <!-- Wax surface -->
+  <ellipse cx="120" cy="65" rx="48" ry="10" fill="rgba(255,255,255,0.3)"/>
+  
+  <!-- Wick -->
+  <rect x="117" y="50" width="6" height="15" fill="#5D4037"/>
+  
+  <!-- Flame -->
+  <defs>
+    <radialGradient id="flameGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF9C4"/>
+      <stop offset="50%" stop-color="#FFEB3B"/>
+      <stop offset="100%" stop-color="#FFC107"/>
+    </radialGradient>
+    <radialGradient id="glassGradient" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#BA68C8" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#8E24AA" stop-opacity="0.9"/>
+    </radialGradient>
+  </defs>
+  <path d="M120 40 Q135 15 120 25 Q105 15 120 40 Z" fill="url(#flameGradient)"/>
+  
+  <!-- Glow -->
+  <circle cx="120" cy="35" r="40" fill="#FFB74D" opacity="0.3"/>
+  
+  <!-- Label -->
+  <rect x="75" y="100" width="90" height="60" rx="8" fill="#FFF8E1" stroke="#8D6E63" stroke-width="1"/>
+  <text x="120" y="125" font-family="Georgia" font-size="11" font-weight="bold"  fill="#4A148C" text-anchor="middle" letter-spacing="1">Lavender</text>
+  <text x="120" y="145" font-family="Georgia" font-size="8" fill="#8E24AA" text-anchor="middle">Haven</text>
+</svg>

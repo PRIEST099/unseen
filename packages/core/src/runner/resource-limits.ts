@@ -1,11 +1,28 @@
 import type { CDPSession, Page } from 'playwright'
-import type { ResourceUsage, SafeFetchPolicy } from '../types.js'
+import type { ResourceLimits, ResourceUsage, SafeFetchPolicy } from '../types.js'
 import { AuditResourceLimitError } from '../types.js'
 
 /** Page weight limits from security.md. */
 export const MAX_REQUESTS = 500
 export const MAX_TOTAL_BYTES = 50 * 1024 * 1024
 export const MAX_RESOURCE_BYTES = 10 * 1024 * 1024
+
+export const DEFAULT_RESOURCE_LIMITS: ResourceLimits = {
+  maxRequests: MAX_REQUESTS,
+  maxTotalBytes: MAX_TOTAL_BYTES,
+  maxResourceBytes: MAX_RESOURCE_BYTES,
+}
+
+/** A limit that is not a positive finite number falls back to the default for that field. */
+export function resolveResourceLimits(overrides: Partial<ResourceLimits> | undefined): ResourceLimits {
+  const pick = (value: number | undefined, fallback: number): number =>
+    typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback
+  return {
+    maxRequests: pick(overrides?.maxRequests, MAX_REQUESTS),
+    maxTotalBytes: pick(overrides?.maxTotalBytes, MAX_TOTAL_BYTES),
+    maxResourceBytes: pick(overrides?.maxResourceBytes, MAX_RESOURCE_BYTES),
+  }
+}
 
 type RequestWillBeSent = { requestId: string; request: { url: string }; timestamp: number }
 type DataReceived = { requestId: string; dataLength: number }
@@ -39,7 +56,10 @@ export class ResourceMeter {
   private readonly urls = new Map<string, { url: string; startedAt: number }>()
   private readonly received = new Map<string, number>()
 
-  constructor(private readonly onLimit: (error: AuditResourceLimitError) => void) {}
+  constructor(
+    private readonly onLimit: (error: AuditResourceLimitError) => void,
+    private readonly limits: ResourceLimits = DEFAULT_RESOURCE_LIMITS
+  ) {}
 
   /** Wrap a policy so that every request is counted, and none is allowed once a limit is hit. */
   wrapPolicy(inner: SafeFetchPolicy): SafeFetchPolicy {
@@ -47,7 +67,7 @@ export class ResourceMeter {
       mode: inner.mode,
       shouldBlock: async (url) => {
         this.usage.requestCount++
-        if (this.usage.requestCount > MAX_REQUESTS) {
+        if (this.usage.requestCount > this.limits.maxRequests) {
           this.breach(new AuditResourceLimitError('request-count', this.usage.requestCount))
         }
         if (this.limit) return this.record(url, 'resource limit reached')
@@ -142,10 +162,10 @@ export class ResourceMeter {
     this.usage.totalBytes += e.dataLength
     this.usage.maxResourceBytes = Math.max(this.usage.maxResourceBytes, total)
     const url = this.urls.get(id)?.url
-    if (total > MAX_RESOURCE_BYTES && url !== undefined && !this.abortedResources.includes(url)) {
+    if (total > this.limits.maxResourceBytes && url !== undefined && !this.abortedResources.includes(url)) {
       this.abortedResources.push(url)
     }
-    if (this.usage.totalBytes > MAX_TOTAL_BYTES) {
+    if (this.usage.totalBytes > this.limits.maxTotalBytes) {
       this.breach(new AuditResourceLimitError('total-weight', this.usage.totalBytes))
     }
   }

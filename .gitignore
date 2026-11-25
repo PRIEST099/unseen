@@ -1,6 +1,7 @@
 # Dependencies and builds
 node_modules/
 dist/
+dist-replay/
 *.tsbuildinfo
 .vite/
 
@@ -32,3 +33,6 @@ desktop.ini
 .vercel/
 
 # NOTE: never ignore .kiro/ (the hackathon requires it in the repo)
+
+# THE UNSEEN hook state (audit baselines, gate state)
+.unseen/
