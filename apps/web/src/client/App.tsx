@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { AppHeader } from './components/AppHeader'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { AnnouncerProvider } from './contexts/AnnouncerContext'
 import { useAmbientDrone } from './hooks/useAmbientDrone'
 import { AuditResultView } from './views/AuditResultView'
@@ -10,6 +11,7 @@ import { SeanceView } from './views/SeanceView'
 
 export function App(): ReactElement {
   useAmbientDrone()
+  const { pathname } = useLocation()
   return (
     <AnnouncerProvider>
       <div className="app-shell">
@@ -18,13 +20,15 @@ export function App(): ReactElement {
           Skip to main content
         </a>
         <AppHeader />
-        <Routes>
-          <Route path="/" element={<LandingView />} />
-          <Route path="/seance/:jobId" element={<SeanceView />} />
-          <Route path="/audit/:jobId/*" element={<AuditResultView source="job" />} />
-          <Route path="/sample/:sampleId/*" element={<AuditResultView source="sample" />} />
-          <Route path="*" element={<NotFoundView />} />
-        </Routes>
+        <ErrorBoundary resetKey={pathname}>
+          <Routes>
+            <Route path="/" element={<LandingView />} />
+            <Route path="/seance/:jobId" element={<SeanceView />} />
+            <Route path="/audit/:jobId/*" element={<AuditResultView source="job" />} />
+            <Route path="/sample/:sampleId/*" element={<AuditResultView source="sample" />} />
+            <Route path="*" element={<NotFoundView />} />
+          </Routes>
+        </ErrorBoundary>
         <footer className="app-footer">
           <p>© THE UNSEEN</p>
         </footer>

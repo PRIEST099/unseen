@@ -5,6 +5,7 @@ import { SampleCard } from '../components/SampleCard'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useFocusMain } from '../hooks/useFocusMain'
 import { INVALID_URL_MESSAGE, parseAuditUrl, submitAudit } from '../utils/audit-api'
+import { rememberJobUrl } from '../utils/job-urls'
 import { fetchSamples } from '../utils/samples'
 import type { SampleMetadata } from '../utils/samples'
 
@@ -67,6 +68,7 @@ export function LandingView(): ReactElement {
     const result = await submitAudit(canonical)
     setSubmitting(false)
     if (result.ok) {
+      rememberJobUrl(result.id, canonical)
       navigate(`/seance/${encodeURIComponent(result.id)}`)
     } else {
       setError(result.message)

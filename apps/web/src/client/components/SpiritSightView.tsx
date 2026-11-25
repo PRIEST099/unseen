@@ -284,7 +284,8 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
         <p className="status-line" role="status">
           {status}
         </p>
-        <Link to="/" className="button">
+        {/* With no hauntings there is nothing to reveal, so the way to the next audit is the primary action. */}
+        <Link to="/" className={hauntingCount > 0 ? 'button' : 'button button-primary'}>
           Audit another site
         </Link>
       </div>

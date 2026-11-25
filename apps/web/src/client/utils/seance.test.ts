@@ -3,12 +3,17 @@ import { describe, expect, it } from 'vitest'
 import { SAMPLE_AUDIT } from '../test-support/audit-arbitraries'
 import {
   activeStageLabel,
+  CLEAN_ANNOUNCEMENT,
   completedStages,
   completionAnnouncement,
   describeJobError,
   fetchJobPoll,
   formatElapsed,
+  MAX_POLL_RETRIES,
   parseJobPoll,
+  RETRY_BASE_DELAY_MS,
+  RETRY_MAX_DELAY_MS,
+  retryDelayMs,
   STAGE_LABELS,
 } from './seance'
 import type { JobStages } from './seance'
@@ -123,6 +128,45 @@ describe('fetchJobPoll', () => {
       throw new TypeError('offline')
     }
     expect(await fetchJobPoll('a', undefined, throwing)).toEqual({ kind: 'unreachable' })
+  })
+})
+
+describe('retryDelayMs', () => {
+  it('doubles from one second: 1 s, 2 s, 4 s for the three retries', () => {
+    expect([0, 1, 2].map(retryDelayMs)).toEqual([1000, 2000, 4000])
+    expect(MAX_POLL_RETRIES).toBe(3)
+  })
+
+  it('property: non-decreasing, doubles until the cap, and always within 1 s to 30 s', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 200 }), (retry) => {
+        const delay = retryDelayMs(retry)
+        expect(delay).toBeGreaterThanOrEqual(RETRY_BASE_DELAY_MS)
+        expect(delay).toBeLessThanOrEqual(RETRY_MAX_DELAY_MS)
+        expect(retryDelayMs(retry + 1)).toBeGreaterThanOrEqual(delay)
+        expect(retryDelayMs(retry + 1)).toBe(Math.min(delay * 2, RETRY_MAX_DELAY_MS))
+      }),
+    )
+  })
+
+  it('property: any input gives a finite delay in range', () => {
+    fc.assert(
+      fc.property(fc.oneof(fc.double({ noNaN: false }), fc.integer()), (retry) => {
+        const delay = retryDelayMs(retry)
+        expect(Number.isFinite(delay)).toBe(true)
+        expect(delay).toBeGreaterThanOrEqual(RETRY_BASE_DELAY_MS)
+        expect(delay).toBeLessThanOrEqual(RETRY_MAX_DELAY_MS)
+      }),
+    )
+  })
+})
+
+describe('completionAnnouncement for a clean audit', () => {
+  it('says that no hauntings were found and that a manual review is still needed, never "compliant"', () => {
+    const clean = { ...SAMPLE_AUDIT, hauntings: [], score: 0 }
+    expect(completionAnnouncement(clean)).toBe(CLEAN_ANNOUNCEMENT)
+    expect(completionAnnouncement(clean)).not.toMatch(/compliant/i)
+    expect(completionAnnouncement(clean)).toMatch(/manual review is still needed/)
   })
 })
 

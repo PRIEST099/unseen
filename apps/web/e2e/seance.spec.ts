@@ -79,9 +79,12 @@ test.describe('Séance', () => {
 
   test('says the séance has ended when the job is gone', async ({ page }) => {
     await page.goto('/seance/does-not-exist')
-    await expect(page.locator('main [aria-live="assertive"]')).toHaveText(
+    // The first assertive region carries the message; the second one only reports a failed "Audit again".
+    await expect(page.locator('main [aria-live="assertive"]').first()).toHaveText(
       'This séance has ended (results expire after 1 hour or when the server restarts).',
     )
-    await expect(page.getByRole('button', { name: 'Try another URL' })).toBeVisible()
+    // This tab never started that job, so there is no URL to audit again: only the way home is offered.
+    await expect(page.getByRole('button', { name: 'Audit again' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Back to home' })).toBeVisible()
   })
 })

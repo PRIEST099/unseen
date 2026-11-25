@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { DaylightReport } from '../components/DaylightReport'
+import { SessionEnded } from '../components/SessionEnded'
 import { SpiritSightView } from '../components/SpiritSightView'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useFocusMain } from '../hooks/useFocusMain'
@@ -61,14 +62,19 @@ function useAuditResult(source: AuditSource | null): AuditLoadResult | 'loading'
   return result
 }
 
-type StateMessageProps = { heading: string; message: string }
+type StateMessageProps = {
+  heading: string
+  message: string
+  /** Replaces the plain "Back to home" link, e.g. with the "Audit again" actions of an expired job. */
+  actions?: ReactElement
+}
 
-function StateMessage({ heading, message }: StateMessageProps): ReactElement {
+function StateMessage({ heading, message, actions }: StateMessageProps): ReactElement {
   return (
     <main id="main" tabIndex={-1} className="view">
       <h1>{heading}</h1>
       <p>{message}</p>
-      <Link to="/">Back to home</Link>
+      {actions ?? <Link to="/">Back to home</Link>}
     </main>
   )
 }
@@ -112,7 +118,13 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
       kind === 'job'
         ? 'This séance has ended (results expire after 1 hour or when the server restarts).'
         : 'There is no sample with that name.'
-    return <StateMessage heading={notFoundHeading} message={message} />
+    return (
+      <StateMessage
+        heading={notFoundHeading}
+        message={message}
+        actions={kind === 'job' ? <SessionEnded jobId={id} /> : undefined}
+      />
+    )
   }
 
   const hostname = hostnameOf(result.audit)

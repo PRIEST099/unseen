@@ -2,8 +2,19 @@ import type { ClassifiedAudit } from '@the-unseen/core'
 import { isClassifiedAudit } from './audit-source'
 
 export const POLL_INTERVAL_MS = 500
-/** Consecutive unreachable polls before the séance gives up. */
-export const MAX_UNREACHABLE_POLLS = 3
+/** Retries after a failed poll (requirement 31.5) before the séance shows the error and a Retry button. */
+export const MAX_POLL_RETRIES = 3
+export const RETRY_BASE_DELAY_MS = 1000
+export const RETRY_MAX_DELAY_MS = 30_000
+
+/**
+ * Wait before retry number `retry` (0 for the first retry): 1 s, 2 s, 4 s, doubling each time
+ * and never above 30 s. Negative or fractional input is treated as the nearest valid retry.
+ */
+export function retryDelayMs(retry: number): number {
+  const index = Number.isFinite(retry) ? Math.max(0, Math.floor(retry)) : 0
+  return Math.min(RETRY_BASE_DELAY_MS * 2 ** Math.min(index, 20), RETRY_MAX_DELAY_MS)
+}
 
 export type StageName = 'loading' | 'tree' | 'walking' | 'classifying'
 /** A job status that is still running. The worker reports a stage when it has been reached. */
@@ -147,7 +158,11 @@ export async function fetchJobPoll(id: string, signal?: AbortSignal, fetchFn: ty
   }
 }
 
+export const CLEAN_ANNOUNCEMENT =
+  'Audit complete: No hauntings found by automated checks; a manual review is still needed.'
+
 /** The text for the app-level announcer on arrival at Spirit Sight. */
 export function completionAnnouncement(audit: ClassifiedAudit): string {
+  if (audit.hauntings.length === 0) return CLEAN_ANNOUNCEMENT
   return `Audit complete: ${audit.hauntings.length} hauntings found, Haunting Score ${audit.score}`
 }

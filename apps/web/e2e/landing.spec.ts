@@ -19,6 +19,10 @@ test.describe('Landing view', () => {
     await expect(skipLink).toBeInViewport({ ratio: 1 })
 
     await page.keyboard.press('Tab')
+    const wordmark = page.getByRole('banner').getByRole('link', { name: 'THE UNSEEN' })
+    await expect(wordmark).toBeFocused()
+    await expect(wordmark).toHaveAttribute('href', '/')
+    await page.keyboard.press('Tab')
     await expect(page.getByRole('button', { name: 'Toggle sound' })).toBeFocused()
     await page.keyboard.press('Tab')
     await expect(page.getByRole('button', { name: 'Keyboard help' })).toBeFocused()

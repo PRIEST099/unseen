@@ -21,16 +21,23 @@ export function KeyboardHelpDialog({ onClose }: KeyboardHelpDialogProps): ReactE
   }
 
   return createPortal(
-    <FocusTrap
-      focusTrapOptions={{
-        escapeDeactivates: false,
-        clickOutsideDeactivates: true,
-        returnFocusOnDeactivate: false,
-        fallbackFocus: '#keyboard-help',
-        onDeactivate: onClose,
-      }}
-    >
-      <div className="dialog-backdrop">
+    <div className="dialog-backdrop">
+      {/* The trap wraps the dialog only, so a click on the backdrop counts as outside and closes it. */}
+      <FocusTrap
+        focusTrapOptions={{
+          escapeDeactivates: false,
+          // An outside click closes the dialog and is swallowed (return false), so the browser does
+          // not move focus to the page body before the header returns it to the trigger.
+          clickOutsideDeactivates: false,
+          allowOutsideClick: () => {
+            onClose()
+            return false
+          },
+          returnFocusOnDeactivate: false,
+          fallbackFocus: '#keyboard-help',
+          onDeactivate: onClose,
+        }}
+      >
         <div
           id="keyboard-help"
           role="dialog"
@@ -68,8 +75,8 @@ export function KeyboardHelpDialog({ onClose }: KeyboardHelpDialogProps): ReactE
             Close
           </button>
         </div>
-      </div>
-    </FocusTrap>,
+      </FocusTrap>
+    </div>,
     document.body,
   )
 }

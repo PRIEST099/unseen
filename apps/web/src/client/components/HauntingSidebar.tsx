@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import { hauntingDisplayName, mostSevere, SEVERITY_COLORS } from '../utils/haunting-display'
 import { groupHauntings } from '../utils/haunting-groups'
+import { manualCheckLabel } from '../utils/manual-check'
 import type { HauntingGroup } from '../utils/haunting-groups'
 
 export const CLEAN_SITE_MESSAGE = 'No hauntings found by automated checks; a manual review is still needed.'
@@ -28,6 +29,24 @@ function Gravestone(): ReactElement {
     <svg className="gravestone" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M5 22V9a7 7 0 0 1 14 0v13zM11 6l-2 4 3 2-1 4 3-3-2-3 2-4z" fillRule="evenodd" />
     </svg>
+  )
+}
+
+/** A clean audit still lists what automation could not decide (requirement 31.3). */
+function ManualCheckList({ nodes }: { nodes: ClassifiedAudit['needsManualCheck'] }): ReactElement | null {
+  if (nodes.length === 0) return null
+  return (
+    <section className="manual-check" aria-labelledby="manual-check-title">
+      <h3 id="manual-check-title">Needs manual check ({nodes.length})</h3>
+      <ul className="manual-check-list">
+        {nodes.map((node, index) => (
+          <li key={`${node.backendDOMNodeId}-${node.reason}-${index}`}>
+            <strong>{manualCheckLabel(node.reason)}</strong>
+            <code>{node.htmlSnippet}</code>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -121,6 +140,7 @@ export function HauntingSidebar({ audit, labels, onOpen, onActiveChange, preview
         <>
           <p className="clean-note">{CLEAN_SITE_MESSAGE}</p>
           <p className="coverage-note">{audit.automatedCoverageNote}</p>
+          <ManualCheckList nodes={audit.needsManualCheck} />
         </>
       ) : null}
       {clean && preview !== undefined ? (

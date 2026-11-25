@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
+import { Link } from 'react-router-dom'
 import { useSound } from '../contexts/SoundContext'
 import { KeyboardHelpDialog } from './KeyboardHelpDialog'
 
@@ -51,6 +52,9 @@ export function AppHeader(): ReactElement {
 
   return (
     <header className="app-header">
+      <Link to="/" className="wordmark">
+        THE UNSEEN
+      </Link>
       <button
         type="button"
         className="button button-icon"

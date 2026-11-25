@@ -100,9 +100,37 @@ p {
 /* Header and footer */
 .app-header {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-6);
+}
+
+/* The wordmark links home (requirement 31.2). It is the only text in the header that is not a button. */
+.wordmark {
+  margin-right: auto;
+  color: var(--color-bone);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+}
+
+.wordmark:hover {
+  color: var(--color-ecto);
+  text-decoration: underline;
+}
+
+/* Buttons and links that sit side by side under a state message. */
+.state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.state-actions .button {
+  text-decoration: none;
 }
 
 .app-footer {
