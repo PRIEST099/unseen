@@ -7,6 +7,15 @@
   --color-candle: #F4B860;
   --color-mist: #8E8AA8;
 
+  /* Manor theme: panels every text sits on (all solid, so contrast stays measurable) and gilt. */
+  --color-velvet: #15101B;
+  --color-velvet-raised: #1D1626;
+  --color-velvet-deep: #0E0A12;
+  --color-gilt: #C9A45C;
+  --color-gilt-dim: rgb(201 164 92 / 0.4);
+  /* Pure black: the inside of a picture frame and the shadows panels cast. */
+  --color-void: #000000;
+
   /* Type scale */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -30,4 +39,7 @@
   /* Fonts (self-hosted via @fontsource) */
   --font-body: 'Atkinson Hyperlegible', system-ui, sans-serif;
   --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-title: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+  --font-heading: 'Cinzel', Georgia, serif;
+  --font-flavor: 'IM Fell English', Georgia, serif;
 }

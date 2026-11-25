@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent, ReactElement } from 'react'
 import { useNavigate } from 'react-router-dom'
+import heroManor from '../assets/manor/hero-manor.webp'
+import heroManorSmall from '../assets/manor/hero-manor-768.webp'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useFocusMain } from '../hooks/useFocusMain'
 import { INVALID_URL_MESSAGE, parseAuditUrl, submitAudit } from '../utils/audit-api'
@@ -121,30 +123,44 @@ export function LandingView(): ReactElement {
     <main id="main" tabIndex={-1} className="view landing">
       {/* The hero is the brand on this route: the header leaves its wordmark out on "/". */}
       <div className="landing-hero">
-        <Candle />
-        <h1 className="landing-title">THE UNSEEN</h1>
-        <p className="tagline">Which site do you dare to see through their eyes?</p>
-        <form className="url-form" noValidate onSubmit={(event) => void handleSubmit(event)}>
-          <div className="field">
-            <label htmlFor="url-input">Enter a URL to audit</label>
-            <input
-              id="url-input"
-              type="url"
-              inputMode="url"
-              autoComplete="url"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              aria-invalid={error === '' ? undefined : true}
-              aria-describedby="url-error"
-            />
-          </div>
-          <button type="submit" className="button button-primary" aria-disabled={submitting}>
-            Begin audit
-          </button>
-          <p id="url-error" className="form-error" aria-live="assertive">
-            {error}
-          </p>
-        </form>
+        <div className="painting hero-painting">
+          {/* Decorative: the haunted manor the app is named for. The plaque below carries all the text. */}
+          <img
+            src={heroManor}
+            srcSet={`${heroManorSmall} 768w, ${heroManor} 1536w`}
+            sizes="(max-width: 72rem) 100vw, 72rem"
+            width={1536}
+            height={864}
+            alt=""
+            fetchPriority="high"
+          />
+        </div>
+        <div className="hero-plaque">
+          <Candle />
+          <h1 className="landing-title">THE UNSEEN</h1>
+          <p className="tagline">Which site do you dare to see through their eyes?</p>
+          <form className="url-form" noValidate onSubmit={(event) => void handleSubmit(event)}>
+            <div className="field">
+              <label htmlFor="url-input">Enter a URL to audit</label>
+              <input
+                id="url-input"
+                type="url"
+                inputMode="url"
+                autoComplete="url"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                aria-invalid={error === '' ? undefined : true}
+                aria-describedby="url-error"
+              />
+            </div>
+            <button type="submit" className="button button-primary" aria-disabled={submitting}>
+              Begin audit
+            </button>
+            <p id="url-error" className="form-error" aria-live="assertive">
+              {error}
+            </p>
+          </form>
+        </div>
       </div>
       <h2>Try a sample</h2>
       <SampleList state={samples} onSelect={(id) => navigate(`/sample/${encodeURIComponent(id)}`)} />

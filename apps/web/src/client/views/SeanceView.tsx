@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { ReactElement } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import seanceTable from '../assets/manor/seance-table.webp'
 import { SessionEnded } from '../components/SessionEnded'
 import { useAnnouncer } from '../contexts/AnnouncerContext'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -95,16 +96,25 @@ export function SeanceView(): ReactElement {
 
   return (
     <main id="main" tabIndex={-1} className="view">
-      <h1>The séance</h1>
-      {/* The live regions are always in the DOM; only their text changes. */}
-      <p className="seance-stage" role="status" aria-live="polite">
-        {seanceStatusText(state)}
-      </p>
-      <CompletedList state={state} />
-      <p className="form-error" aria-live="assertive">
-        {state.phase === 'failed' ? state.message : ''}
-      </p>
-      <SeanceActions state={state} jobId={jobId} onRetry={handleRetry} />
+      <div className="manor-scene">
+        <div className="painting seance-painting">
+          {/* Decorative: the séance table. Every word of the séance is in the panel beside it. */}
+          <img src={seanceTable} width={1200} height={800} alt="" />
+        </div>
+        <div>
+          <h1>The séance</h1>
+          <p className="flavor">Hush. The spirits are walking the page.</p>
+          {/* The live regions are always in the DOM; only their text changes. */}
+          <p className="seance-stage" role="status" aria-live="polite">
+            {seanceStatusText(state)}
+          </p>
+          <CompletedList state={state} />
+          <p className="form-error" aria-live="assertive">
+            {state.phase === 'failed' ? state.message : ''}
+          </p>
+          <SeanceActions state={state} jobId={jobId} onRetry={handleRetry} />
+        </div>
+      </div>
     </main>
   )
 }

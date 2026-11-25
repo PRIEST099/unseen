@@ -73,31 +73,34 @@ test.describe('Landing view', () => {
     await expect(page.getByRole('button', { name: /Cursed Shop — Home/ })).toContainText('98 / 100 · heavily haunted')
   })
 
-  test('the hero has a candle glow and a vignette that axe can see past, and moves only without reduced motion', async ({ page }) => {
+  test('the hero is a framed manor painting under a solid plaque that axe can measure, and moves only without reduced motion', async ({ page }) => {
     await page.goto('/')
+    const painting = page.locator('.hero-painting img')
+    await expect(painting).toHaveAttribute('alt', '')
+    await expect.poll(() => painting.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
     const read = () =>
       page.evaluate(() => {
-        const hero = document.querySelector('.landing-hero')
-        const candle = document.querySelector('.landing-candle')
+        const plaque = document.querySelector('.hero-plaque')
+        const img = document.querySelector('.hero-painting img')
         const flame = document.querySelector('.landing-candle-flame')
-        if (hero === null || candle === null || flame === null) return null
-        const heroStyle = getComputedStyle(hero)
+        if (plaque === null || img === null || flame === null) return null
+        const plaqueStyle = getComputedStyle(plaque)
         return {
-          vignette: heroStyle.boxShadow,
-          glow: getComputedStyle(candle).boxShadow,
-          // Nothing behind the text that axe cannot measure: no gradients, images or pseudo-element layers.
-          backgrounds: [heroStyle.backgroundImage, getComputedStyle(hero, '::before').backgroundImage, getComputedStyle(hero, '::after').backgroundImage],
-          animations: [getComputedStyle(candle).animationName, getComputedStyle(flame).animationName],
+          // Every word sits on the plaque: a solid colour, no image, no gradient.
+          plaqueBackground: [plaqueStyle.backgroundColor, plaqueStyle.backgroundImage],
+          frame: getComputedStyle(document.querySelector('.hero-painting') as Element).borderImageSource,
+          animations: [getComputedStyle(img).animationName, getComputedStyle(flame).animationName],
         }
       })
     const styles = await read()
-    expect(styles?.vignette).toContain('inset')
-    expect(styles?.glow).not.toBe('none')
-    expect(styles?.backgrounds).toEqual(['none', 'none', 'none'])
-    expect(styles?.animations).toEqual(['candle-glow', 'candle-flicker'])
+    expect(styles?.plaqueBackground[0]).toMatch(/^rgb\(\d+, \d+, \d+\)$/)
+    expect(styles?.plaqueBackground[1]).toBe('none')
+    expect(styles?.frame).toContain('gilt-frame')
+    expect(styles?.animations).toEqual(['manor-drift', 'candle-flicker'])
     await expect(page.locator('.landing-candle')).toHaveAttribute('aria-hidden', 'true')
 
-    const axe = await new AxeBuilder({ page }).include('.landing-hero').analyze()
+    const axe = await new AxeBuilder({ page }).analyze()
+    expect(axe.violations.map((rule) => rule.id)).toEqual([])
     expect(axe.incomplete.filter((rule) => rule.id === 'color-contrast')).toEqual([])
 
     await page.emulateMedia({ reducedMotion: 'reduce' })
