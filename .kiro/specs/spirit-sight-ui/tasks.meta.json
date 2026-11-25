@@ -313,6 +313,20 @@
         "chatSessionId": "sess_109ee9f2-2e3c-46f2-88d7-ccf6c8fc28ee",
         "timestamp": 1795541427416
       }
+    ],
+    "2. Phase 2: Séance, Whisper Walk, and Keyboard Walk": [
+      {
+        "executionId": "255920fd-3d5a-47d5-85d9-7ea932d9bb2f",
+        "chatSessionId": "sess_0cd35d04-7df6-4de2-8be6-7aeb6a1b1aae",
+        "timestamp": 1795580390396
+      }
+    ],
+    "3. Phase 3: Haunting Detail, Takes Form, Ambient Drone, and Product States": [
+      {
+        "executionId": "255920fd-3d5a-47d5-85d9-7ea932d9bb2f",
+        "chatSessionId": "sess_0cd35d04-7df6-4de2-8be6-7aeb6a1b1aae",
+        "timestamp": 1795580390642
+      }
     ]
   }
 }

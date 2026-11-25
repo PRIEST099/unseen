@@ -37,8 +37,13 @@ const ROUTES: Route[] = [
     path: SAMPLE,
     marker: { heading: `Spirit Sight: ${HOSTNAME}`, buttons: ['Open Spirit Sight'] },
   },
+  { title: 'Whisper Walk', path: `${SAMPLE}/whisper`, marker: { heading: `Whisper Walk: ${HOSTNAME}` } },
+  { title: 'Keyboard Walk', path: `${SAMPLE}/keyboard`, marker: { heading: `Keyboard Walk: ${HOSTNAME}` } },
   { title: 'Daylight', path: `${SAMPLE}/daylight`, marker: { heading: `Daylight report: ${HOSTNAME}` } },
   { title: '404', path: '/nonexistent', marker: { heading: 'Page not found' } },
+  // Product states that need no stubbing: an expired job and a missing sample.
+  { title: 'Audit not found', path: '/audit/expired-job', marker: { heading: 'Audit not found' } },
+  { title: 'Sample not found', path: '/sample/no-such-sample', marker: { heading: 'Sample not found' } },
 ]
 
 function nameOf(node: AxNode): string {
@@ -85,12 +90,19 @@ function describeUnmapped(audit: ClassifiedAudit): string {
     .join('\n')
 }
 
+function describeManualCheck(audit: ClassifiedAudit): string {
+  return audit.needsManualCheck.map((node) => `- ${node.reason}: ${JSON.stringify(node)}`).join('\n')
+}
+
 async function attachFindings(info: TestInfo, audit: ClassifiedAudit): Promise<void> {
   if (audit.hauntings.length > 0) {
     await info.attach('hauntings', { body: describeHauntings(audit), contentType: 'text/plain' })
   }
   if (audit.axeCrossCheck.unmapped.length > 0) {
     await info.attach('unmapped-axe-violations', { body: describeUnmapped(audit), contentType: 'text/plain' })
+  }
+  if (audit.needsManualCheck.length > 0) {
+    await info.attach('needs-manual-check', { body: describeManualCheck(audit), contentType: 'text/plain' })
   }
 }
 
@@ -113,6 +125,7 @@ for (const route of ROUTES) {
 
     expect(audit.hauntings, `Hauntings on ${route.path}:\n${describeHauntings(audit)}`).toHaveLength(0)
     expect(audit.axeCrossCheck.unmapped, `Unmapped axe violations on ${route.path}:\n${describeUnmapped(audit)}`).toHaveLength(0)
+    expect(audit.needsManualCheck, `Needs-manual-check nodes on ${route.path}:\n${describeManualCheck(audit)}`).toHaveLength(0)
     expect(audit.score).toBe(0)
   })
 }

@@ -202,7 +202,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** `npm run e2e -w apps/web` runs the self-audit tests
     - **Checkpoint:** `npm run e2e -w apps/web` passes with zero hauntings on all four routes (Landing, Spirit Sight, Daylight, 404)
 
-- [ ] 2. Phase 2: Séance, Whisper Walk, and Keyboard Walk
+- [x] 2. Phase 2: Séance, Whisper Walk, and Keyboard Walk
   - Phase 2 completes the three audit lenses: real-time progress (Séance), AX-tree speech (Whisper Walk), and Tab sequence animation (Keyboard Walk).
   
   - [x] 2.1 Implement Séance view with real stage polling
@@ -255,7 +255,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e test that: Loads `/sample/cursed-shop-index/keyboard`, Clicks Play, Waits for the ghost to move through the first 5 steps, Clicks Pause, Clicks Step back, Verifies that the ghost moves backward
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; loading `/sample/cursed-shop-index/keyboard` and clicking Play animates the ghost through the Tab sequence
 
-- [ ] 3. Phase 3: Haunting Detail, Takes Form, Ambient Drone, and Product States
+- [x] 3. Phase 3: Haunting Detail, Takes Form, Ambient Drone, and Product States
   - Phase 3 adds the haunting detail dialog, the "takes form" celebration animation, the optional ambient drone, all product states, and the final self-audit proof.
   
   - [x] 3.1 Implement Haunting Detail Dialog
@@ -312,7 +312,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Tests:** Playwright e2e tests for each state (already covered in previous tasks)
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; all product states are implemented and testable
   
-  - [-] 3.5 Final self-audit on all routes
+  - [x] 3.5 Final self-audit on all routes
     - _Requirements: Requirement 22 (Ensure App Self-Accessibility)_
     - _Design: Section "Accessibility Self-Audit", decision F from prompt 38_
     - **Acceptance Criteria:**
@@ -488,6 +488,11 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
 - Task 3.4 (KeyboardHelpDialog outside click, task 3.1 note): fixed the same way as `HauntingDetailDialog`: the backdrop is now the parent of the focus trap, the trap wraps the dialog panel only, `clickOutsideDeactivates: false` and `allowOutsideClick` calls `onClose()` and returns `false`. A click on the backdrop closes the dialog and focus returns to the "Keyboard help" button; a click inside does nothing. This makes the task 1.5 note about outside-click close true now; before this task it was not. Regression test: `product-states.spec.ts` (outside click at the viewport corner; it fails on the old structure).
 - Task 3.4 (not built, deliberately): a "Retry" button on Spirit Sight when the initial `GET /api/audit/:id` fails with a network error (the "Audit unavailable" panel has only "Back to home"; requirement 31.5 names polling only); a visible "retrying" message during the backoff; any server change (the 404 for an expired job needed none).
 - Task 3.4 (tests): Vitest `utils/seance.test.ts` (+4: `retryDelayMs` doubles 1 s, 2 s, 4 s, two fast-check properties for range, monotonic and capped doubling over any input, and the clean announcement), `utils/job-urls.test.ts` (4, one fast-check property: newest 20 kept, last write always recalled; corrupt, blocked and missing storage ignored). `e2e/product-states.spec.ts` (17 tests, each state ends with an axe scan of violations and incomplete items, all empty): 404 route and unknown lens, "Sample not found", "Audit not found" without a known URL, "Audit again" re-posting the same URL and opening the new séance, a failed re-audit shown in the assertive region, the same actions on the séance 404, clean audit on Spirit Sight (message, coverage note, manual-check list, no toggle, no overlays, no "compliant"), clean séance announcement, clean Daylight, SSRF and per-code séance errors, the network failure test (4 requests, gaps within 100 ms below to 1.5 s above 1 s, 2 s, 4 s; assertive error; Retry; polling stopped; restart with a fresh budget), a single dropped request recovering silently, the error boundary (heading, title, focus, shell kept, no internal text, recovery through the wordmark), the wordmark and "Audit another site", and the keyboard help outside click. Existing e2e updated: `landing.spec.ts` (wordmark is the first stop after the skip link), `seance.spec.ts` (404 now expects "Back to home" and no "Audit again" for an unknown job, and reads the first assertive region). Results: `npm run typecheck` clean; `npx vitest --run` 279/279 (30 files); `npx playwright test` 64/64, including the five self-audit tests (zero hauntings, zero unmapped axe violations on Landing, Spirit Sight, Daylight, 404, and after "Open Spirit Sight"). Task 3.5 still has to add the Whisper and Keyboard routes to `self-audit.spec.ts`.
+
+- Task 3.5 (requirement numbers): the task text cites requirement 22; in requirements.md the self-audit is requirement 23 (23.1, 23.2) and 28.4 (the E2E restatement). Requirement 23.1 and 28.4 wording ("Playwright global setup") is met by the existing `webServer` config (`npm run build && npm run start:test`) rather than a separate global setup file.
+- Task 3.5 (what changed): `e2e/self-audit.spec.ts` already had a table-driven test per route (task 1.8 plus later additions: h1 presence marker, exactly one h1, the "Open Spirit Sight" and "Begin audit"/"Toggle sound" button markers, no collection errors, zero hauntings, zero unmapped axe violations, score 0, and the post-activation axe scan with zero violations and zero incomplete). It was extended, not rewritten: added the Whisper Walk (`/sample/cursed-shop-index/whisper`, h1 "Whisper Walk: the-unseen.app") and Keyboard Walk (`/sample/cursed-shop-index/keyboard`, h1 "Keyboard Walk: the-unseen.app") routes, plus a `needsManualCheck` length-0 assertion on every route (requirement 23.1 mentions manual-check nodes; every route has 0 today). Failure output lists hauntings, unmapped axe violations and manual-check nodes in the assertion message and as test attachments.
+- Task 3.5 (extra routes, cheap, no stubbing): `/audit/expired-job` (h1 "Audit not found") and `/sample/no-such-sample` (h1 "Sample not found") were added to the same table. Not added: the Séance route (a real job is needed for a meaningful marker, and a fake id lands on the same ended state as "Audit not found"), and the haunting dialog open state (the audit engine would run against the page with the dialog closed; `haunting-dialog.spec.ts` already runs an axe scan with the dialog open: 0 violations, 0 incomplete). Self-audit routes are now nine tests (eight route audits plus the post-activation scan).
+- Task 3.5 (result): no UI change was needed; all eight routes returned 0 hauntings, 0 unmapped axe violations and 0 needs-manual-check nodes on the first run. `npm run typecheck` clean; `npx vitest --run` 279/279 (30 files); `npx playwright test` 68/68 (including the 9 self-audit tests) with `UNSEEN_CHROMIUM_CHANNEL=chromium`.
 
 **Blocked tasks**:
 - None
