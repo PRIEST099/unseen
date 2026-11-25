@@ -762,3 +762,15 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **The owner chose** Crew's documented opt-in `hooks.auto_approve_sources: ["cron"]`, after the trade-off was explained: it covers every scheduled job, and Crew's hard deny rules still apply.
   - The lead backed up `~/.kiro/crew/config.json`; a semantic diff shows only that key changed.
   - The lead restarted Crew and triggered the job again at 20:45.
+- **21:10 unattended crew run on a shipped regression:**
+  - The Seer found exactly one new Wraith (the "Buy now" icon button).
+  - The Scribe stopped: `product.html` is 33,444 characters and its read limit is 30,000. The Warden reported this honestly and named the fix.
+- **Run 49h (Kiro):** `find_in_source`, ranged `read_source` and an exact, unique `edit_fix_file`, available to the Scribe only, plus `demo:rebaseline`. The lead's checks: 186 unit and 6 integration tests, typecheck, 0 agent problems.
+- **22:10 unattended crew run, success:** the full chain ran with every call `auto_approved` in Crew's security log:
+  - Warden `validate`
+  - Seer `audit` and `diff`
+  - Scribe `workdir`, `find_in_source` and `edit_fix_file`
+  - Exorcist `verify`
+  - Warden `report`
+- **The kept fix** is exactly `aria-label="Buy now"` on line 739.
+- **Evidence:** `night-shift/docs/patrol-transcripts/2026-11-25-unattended-regression-run.md`.
