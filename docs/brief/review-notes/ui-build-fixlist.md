@@ -1,6 +1,8 @@
 # UI build (Kiro IDE): product-lead fix list
 
-Issues found while verifying each task during the nonstop IDE run. These go to Kiro as one fix pass after Phase 1, so the batch run is not interrupted.
+Issues found while verifying each task during the nonstop IDE run.
+
+**Decision (user, 2026-11-25):** these are **not** sent back to Kiro. Once Kiro has finished every `spirit-sight-ui` task (through 3.5), Claude Code applies all items below in **one** fix pass, on its own commits labelled `fix-pass (Claude Code)`, logged in `KIRO_SESSION_LOG.md` so the split between Kiro-built and Claude-fixed code stays transparent. Until then, items are only collected here; nothing is edited while the IDE run is going.
 
 | # | Task | Issue | Fix |
 |---|---|---|---|

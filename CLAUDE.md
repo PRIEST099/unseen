@@ -8,6 +8,7 @@ This is a Kiroween 2026 hackathon entry. Hackathon rule: **the project must be b
 
   It runs tests and probes to verify Kiro's work.
 - **Kiro writes everything else:** `.kiro/` steering, specs and hooks; all code under `packages/`, `apps/` and `power/`; READMEs inside those folders. If code is wrong, write a fix instruction for Kiro. **Never edit app code directly**, not even a one-line fix.
+  - **One exception, decided by the user on 2026-11-25:** after Kiro finishes the `spirit-sight-ui` task list, Claude Code applies the items in `docs/brief/review-notes/ui-build-fixlist.md` itself, in one fix pass. Use separate commits labelled `fix-pass (Claude Code)` and log them in `KIRO_SESSION_LOG.md`. Do not edit app code while a Kiro run is in progress.
 
 ## How to drive Kiro
 Read `docs/HANDOFF.md` first. Then:
