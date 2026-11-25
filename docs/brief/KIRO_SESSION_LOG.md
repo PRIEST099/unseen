@@ -639,3 +639,8 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
     - ethics, trademark and scope problems.
   - **Recommendation:** keep THE UNSEEN.
   - Full notes: `docs/brief/review-notes/new-idea-research-1.md`.
+
+## 2026-11-25 · Run 44 · started (owner account): `unseen-mcp-and-power` spec
+- The user chose to keep THE UNSEEN and finish it. Branch `kiro/run-44-mcp-power` from `kiro/ui-build-ide`.
+- **Instruction:** `prompts/44-spec-mcp-power.md`, which builds on prompt 15. Its innovation focus is the auditor inside the agent loop: a Power `Stop` gate that keeps Kiro working while a critical haunting remains.
+- **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --agent unseen-builder --mode spec --model auto`.
