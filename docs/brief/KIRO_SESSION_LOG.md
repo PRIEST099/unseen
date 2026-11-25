@@ -644,3 +644,19 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - The user chose to keep THE UNSEEN and finish it. Branch `kiro/run-44-mcp-power` from `kiro/ui-build-ide`.
 - **Instruction:** `prompts/44-spec-mcp-power.md`, which builds on prompt 15. Its innovation focus is the auditor inside the agent loop: a Power `Stop` gate that keeps Kiro working while a critical haunting remains.
 - **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --agent unseen-builder --mode spec --model auto`.
+- **Run 44 result:** Kiro wrote the spec, 10 tasks in demo-critical order. It had no doc access, so it left the Stop-hook semantics and the Power's hook format open.
+- **Spec review (Claude Code workflow, 2 reviewers: current kiro.dev docs and the real core code):** 4 blockers, 20 major and 9 minor findings. The key ones:
+  - The gate used exit 2, the one code the docs say drops the output.
+  - There was no install route, because `@the-unseen/mcp` is not on npm.
+  - With no dev server the gate silently passed.
+  - Haunting ids are not stable between audits.
+  - The demo depended on the model writing an icon-only button.
+- Notes: `review-notes/mcp-power-spec-review-1.md`. The lead also added `.unseen/` to `.gitignore`.
+
+## 2026-11-25 · Run 46 · started (owner account): amend the spec, build tasks 0–4
+- **Instruction:** `prompts/46-mcp-power-amend-and-build.md`, with decisions D1–D8:
+  - the gate exits 1 with stderr;
+  - a global install from packed tarballs plus `unseen-mcp install-hooks`;
+  - dirty files are found by mtime and audited directly when there is no dev server;
+  - a deterministic haunted demo page.
+- **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --agent unseen-builder --model auto`, with `UNSEEN_CHROMIUM_CHANNEL=chromium`.
