@@ -70,6 +70,7 @@ Every run is logged in [`docs/brief/KIRO_SESSION_LOG.md`](docs/brief/KIRO_SESSIO
 | **Kiro CLI headless** | `docs/brief/prompts/` | 40+ numbered runs, each sent with `kiro-cli chat --v3 --no-interactive` |
 
 ### Moments where Kiro surprised us (from the log)
+- **Kiro noticed the ghost and chose to leave it.** We asked Kiro to add a quantity field to a checkout page whose button had no accessible name. It did, mentioned the button, offered "I can add it if you want", and tried to end its turn. THE UNSEEN's ghost gate blocked the turn. Kiro then audited the page, fixed the button and reported the score going from 15 to 0. This is why the gate exists: a good model that *knows* still moves on unless something holds it.
 - Kiro's first demo shop claimed success while most hauntings did not fire. That failure is why a golden file exists, guarded by a `PreToolUse` hook so no agent can "fix" the test instead of the code.
 - A hook that validated cleanly would have allowed every write: it read `toolInput` instead of `tool_input`. Lesson: verify agent and hook configs by exercising them, not by trusting validator output.
 - In Kiro V3, **deny always wins**. A spec-writer agent with "allow specs, deny everything else" could write nothing.
