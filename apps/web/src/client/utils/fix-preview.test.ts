@@ -6,8 +6,12 @@ import { SAMPLE_AUDIT } from '../test-support/audit-arbitraries'
 import {
   TAKES_FORM_EASING,
   exorcisedMessage,
+  hauntingCount,
   nextFocusId,
+  previewNoticeText,
   previewScore,
+  reserveCount,
+  spiritSightOpenMessage,
   takesFormDurationMs,
   withoutPreviewed,
 } from './fix-preview'
@@ -90,11 +94,87 @@ describe('takes form timing and wording', () => {
     expect(TAKES_FORM_EASING).toBe('cubic-bezier(0.34, 1.56, 0.64, 1)')
   })
 
-  it('announces the name and the new score, and says it is a preview', () => {
-    const message = exorcisedMessage('Nameless Spirit', 12)
-    expect(message).toContain('Nameless Spirit exorcised: score now 12')
-    expect(message).toContain('preview')
-    expect(message).not.toMatch(/compliant|accessible/i)
+  it('announces the name, the remaining count and the new score, and says it is a preview', () => {
+    expect(exorcisedMessage('Invisible Wanderer', 45, 97)).toBe(
+      'Invisible Wanderer exorcised: 45 hauntings left, score now 97 (preview, audit not re-run)',
+    )
+    expect(exorcisedMessage('Nameless Spirit', 1, 6)).toBe('Nameless Spirit exorcised: 1 haunting left, score now 6 (preview, audit not re-run)')
+    expect(exorcisedMessage('The Fog', 0, 0)).not.toMatch(/compliant|accessible/i)
+  })
+
+  it('never repeats the same status text for consecutive previews, even when the score saturates', () => {
+    // Two Restless previews on a large audit leave the score at 97; the count still changes.
+    const first = exorcisedMessage('Invisible Wanderer', 46, 97)
+    const second = exorcisedMessage('Invisible Wanderer', 45, 97)
+    expect(first).not.toBe(second)
+  })
+})
+
+describe('spiritSightOpenMessage', () => {
+  it('keeps the audited wording outside a preview', () => {
+    expect(spiritSightOpenMessage(48, 98)).toBe('Spirit Sight open: 48 hauntings, score 98')
+  })
+
+  it('says it is a preview and gives both scores during one', () => {
+    expect(spiritSightOpenMessage(46, 97, { auditedScore: 98 })).toBe(
+      'Spirit Sight open (preview): 46 hauntings, preview score 97, audited score 98',
+    )
+  })
+
+  it('uses the singular for one haunting left in a preview, like the exorcised message', () => {
+    expect(spiritSightOpenMessage(1, 99, { auditedScore: 98 })).toBe(
+      'Spirit Sight open (preview): 1 haunting, preview score 99, audited score 98',
+    )
+    expect(spiritSightOpenMessage(0, 0, { auditedScore: 98 })).toBe(
+      'Spirit Sight open (preview): 0 hauntings, preview score 0, audited score 98',
+    )
+  })
+})
+
+describe('hauntingCount', () => {
+  it('puts the noun in the right number', () => {
+    expect(hauntingCount(0)).toBe('0 hauntings')
+    expect(hauntingCount(1)).toBe('1 haunting')
+    expect(hauntingCount(2)).toBe('2 hauntings')
+  })
+})
+
+describe('previewNoticeText', () => {
+  it('says how many are taken out, that it is a preview, and that the audit has not been re-run', () => {
+    expect(previewNoticeText(1, 47)).toBe(
+      'Preview only. 1 haunting is taken out of this view to show what a source-code fix would do. The audited page is unchanged and the audit has not been re-run.',
+    )
+    expect(previewNoticeText(3, 45)).toContain('3 hauntings are taken out')
+  })
+
+  it('with nothing left, says the preview tells nothing about the page and never claims compliance', () => {
+    const all = previewNoticeText(48, 0)
+    expect(all).toContain('No hauntings are left in this view: all 48 are taken out')
+    expect(all).toContain('the audit has not been re-run, so this says nothing about the page itself.')
+    expect(previewNoticeText(1, 0)).toContain('the only one is taken out')
+    fc.assert(
+      fc.property(fc.nat(500), fc.nat(500), (takenOut, remaining) => {
+        const text = previewNoticeText(takenOut, remaining)
+        expect(text.startsWith('Preview only.')).toBe(true)
+        expect(text).toContain('the audit has not been re-run')
+        expect(text).not.toMatch(/compliant/i)
+      }),
+    )
+  })
+})
+
+describe('reserveCount', () => {
+  it('has one more digit than the total, so the reserved notice is never narrower than a real one', () => {
+    expect(reserveCount(0)).toBe(88)
+    expect(reserveCount(9)).toBe(88)
+    expect(reserveCount(48)).toBe(888)
+    expect(reserveCount(100)).toBe(8888)
+    fc.assert(
+      fc.property(fc.nat(100_000), (total) => {
+        expect(String(reserveCount(total)).length).toBe(String(total).length + 1)
+        expect(reserveCount(total)).toBeGreaterThan(total)
+      }),
+    )
   })
 })
 

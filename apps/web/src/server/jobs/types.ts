@@ -24,7 +24,7 @@ export type Job = {
   url: string
   status: JobStatus
   stages: Stages
-  /** The classified audit with `raw.screenshotPng` emptied. Dropped 15 minutes after completion. */
+  /** The classified audit with `raw.screenshotPng` emptied. Dropped 60 minutes after completion (`RESULT_TTL_MS`). */
   result?: ClassifiedAudit
   /** Base64 PNG, served by the screenshot route. Dropped together with `result`. */
   screenshotPng?: string

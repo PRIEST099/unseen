@@ -85,6 +85,26 @@ export function relatedIssues(haunting: Haunting): Haunting[] {
   return related
 }
 
+/** Core cuts `htmlSnippet` to this many characters of the element's outerHTML. */
+export const SNIPPET_LIMIT = 300
+
+/** Shown under the offending HTML when core shortened it. */
+export const SNIPPET_SHORTENED_NOTE = `Snippet shortened to its first ${SNIPPET_LIMIT} characters.`
+
+/** Whether the haunting has any offending HTML to show (core leaves it empty when it has none). */
+export function hasSnippet(htmlSnippet: string): boolean {
+  return htmlSnippet.trim() !== ''
+}
+
+/**
+ * Whether core shortened the snippet: it ends with the ellipsis core appends when it slices, or
+ * it reaches the length limit (older audits were sliced without an ellipsis).
+ */
+export function isSnippetShortened(htmlSnippet: string): boolean {
+  // Core marks a shortened snippet with a trailing '…'; a complete element of exactly 300 characters is not shortened.
+  return htmlSnippet.endsWith('…')
+}
+
 /** Code fences must outlast any run of backticks inside the content. */
 function fenceFor(content: string): string {
   const longest = (content.match(/`+/g) ?? []).reduce((max, run) => Math.max(max, run.length), 0)
@@ -94,6 +114,15 @@ function fenceFor(content: string): string {
 function fencedBlock(content: string): string {
   const fence = fenceFor(content)
   return `${fence}html\n${content}\n${fence}`
+}
+
+/** The prompt's offending-HTML block: omitted when empty, labelled partial when shortened. */
+function offendingHtmlLines(htmlSnippet: string): string[] {
+  if (!hasSnippet(htmlSnippet)) return []
+  const label = isSnippetShortened(htmlSnippet)
+    ? `Offending HTML (partial: shortened to its first ${SNIPPET_LIMIT} characters):`
+    : 'Offending HTML:'
+  return ['', label, fencedBlock(htmlSnippet)]
 }
 
 /**
@@ -117,9 +146,7 @@ export function buildKiroPrompt(haunting: Haunting, element: string, auditedUrl:
     '',
     'WCAG 2.2 criteria:',
     criteria === '' ? '- none listed' : criteria,
-    '',
-    'Offending HTML:',
-    fencedBlock(haunting.htmlSnippet),
+    ...offendingHtmlLines(haunting.htmlSnippet),
     '',
     `Suggested fix: ${haunting.fix.instruction}`,
     '',

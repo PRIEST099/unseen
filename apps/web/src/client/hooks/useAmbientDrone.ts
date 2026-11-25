@@ -6,18 +6,19 @@ import { createDroneEngine } from '../utils/drone-engine'
 import type { DroneEngine } from '../utils/drone-engine'
 
 /**
- * Plays the ambient drone while sound is on and reduced motion is off. Mounted once, in `App`.
+ * Plays the ambient drone while ambient sound is on and reduced motion is off. Mounted once, in `App`.
  *
- * The drone is never started on its own: it follows `soundEnabled`, which only the header toggle (or
- * the Whisper walk's Play button) can turn on. React runs the effect for that click before the event
- * ends, so the AudioContext is created and resumed while the user's activation is still valid.
- * Sound off, reduced motion on, or unmount stops it (unmount also closes the AudioContext).
+ * The drone is never started on its own: it follows `ambientEnabled`, which only the header Sound
+ * toggle can turn on (requirement 33.2). The Whisper walk's Play button speaks through its own gesture
+ * and never starts the drone. React runs the effect for the toggle's click before the event ends, so
+ * the AudioContext is created and resumed while the user's activation is still valid.
+ * Ambient off, reduced motion on, or unmount stops it (unmount also closes the AudioContext).
  */
 export function useAmbientDrone(): void {
-  const { soundEnabled } = useSound()
+  const { ambientEnabled } = useSound()
   const reducedMotion = useReducedMotion()
   const engineRef = useRef<DroneEngine | null>(null)
-  const play = shouldPlayDrone(soundEnabled, reducedMotion)
+  const play = shouldPlayDrone(ambientEnabled, reducedMotion)
 
   useEffect(() => {
     const engine = createDroneEngine()

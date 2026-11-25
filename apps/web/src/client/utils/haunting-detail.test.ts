@@ -6,9 +6,13 @@ import {
   buildKiroPrompt,
   criterionEntries,
   FALLBACK_PERSONAS,
+  hasSnippet,
   isSafeCriterionUrl,
+  isSnippetShortened,
   personaLine,
   relatedIssues,
+  SNIPPET_LIMIT,
+  SNIPPET_SHORTENED_NOTE,
 } from './haunting-detail'
 import { hauntingDisplayName } from './haunting-display'
 
@@ -112,5 +116,42 @@ describe('buildKiroPrompt', () => {
   it('asks for a source-code change, not a runtime patch', () => {
     const prompt = buildKiroPrompt(makeHaunting(), 'el', 'https://x.example/')
     expect(prompt).toMatch(/source files \(not a runtime patch or overlay\)/)
+  })
+})
+
+describe('snippet helpers', () => {
+  it('treats an empty or whitespace-only snippet as absent', () => {
+    expect(hasSnippet('')).toBe(false)
+    expect(hasSnippet('  \n ')).toBe(false)
+    expect(hasSnippet('<button>')).toBe(true)
+  })
+
+  it('reports a snippet as shortened when it ends with an ellipsis or reaches the limit', () => {
+    expect(isSnippetShortened('<button class="x">')).toBe(false)
+    expect(isSnippetShortened('<body class="a…')).toBe(true)
+    expect(isSnippetShortened('x'.repeat(SNIPPET_LIMIT - 1))).toBe(false)
+    expect(isSnippetShortened('x'.repeat(SNIPPET_LIMIT))).toBe(false)
+    expect(isSnippetShortened('x'.repeat(SNIPPET_LIMIT - 1) + '…')).toBe(true)
+    expect(SNIPPET_SHORTENED_NOTE).toBe('Snippet shortened to its first 300 characters.')
+  })
+})
+
+describe('buildKiroPrompt offending HTML', () => {
+  it('omits the offending HTML block when there is no snippet', () => {
+    const prompt = buildKiroPrompt(makeHaunting({ htmlSnippet: '' }), 'el', 'https://x.example/')
+    expect(prompt).not.toContain('Offending HTML')
+    expect(prompt).toContain('Suggested fix:')
+  })
+
+  it('labels a shortened snippet as partial', () => {
+    const snippet = `<body class="${'a'.repeat(300)}…`
+    const prompt = buildKiroPrompt(makeHaunting({ htmlSnippet: snippet }), 'el', 'https://x.example/')
+    expect(prompt).toContain('Offending HTML (partial: shortened to its first 300 characters):')
+    expect(prompt).toContain(snippet)
+  })
+
+  it('keeps the plain label for a whole snippet', () => {
+    const prompt = buildKiroPrompt(makeHaunting({ htmlSnippet: '<img src="a.png">' }), 'el', 'https://x.example/')
+    expect(prompt).toContain('Offending HTML:\n```html\n<img src="a.png">\n```')
   })
 })

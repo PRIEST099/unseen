@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useSound } from '../contexts/SoundContext'
 import { KeyboardHelpDialog } from './KeyboardHelpDialog'
 
@@ -32,7 +32,9 @@ function KeyboardIcon(): ReactElement {
 }
 
 export function AppHeader(): ReactElement {
-  const { soundEnabled, toggleSound } = useSound()
+  const { ambientEnabled, toggleAmbient } = useSound()
+  // On Landing the hero title is the brand, so the header does not repeat the name (and its link to '/').
+  const onLanding = useLocation().pathname === '/'
   const [helpOpen, setHelpOpen] = useState<boolean>(() => window.location.hash === HELP_HASH)
   const helpButton = useRef<HTMLButtonElement>(null)
 
@@ -52,17 +54,19 @@ export function AppHeader(): ReactElement {
 
   return (
     <header className="app-header">
-      <Link to="/" className="wordmark">
-        THE UNSEEN
-      </Link>
+      {onLanding ? null : (
+        <Link to="/" className="wordmark">
+          THE UNSEEN
+        </Link>
+      )}
       <button
         type="button"
         className="button button-icon"
         aria-label="Toggle sound"
-        aria-pressed={soundEnabled}
-        onClick={toggleSound}
+        aria-pressed={ambientEnabled}
+        onClick={toggleAmbient}
       >
-        <SoundIcon enabled={soundEnabled} />
+        <SoundIcon enabled={ambientEnabled} />
       </button>
       <button
         ref={helpButton}

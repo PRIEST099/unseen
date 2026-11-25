@@ -36,9 +36,12 @@ export const DRONE_WET = 0.4
 export type FadeInPlan = { startAt: number; peakAt: number; peak: number }
 export type FadeOutPlan = { rampEndAt: number; stopAt: number }
 
-/** The drone plays only when the user turned sound on AND does not prefer reduced motion. */
-export function shouldPlayDrone(soundEnabled: boolean, reducedMotion: boolean): boolean {
-  return soundEnabled && !reducedMotion
+/**
+ * The drone plays only when the user turned ambient sound on with the header toggle AND does not
+ * prefer reduced motion (requirements 20.5, 33.2).
+ */
+export function shouldPlayDrone(ambientEnabled: boolean, reducedMotion: boolean): boolean {
+  return ambientEnabled && !reducedMotion
 }
 
 /** Clamps any requested gain into `[0, DRONE_MASTER_CAP]`. NaN becomes silence. */

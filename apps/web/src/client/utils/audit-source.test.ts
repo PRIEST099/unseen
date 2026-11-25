@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { auditEndpoint, fetchAudit, isClassifiedAudit, parseAuditBody, screenshotEndpoint } from './audit-source'
+import type { ClassifiedAudit } from '@the-unseen/core'
+import { auditEndpoint, fetchAudit, hostnameOf, isClassifiedAudit, parseAuditBody, screenshotEndpoint } from './audit-source'
 
 const audit = {
   hauntings: [],
@@ -37,9 +38,41 @@ describe('parseAuditBody', () => {
     expect(parseAuditBody({ kind: 'job', id: 'j' }, { status: 'done', result: audit })).toMatchObject({ status: 'ok' })
   })
 
-  it('treats a running job as in progress and an errored job as gone', () => {
+  it('treats a running job as in progress', () => {
     expect(parseAuditBody({ kind: 'job', id: 'j' }, { status: 'walking' })).toEqual({ status: 'in-progress' })
-    expect(parseAuditBody({ kind: 'job', id: 'j' }, { status: 'error', error: 'TIMEOUT' })).toEqual({ status: 'not-found' })
+  })
+
+  it.each([
+    ['TIMEOUT', 'The audit took too long (60s limit). The page may be too large or slow to load.'],
+    ['SSRF_BLOCKED', 'Cannot audit private or internal URLs for security reasons.'],
+    ['RESOURCE_LIMIT', 'The page is too large to audit (50MB limit).'],
+    ['NETWORK_ERROR', 'Could not load the page. Check the URL and try again.'],
+  ])('reports an errored job (%s) as failed with the séance copy, not as missing', (code, message) => {
+    const body = { status: 'error', error: code, message: 'server text' }
+    expect(parseAuditBody({ kind: 'job', id: 'j' }, body)).toEqual({ status: 'failed', message })
+  })
+
+  it('falls back to the server message, then to generic copy, for an unknown error code', () => {
+    expect(parseAuditBody({ kind: 'job', id: 'j' }, { status: 'error', error: 'ODD', message: 'Something odd' })).toEqual({
+      status: 'failed',
+      message: 'Something odd',
+    })
+    expect(parseAuditBody({ kind: 'job', id: 'j' }, { status: 'error' })).toEqual({
+      status: 'failed',
+      message: 'The audit could not be completed. Please try another URL.',
+    })
+  })
+})
+
+describe('hostnameOf', () => {
+  const withUrl = (auditedUrl: string): ClassifiedAudit => ({ ...audit, raw: { ...audit.raw, auditedUrl } }) as unknown as ClassifiedAudit
+
+  it('names a bundled sample by its relative path instead of a host', () => {
+    expect(hostnameOf(withUrl('/cursed-shop/index.html'))).toBe('Cursed Shop (sample)')
+  })
+
+  it('shows the real hostname of a live audit', () => {
+    expect(hostnameOf(withUrl('https://www.example.com/path?q=1'))).toBe('www.example.com')
   })
 })
 
@@ -49,6 +82,11 @@ describe('fetchAudit', () => {
     expect(await fetchAudit({ kind: 'job', id: 'j' }, fakeFetch(500, {}))).toMatchObject({ status: 'failed' })
     const broken: typeof fetch = () => Promise.reject(new TypeError('offline'))
     expect(await fetchAudit({ kind: 'sample', id: 's' }, broken)).toMatchObject({ status: 'failed' })
+  })
+
+  it('maps an errored job response to a failed state with a reason', async () => {
+    const result = await fetchAudit({ kind: 'job', id: 'j' }, fakeFetch(200, { status: 'error', error: 'TIMEOUT', message: 'x' }))
+    expect(result).toEqual({ status: 'failed', message: expect.stringContaining('took too long') })
   })
 
   it('returns the audit for a good sample response', async () => {

@@ -1,6 +1,6 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { MAX_REMEMBERED, recallJobUrl, rememberJobUrl } from './job-urls'
+import { JOB_URL_TTL_MS, MAX_REMEMBERED, recallJobUrl, rememberJobUrl } from './job-urls'
 
 /** A minimal in-memory Storage, so the tests do not depend on a browser. */
 function fakeStorage(initial: Record<string, string> = {}, failWrites = false): Storage {
@@ -51,8 +51,48 @@ describe('job URL memory', () => {
   it('ignores corrupt storage, blocked writes and a missing storage', () => {
     expect(recallJobUrl('job-1', fakeStorage({ 'unseen.job-urls': 'not json' }))).toBeUndefined()
     expect(recallJobUrl('job-1', fakeStorage({ 'unseen.job-urls': '{"id":"job-1"}' }))).toBeUndefined()
+    // Entries from before the TTL existed (no timestamp) are not trusted.
+    expect(recallJobUrl('job-1', fakeStorage({ 'unseen.job-urls': '[{"id":"job-1","url":"https://example.com"}]' }))).toBeUndefined()
     expect(() => rememberJobUrl('job-1', 'https://example.com', fakeStorage({}, true))).not.toThrow()
     expect(() => rememberJobUrl('job-1', 'https://example.com', null)).not.toThrow()
     expect(recallJobUrl('job-1', null)).toBeUndefined()
+  })
+
+  it('forgets a job two hours after it was remembered', () => {
+    const storage = fakeStorage()
+    rememberJobUrl('job-1', 'https://example.com/a', storage, 1_000)
+    expect(recallJobUrl('job-1', storage, 1_000 + JOB_URL_TTL_MS)).toBe('https://example.com/a')
+    expect(recallJobUrl('job-1', storage, 1_000 + JOB_URL_TTL_MS + 1)).toBeUndefined()
+  })
+
+  it('prunes expired jobs when a new one is written, and remembering again renews the clock', () => {
+    const storage = fakeStorage()
+    rememberJobUrl('old', 'https://example.com/old', storage, 0)
+    rememberJobUrl('renewed', 'https://example.com/r', storage, 0)
+    rememberJobUrl('renewed', 'https://example.com/r', storage, JOB_URL_TTL_MS)
+    rememberJobUrl('new', 'https://example.com/new', storage, JOB_URL_TTL_MS + 1)
+    const stored: unknown = JSON.parse(storage.getItem('unseen.job-urls') ?? '[]')
+    expect(stored).toEqual([
+      { id: 'renewed', url: 'https://example.com/r', at: JOB_URL_TTL_MS },
+      { id: 'new', url: 'https://example.com/new', at: JOB_URL_TTL_MS + 1 },
+    ])
+  })
+
+  it('does not throw when reading storage throws', () => {
+    const storage = fakeStorage()
+    storage.getItem = () => {
+      throw new DOMException('blocked', 'SecurityError')
+    }
+    expect(recallJobUrl('job-1', storage)).toBeUndefined()
+    expect(() => rememberJobUrl('job-1', 'https://example.com', storage)).not.toThrow()
+  })
+
+  it('uses localStorage by default, so other tabs of the same browser can recall the job', () => {
+    localStorage.clear()
+    rememberJobUrl('job-shared', 'https://example.com/shared')
+    expect(localStorage.getItem('unseen.job-urls')).toContain('job-shared')
+    expect(sessionStorage.getItem('unseen.job-urls')).toBeNull()
+    expect(recallJobUrl('job-shared')).toBe('https://example.com/shared')
+    localStorage.clear()
   })
 })

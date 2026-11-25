@@ -4,8 +4,8 @@ import type { Download, Page } from '@playwright/test'
 
 const SAMPLE = '/sample/cursed-shop-index'
 const DAYLIGHT = `${SAMPLE}/daylight`
-// The committed sample rewrites the audited URL to https://the-unseen.app/cursed-shop/index.html.
-const HOSTNAME = 'the-unseen.app'
+// The committed sample records the relative URL /cursed-shop/index.html, shown as "Cursed Shop (sample)".
+const HOSTNAME = 'Cursed Shop (sample)'
 
 async function openDaylight(page: Page): Promise<void> {
   await page.goto(DAYLIGHT)
@@ -80,7 +80,7 @@ test.describe('Daylight report', () => {
     const markdownDownload = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Export as Markdown' }).click()
     const markdownFile = await markdownDownload
-    expect(markdownFile.suggestedFilename()).toMatch(/^unseen-audit-the-unseen\.app-\d+\.md$/)
+    expect(markdownFile.suggestedFilename()).toMatch(/^unseen-audit-cursed-shop-sample-\d+\.md$/)
     const markdown = await readDownload(markdownFile)
     expect(markdown).toContain(`**Haunting Score**: ${score}/100`)
     for (const id of criterionIds) expect(markdown).toMatch(new RegExp(`^### ${id.replace(/\./g, '\\.')} `, 'm'))
@@ -91,7 +91,7 @@ test.describe('Daylight report', () => {
     const jsonDownload = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Export as JSON' }).click()
     const jsonFile = await jsonDownload
-    expect(jsonFile.suggestedFilename()).toMatch(/^unseen-audit-the-unseen\.app-\d+\.json$/)
+    expect(jsonFile.suggestedFilename()).toMatch(/^unseen-audit-cursed-shop-sample-\d+\.json$/)
     const parsed: { hauntings: unknown[]; score: number; raw: { auditedUrl: string; screenshotPng: string } } = JSON.parse(await readDownload(jsonFile))
     expect(parsed.hauntings).toHaveLength(sample.result.hauntings.length)
     expect(parsed.score).toBe(score)

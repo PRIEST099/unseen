@@ -81,6 +81,23 @@ const RECORDING_AUDIO_CONTEXT = `
 })();
 `
 
+/** A stand-in for window.speechSynthesis that only counts and ends utterances. */
+const SPEECH_STUB = `
+(() => {
+  window.__spokenCount = 0;
+  const stub = {
+    speaking: false, pending: false, paused: false,
+    speak(utterance) {
+      window.__spokenCount += 1;
+      setTimeout(() => { if (utterance.onend) utterance.onend({}); }, 300);
+    },
+    cancel() {}, pause() {}, resume() {}, getVoices() { return []; },
+    addEventListener() {}, removeEventListener() {},
+  };
+  Object.defineProperty(window, 'speechSynthesis', { value: stub, configurable: true });
+})();
+`
+
 async function summary(page: Page): Promise<AudioSummary> {
   return page.evaluate(() => {
     const w: AudioWindow = window
@@ -170,6 +187,37 @@ test.describe('Ambient drone (Web Audio, stubbed)', () => {
     for (const gain of (await summary(page)).gains.filter((g) => g.toDestination)) {
       for (const event of gain.events) expect(event.value ?? 0).toBeLessThanOrEqual(0.2)
     }
+  })
+
+  test('Whisper walk Play speaks without starting the drone: no AudioContext, no oscillator (requirement 33.2)', async ({ page }) => {
+    await page.addInitScript({ content: SPEECH_STUB })
+    await page.goto('/sample/cursed-shop-index/whisper')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Whisper Walk: ')
+
+    await page.getByRole('button', { name: 'Play', exact: true }).click()
+    // Play's own click allows Web Speech (requirement 20.4)...
+    await expect.poll(() => page.evaluate((): number => Reflect.get(window, '__spokenCount'))).toBeGreaterThan(0)
+    // ...but the header's ambient sound stays off, and no audio graph is ever built.
+    await expect(toggle(page)).toHaveAttribute('aria-pressed', 'false')
+    await page.waitForTimeout(400)
+    let audio = await summary(page)
+    expect(audio.contexts).toBe(0)
+    expect(audio.oscillators).toHaveLength(0)
+
+    // Pausing and moving to another route does not start it either.
+    await page.getByRole('button', { name: 'Pause', exact: true }).click()
+    await page.getByRole('link', { name: 'Spirit Sight', exact: true }).click()
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Spirit Sight: ')
+    await page.waitForTimeout(400)
+    audio = await summary(page)
+    expect(audio.contexts).toBe(0)
+    expect(audio.oscillators).toHaveLength(0)
+
+    // Only the header toggle starts the drone.
+    await toggle(page).click()
+    await expect.poll(async () => (await summary(page)).oscillators.length).toBe(2)
+    await toggle(page).click()
+    await expect.poll(async () => (await summary(page)).oscillators.every((o) => o.stopAt !== null)).toBe(true)
   })
 
   test.describe('with reduced motion', () => {

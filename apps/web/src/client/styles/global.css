@@ -159,6 +159,131 @@ p {
   font-size: var(--text-xl);
 }
 
+/*
+ * Landing hero: a candle-lit séance table. The glow and the vignette are box-shadows, never
+ * background layers behind the text: axe cannot measure contrast over gradients, images or
+ * pseudo-element backgrounds, and the app must audit itself clean (zero incomplete contrast checks).
+ * - Vignette: an inset ink shadow on the hero, darkening the edges (raises contrast near them).
+ * - Glow: a wide, soft candle-coloured shadow around the candle itself, above the title.
+ * Contrast: the glow peaks at about 12% candle over ink, where bone text stays above 11:1.
+ * Only the flame and the glow move, never under prefers-reduced-motion.
+ */
+.landing-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: var(--space-12) var(--space-6);
+  border-radius: 0.5rem;
+  background-color: color-mix(in srgb, var(--color-ink) 97%, var(--color-mist));
+  box-shadow: inset 0 0 8rem 3rem var(--color-ink);
+  text-align: center;
+}
+
+.landing-candle {
+  width: 2rem;
+  height: 4rem;
+  margin-bottom: var(--space-4);
+  overflow: visible;
+  border-radius: 50%;
+  box-shadow: 0 0 10rem 7rem color-mix(in srgb, var(--color-candle) 10%, transparent);
+  animation: candle-glow 5s ease-in-out infinite alternate;
+}
+
+.landing-candle-flame {
+  fill: var(--color-candle);
+  filter: drop-shadow(0 0 0.5rem color-mix(in srgb, var(--color-candle) 70%, transparent));
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: candle-flicker 2.4s ease-in-out infinite;
+}
+
+.landing-candle-core {
+  fill: var(--color-bone);
+}
+
+.landing-candle-wick {
+  fill: none;
+  stroke: var(--color-mist);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.landing-candle-body {
+  fill: var(--color-bone);
+  opacity: 0.85;
+}
+
+.landing-title {
+  margin-bottom: var(--space-6);
+  font-size: clamp(2.25rem, 0.75rem + 8vw, 6.5rem);
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-shadow: 0 0 1.5rem color-mix(in srgb, var(--color-candle) 35%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.landing-hero .tagline {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.landing-hero .url-form {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  text-align: left;
+}
+
+@keyframes candle-glow {
+  from {
+    box-shadow: 0 0 9rem 6rem color-mix(in srgb, var(--color-candle) 8%, transparent);
+  }
+
+  to {
+    box-shadow: 0 0 10rem 7rem color-mix(in srgb, var(--color-candle) 12%, transparent);
+  }
+}
+
+@keyframes candle-flicker {
+  0%,
+  100% {
+    transform: scale(1, 1) skewX(0deg);
+  }
+
+  30% {
+    transform: scale(0.96, 1.05) skewX(-2deg);
+  }
+
+  55% {
+    transform: scale(1.03, 0.96) skewX(1.5deg);
+  }
+
+  80% {
+    transform: scale(0.98, 1.03) skewX(-1deg);
+  }
+}
+
+@media (max-width: 40rem) {
+  .landing-hero {
+    padding: var(--space-8) var(--space-3);
+  }
+
+  .landing-title {
+    letter-spacing: 0.06em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-candle,
+  .landing-candle-flame {
+    animation: none;
+  }
+}
+
 /* Buttons */
 .button {
   display: inline-flex;
@@ -313,6 +438,21 @@ p {
   color: var(--color-mist);
 }
 
+/* The number and its wording stay bone so the severity reads first; the label stays mist. */
+.sample-card-score-value,
+.sample-card-band {
+  color: var(--color-bone);
+}
+
+.sample-card-score-value {
+  font-weight: 700;
+}
+
+.sample-score-explanation {
+  max-width: 40rem;
+  color: var(--color-mist);
+}
+
 /* Dialog */
 .dialog-backdrop {
   position: fixed;
@@ -339,6 +479,15 @@ p {
 
 .dialog h2 {
   margin-top: 0;
+}
+
+/*
+ * A dialog container takes focus only programmatically (tabindex -1, on open or as the trap's
+ * fallback). Its 2px ecto border already marks it, so the global ring would draw a doubled outline.
+ * Every control inside keeps the ring.
+ */
+.dialog:focus-visible {
+  outline: none;
 }
 
 .dialog table {

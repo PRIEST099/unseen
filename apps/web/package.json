@@ -11,6 +11,7 @@
     "start": "cross-env NODE_ENV=production node dist/server/main.js",
     "start:test": "cross-env NODE_ENV=test UNSEEN_DEV_ALLOW_PRIVATE=1 node dist/server/main.js",
     "test": "vitest --run",
+    "test:int": "vitest --run --config vitest.int.config.ts",
     "e2e": "playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.server.json",
     "build-samples": "node scripts/build-samples.mjs"

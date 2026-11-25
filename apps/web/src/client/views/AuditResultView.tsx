@@ -8,6 +8,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useFocusMain } from '../hooks/useFocusMain'
 import { cachedAudit, hostnameOf, loadAudit } from '../utils/audit-source'
 import type { AuditLoadResult, AuditSource } from '../utils/audit-source'
+import { SESSION_ENDED_MESSAGE } from '../utils/seance'
 import { KeyboardWalk } from './KeyboardWalk'
 import { NotFoundView } from './NotFoundView'
 import { WhisperWalk } from './WhisperWalk'
@@ -116,7 +117,7 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
   if (result.status === 'not-found') {
     const message =
       kind === 'job'
-        ? 'This séance has ended (results expire after 1 hour or when the server restarts).'
+        ? SESSION_ENDED_MESSAGE
         : 'There is no sample with that name.'
     return (
       <StateMessage

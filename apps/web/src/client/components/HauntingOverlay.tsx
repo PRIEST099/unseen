@@ -182,7 +182,10 @@ function Treatment(props: VisualProps): ReactElement | null {
 type HauntingOverlayProps = VisualProps & {
   active: boolean
   fadingOut: boolean
-  /** The "takes form" exit of a previewed fix: the treatment resolves into a crisp ecto outline, then fades. */
+  /**
+   * The "takes form" exit of a previewed fix: the treatment resolves into a crisp ecto outline while
+   * the visual bounces, then the whole visual fades over the last part of the 600 ms.
+   */
   takesForm?: boolean
 }
 
@@ -192,7 +195,14 @@ export function HauntingOverlay(props: HauntingOverlayProps): ReactElement {
   const phase = takesForm ? 'takes-form' : fadingOut ? 'overlay-leave' : 'overlay-enter'
   return (
     <g className={`haunting-visual ${phase}`} data-haunting-type={props.haunting.type}>
-      <Treatment {...props} />
+      {/* While it takes form, the treatment fades out as the crisp outline fades in (requirement 32.3). */}
+      {takesForm ? (
+        <g className="takes-form-treatment">
+          <Treatment {...props} />
+        </g>
+      ) : (
+        <Treatment {...props} />
+      )}
       {takesForm ? (
         <rect x={box.x} y={box.y} width={box.width} height={box.height} className="v-takes-form-outline" />
       ) : null}

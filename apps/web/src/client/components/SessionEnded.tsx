@@ -11,7 +11,8 @@ type SessionEndedProps = {
 
 /**
  * Actions for an audit that has ended (requirement 31.4): "Audit again" re-posts the same URL
- * (only offered when this tab still knows it) and "Back to home". Failures to re-post are
+ * (only offered while this browser still remembers it, see utils/job-urls: two hours, newest 20,
+ * shared by every tab) and "Back to home". Failures to re-post are
  * announced in an assertive region that is always in the DOM.
  */
 export function SessionEnded({ jobId }: SessionEndedProps): ReactElement {

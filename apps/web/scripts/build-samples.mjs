@@ -1,15 +1,22 @@
 // Generates the pre-audited Cursed Shop samples into apps/web/samples/.
 // Run after `npm run build -w @the-unseen/core`: npm run build-samples -w apps/web
+// On Windows set UNSEEN_CHROMIUM_CHANNEL=chromium. The recorded URL is the relative
+// `/cursed-shop/<page>` path this app serves, or PUBLIC_BASE_URL + that path when it is set.
+// UNSEEN_SAMPLES_OUT writes to another directory instead (for comparing a rebuild).
 import { createServer } from 'node:http'
 import { readFile, mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
 import { auditAndClassify, buildSpeechTrack, getPool } from '@the-unseen/core'
+import { sampleDisplayUrl } from './sample-url.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const shopRoot = path.resolve(here, '../../cursed-shop')
-const samplesDir = path.resolve(here, '../samples')
+const samplesDir = process.env.UNSEEN_SAMPLES_OUT
+  ? path.resolve(process.env.UNSEEN_SAMPLES_OUT)
+  : path.resolve(here, '../samples')
+const publicBaseUrl = process.env.PUBLIC_BASE_URL
 
 const SAMPLES = [
   { id: 'cursed-shop-index', page: 'index.html', name: 'Cursed Shop \u2014 Home' },
@@ -62,7 +69,7 @@ function startShopServer() {
 }
 
 async function buildSample({ id, page, name }, port) {
-  const displayUrl = `https://the-unseen.app/cursed-shop/${page}`
+  const displayUrl = sampleDisplayUrl(page, publicBaseUrl)
   const classified = await auditAndClassify(`http://localhost:${port}/${page}`, { allowPrivate: true })
 
   classified.raw.auditedUrl = displayUrl

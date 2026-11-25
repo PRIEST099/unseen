@@ -3,8 +3,8 @@ import type { Page } from '@playwright/test'
 
 const SAMPLE = '/sample/cursed-shop-index'
 const WHISPER = `${SAMPLE}/whisper`
-// The committed sample rewrites the audited URL to https://the-unseen.app/cursed-shop/index.html.
-const HOSTNAME = 'the-unseen.app'
+// The committed sample records the relative URL /cursed-shop/index.html, shown as "Cursed Shop (sample)".
+const HOSTNAME = 'Cursed Shop (sample)'
 
 type TrackLine = { backendDOMNodeId: number; text: string; note?: string; box: { x: number; y: number; width: number; height: number } | null }
 type Spoken = { text: string; pitch: number; rate: number }
@@ -53,9 +53,21 @@ async function openWhisper(page: Page): Promise<void> {
 }
 
 test.describe('Whisper walk', () => {
-  test('Play speaks in a whisper, turns sound on and advances the caption; Pause and the step buttons move it by hand', async ({ page }) => {
+  test('Play speaks in a whisper through its own gesture, leaves the ambient sound off and advances the caption; Pause and the step buttons move it by hand', async ({ page }) => {
     const track = await loadTrack(page)
     expect(track.length).toBeGreaterThan(5)
+    // Counts AudioContext constructions: the drone must start only from the header toggle (requirement 33.2).
+    await page.addInitScript(() => {
+      Reflect.set(window, '__audioContexts', 0)
+      const Original = window.AudioContext
+      if (typeof Original !== 'function') return
+      window.AudioContext = class extends Original {
+        constructor(options?: AudioContextOptions) {
+          super(options)
+          Reflect.set(window, '__audioContexts', Number(Reflect.get(window, '__audioContexts')) + 1)
+        }
+      }
+    })
     await openWhisper(page)
     // Each utterance lasts about 400 ms, so the test can see every caption in turn.
     await page.evaluate(() => Reflect.set(window, '__endDelay', 400))
@@ -69,11 +81,15 @@ test.describe('Whisper walk', () => {
     await expect(page.locator('.whisper-caption')).toHaveAttribute('aria-live', 'polite')
 
     await page.getByRole('button', { name: 'Play', exact: true }).click()
-    await expect(sound).toHaveAttribute('aria-pressed', 'true')
+    // Play allows Web Speech by itself (requirement 20.4); the header toggle controls only the drone and
+    // chimes (requirement 33.3), so it stays off and no AudioContext is created.
+    await expect(sound).toHaveAttribute('aria-pressed', 'false')
 
     // The first utterance ends, and the caption moves on to the second line.
     await expect(counter).toHaveText(`2 of ${track.length}`, { timeout: 10_000 })
     await expect(text).toHaveText(track[1]!.text)
+    expect(await page.evaluate((): unknown => Reflect.get(window, '__audioContexts'))).toBe(0)
+    await expect(sound).toHaveAttribute('aria-pressed', 'false')
     const spoken = await spokenSoFar(page)
     expect(spoken[0]?.text).toBe(track[0]!.text)
     for (const utterance of spoken) {
@@ -152,7 +168,7 @@ test.describe('Whisper walk', () => {
     await expect(page.locator('.whisper-caption')).toHaveAttribute('aria-live', 'polite')
   })
 
-  test('captions only advances on a timer with no audio, and does not turn sound on', async ({ page }) => {
+  test('captions only advances on a timer with no audio, and does not turn the ambient sound on', async ({ page }) => {
     const track = await loadTrack(page)
     await openWhisper(page)
     await page.getByRole('checkbox', { name: 'Captions only' }).check()

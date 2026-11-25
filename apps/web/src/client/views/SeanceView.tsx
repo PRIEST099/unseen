@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import type { ReactElement } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { SessionEnded } from '../components/SessionEnded'
 import { useAnnouncer } from '../contexts/AnnouncerContext'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -8,12 +8,7 @@ import { useFocusMain } from '../hooks/useFocusMain'
 import { useJobPoll } from '../hooks/useJobPoll'
 import type { JobPollState } from '../hooks/useJobPoll'
 import { primeAudit } from '../utils/audit-source'
-import { activeStageLabel, completedStages, completionAnnouncement, formatElapsed } from '../utils/seance'
-
-/** Text of the polite live region: empty until the first poll answers, then the stage being worked on. */
-function liveText(state: JobPollState): string {
-  return state.phase === 'running' ? activeStageLabel(state.status) : ''
-}
+import { canCancel, completedStages, completionAnnouncement, formatElapsed, seanceStatusText } from '../utils/seance'
 
 function CompletedList({ state }: { state: JobPollState }): ReactElement | null {
   if (state.phase !== 'running') return null
@@ -30,11 +25,33 @@ function CompletedList({ state }: { state: JobPollState }): ReactElement | null 
   )
 }
 
-type FailureActionsProps = { state: JobPollState; jobId: string; onRetry: () => void }
+type SeanceActionsProps = { state: JobPollState; jobId: string; onRetry: () => void }
 
-/** What the user can do once the séance has stopped without a result. */
-function FailureActions({ state, jobId, onRetry }: FailureActionsProps): ReactElement | null {
+/**
+ * What the user can do at each point: Cancel while the audit is on its way (requirement 31.1),
+ * "Try another URL" while the server is being retried, and the failure actions once it stopped.
+ */
+function SeanceActions({ state, jobId, onRetry }: SeanceActionsProps): ReactElement | null {
   const navigate = useNavigate()
+  if (canCancel(state)) {
+    return (
+      <div className="state-actions">
+        {/* Leaving the séance stops polling; the server finishes or drops the job on its own. */}
+        <Link to="/" className="button button-primary">
+          Cancel
+        </Link>
+      </div>
+    )
+  }
+  if (state.phase === 'retrying') {
+    return (
+      <div className="state-actions">
+        <button type="button" className="button button-primary" onClick={() => navigate('/')}>
+          Try another URL
+        </button>
+      </div>
+    )
+  }
   if (state.phase !== 'failed') return null
   if (state.reason === 'ended') return <SessionEnded jobId={jobId} />
   return (
@@ -81,13 +98,13 @@ export function SeanceView(): ReactElement {
       <h1>The séance</h1>
       {/* The live regions are always in the DOM; only their text changes. */}
       <p className="seance-stage" role="status" aria-live="polite">
-        {liveText(state)}
+        {seanceStatusText(state)}
       </p>
       <CompletedList state={state} />
       <p className="form-error" aria-live="assertive">
         {state.phase === 'failed' ? state.message : ''}
       </p>
-      <FailureActions state={state} jobId={jobId} onRetry={handleRetry} />
+      <SeanceActions state={state} jobId={jobId} onRetry={handleRetry} />
     </main>
   )
 }

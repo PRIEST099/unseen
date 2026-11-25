@@ -12,8 +12,8 @@ import type { ClassifiedAudit } from '@the-unseen/core'
  */
 
 const SAMPLE = '/sample/cursed-shop-index'
-// The committed sample rewrites the audited URL to https://the-unseen.app/cursed-shop/index.html.
-const HOSTNAME = 'the-unseen.app'
+// The committed sample records the relative URL /cursed-shop/index.html, shown as "Cursed Shop (sample)".
+const HOSTNAME = 'Cursed Shop (sample)'
 const AUDIT_TIMEOUT_MS = 180_000
 
 type AxNode = ClassifiedAudit['raw']['axNodes'][number]

@@ -2,7 +2,7 @@
   {
     "id": "cursed-shop-index",
     "name": "Cursed Shop — Home",
-    "url": "https://the-unseen.app/cursed-shop/index.html",
+    "url": "/cursed-shop/index.html",
     "score": 98,
     "countsByType": {
       "NamelessSpirit": 9,
@@ -21,7 +21,7 @@
   {
     "id": "cursed-shop-product",
     "name": "Cursed Shop — Product",
-    "url": "https://the-unseen.app/cursed-shop/product.html",
+    "url": "/cursed-shop/product.html",
     "score": 85,
     "countsByType": {
       "NamelessSpirit": 3,
@@ -40,7 +40,7 @@
   {
     "id": "cursed-shop-checkout",
     "name": "Cursed Shop — Checkout",
-    "url": "https://the-unseen.app/cursed-shop/checkout.html",
+    "url": "/cursed-shop/checkout.html",
     "score": 70,
     "countsByType": {
       "NamelessSpirit": 3,

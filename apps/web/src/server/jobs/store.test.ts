@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { loadSampleAudit } from '../test-support/sample-audit.js'
-import { JobStore } from './store.js'
+import { JobStore, RESULT_TTL_MS } from './store.js'
 import type { Job } from './types.js'
 
 const MINUTE = 60_000
@@ -75,8 +75,21 @@ describe('JobStore', () => {
     expect(store.get('edge')).toBeUndefined()
   })
 
-  it('drops the result and screenshot of done jobs after 15 minutes but keeps the metadata', () => {
+  it('keeps a finished result for one hour by default, matching the "expire after 1 hour" copy', () => {
+    expect(RESULT_TTL_MS).toBe(60 * MINUTE)
     const store = makeStore()
+    store.set({ ...doneJob('a', 0), result: loadSampleAudit() })
+    clock = 59 * MINUTE
+    store.sweep()
+    expect(store.get('a')?.result).toBeDefined()
+    expect(store.get('a')?.screenshotPng).toBeDefined()
+    clock = 60 * MINUTE + 1
+    store.sweep()
+    expect(store.get('a')?.result).toBeUndefined()
+  })
+
+  it('with a shorter result TTL, drops the result and screenshot but keeps the metadata', () => {
+    const store = makeStore({ resultTtlMs: 15 * MINUTE })
     store.set({ ...doneJob('a', 0), result: loadSampleAudit() })
     clock = 14 * MINUTE
     store.sweep()

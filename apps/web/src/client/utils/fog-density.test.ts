@@ -1,6 +1,6 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { computeFogDensity, contrastRatio, fogOpacityForStyle, parseCssRgb, parseHexColor } from './fog-density'
+import { computeFogDensity, contrastRatio, fogOpacityForStyle, fogPatches, parseCssRgb, parseHexColor } from './fog-density'
 
 // Colour strings are built, not written out, so the "no hard-coded colours" scan stays meaningful.
 const fn = 'rgb'
@@ -90,5 +90,35 @@ describe('fogOpacityForStyle', () => {
   it('falls back to a medium fog without readable colours', () => {
     expect(fogOpacityForStyle(undefined)).toBe(0.6)
     expect(fogOpacityForStyle({ ...style, color: 'transparent' })).toBe(0.6)
+  })
+})
+
+describe('fogPatches', () => {
+  const base = {
+    backgroundColor: css(255, 255, 255),
+    fontSize: '16px',
+    fontWeight: '400',
+    backgroundUncertain: false,
+    isLargeText: false,
+  }
+  const styles = { '7': { ...base, color: css(250, 250, 250) }, '8': { ...base, color: css(150, 150, 150) } }
+  const box = { x: 100, y: 200, width: 300, height: 40 }
+  const item = (type: string, nodeId: number) => ({ haunting: { type, nodeIds: [nodeId] }, box })
+
+  it('keeps only The Fog hauntings and scales their boxes to the canvas', () => {
+    const patches = fogPatches([item('TheFog', 7), item('NamelessSpirit', 9)], styles, 0.5)
+    expect(patches).toHaveLength(1)
+    expect(patches[0]).toMatchObject({ x: 50, y: 100, width: 150, height: 20 })
+  })
+
+  it('makes the fog denser for a worse contrast, from the real colours', () => {
+    const [faint, mild] = fogPatches([item('TheFog', 7), item('TheFog', 8)], styles, 1)
+    expect(faint?.density).toBeGreaterThan(mild?.density ?? 1)
+    expect(faint?.density).toBeLessThanOrEqual(0.8)
+    expect(mild?.density).toBeGreaterThanOrEqual(0.3)
+  })
+
+  it('uses the medium fog when the colours are unknown', () => {
+    expect(fogPatches([item('TheFog', 99)], styles, 1)[0]?.density).toBe(0.6)
   })
 })

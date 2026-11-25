@@ -178,7 +178,10 @@ describe('committed samples', () => {
     const walk = SAMPLE_AUDIT.raw.tabWalkResult
     const model = buildWalkModel(walk, SAMPLE_AUDIT.hauntings)
     expect(model.frames).toHaveLength(walk.steps.length + 2)
-    expect(nodesOf(model.frames).slice(19, 25)).toEqual([209, 211, 209, 211, 209, 171])
+    // Node ids change each time the samples are rebuilt; the shape is what matters: A, B, A, B, A, then out to C.
+    const [a, b, a2, b2, a3, c] = nodesOf(model.frames).slice(19, 25)
+    expect([a2, b2, a3]).toEqual([a, b, a])
+    expect(new Set([a, b, c]).size).toBe(3)
     expect(model.trap).toBeNull()
   })
 

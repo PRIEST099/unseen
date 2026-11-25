@@ -9,7 +9,7 @@ import { useScale } from '../hooks/useScale'
 import type { PngSize } from '../hooks/useScale'
 import { screenshotEndpoint } from '../utils/audit-source'
 import type { AuditSource } from '../utils/audit-source'
-import { fogOpacityForStyle } from '../utils/fog-density'
+import { fogOpacityForStyle, fogPatches } from '../utils/fog-density'
 import { createFogPainter } from '../utils/fog-canvas'
 import type { FogPainter } from '../utils/fog-canvas'
 import {
@@ -17,10 +17,11 @@ import {
   nextFocusId,
   previewResetMessage,
   previewScore,
+  spiritSightOpenMessage,
   takesFormDurationMs,
   withoutPreviewed,
 } from '../utils/fix-preview'
-import { OVERLAY_FADE_OUT_MS, revealedCount, waveCenter, waveProgress } from '../utils/fog-wave'
+import { HAUNTED_FILTER, OVERLAY_FADE_OUT_MS, hauntedExtent, revealedCount, waveCenter, waveProgress } from '../utils/fog-wave'
 import { hauntingDisplayName } from '../utils/haunting-display'
 import { buildAxLookup, buildOverlayLabel, elementLabel } from '../utils/overlay-label'
 import { hitRect, placeOverlays, stackingLevels } from '../utils/overlay-geometry'
@@ -42,7 +43,6 @@ type DialogState = { haunting: Haunting }
 type FocusTarget = { kind: 'overlay'; id: string } | { kind: 'sidebar' }
 
 const NO_IDS: ReadonlySet<string> = new Set()
-const REDUCED_MOTION_FILTER = 'saturate(0.7) brightness(0.9)'
 
 /** The skip link that must come first in the tab order lives in the app shell's slot. */
 function HauntingListSkipLink(): ReactElement | null {
@@ -78,10 +78,14 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
   // Fix preview (task 3.2): hauntings taken out of this view only. The audit is never changed or re-run.
   const [previewed, setPreviewed] = useState<ReadonlySet<string>>(NO_IDS)
   const [departing, setDeparting] = useState<ReadonlySet<string>>(NO_IDS)
+  // True once the fog wave has passed (or at once under reduced motion): the fog then stays until Spirit Sight closes.
+  const [fogSettled, setFogSettled] = useState(false)
 
   const frameRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const veilRef = useRef<HTMLDivElement>(null)
+  const painterRef = useRef<{ canvas: HTMLCanvasElement; painter: FogPainter | null } | null>(null)
   const dialogTrigger = useRef<HTMLElement | null>(null)
   const focusTarget = useRef<FocusTarget | null>(null)
   const takesFormTimers = useRef<number[]>([])
@@ -105,10 +109,30 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
     return { ...audit, hauntings: remaining, score: previewScore(remaining) }
   }, [audit, previewed])
   const activePlaced = useMemo(() => placed.filter((item) => !previewed.has(item.haunting.id)), [placed, previewed])
+  // Denser fog over the contrast hauntings that are still there; a previewed fix lifts its fog.
+  const patches = useMemo(
+    () => (scale === null ? [] : fogPatches(activePlaced, audit.raw.textNodeStyles, scale.scaleFactor)),
+    [activePlaced, audit, scale],
+  )
 
   // The reveal effect reads these through a ref so a resize or re-render never restarts the wave.
-  const latest = useRef({ scale, placed: activePlaced, audit: shown, soundEnabled, reducedMotion, revealed, previewedIds: previewed })
-  latest.current = { scale, placed: activePlaced, audit: shown, soundEnabled, reducedMotion, revealed, previewedIds: previewed }
+  // The wave reveals every placed haunting (`rendered` hides the previewed ones), so a reset after
+  // reopening during a preview brings their overlays back; only the spoken pick skips previewed ones.
+  const snapshot = {
+    scale,
+    placed,
+    activePlaced,
+    patches,
+    audit: shown,
+    auditedScore: audit.score,
+    previewing,
+    soundEnabled,
+    reducedMotion,
+    revealed,
+    previewedIds: previewed,
+  }
+  const latest = useRef(snapshot)
+  latest.current = snapshot
 
   const readNaturalSize = useCallback((): void => {
     const image = imgRef.current
@@ -120,10 +144,19 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
   useLayoutEffect(readNaturalSize, [readNaturalSize])
 
   const announceOpen = useCallback((): void => {
-    const { audit: current, placed: items, soundEnabled: sound, reducedMotion: reduced } = latest.current
-    setStatus(`Spirit Sight open: ${current.hauntings.length} hauntings, score ${current.score}`)
+    const { audit: current, activePlaced: items, soundEnabled: sound, reducedMotion: reduced, previewing: inPreview, auditedScore } =
+      latest.current
+    setStatus(spiritSightOpenMessage(current.hauntings.length, current.score, inPreview ? { auditedScore } : undefined))
     const spoken = pickSpokenHaunting(items.map((item) => item.haunting))
     if (sound && !reduced && spoken?.speech !== undefined) speakWhisper(spoken.speech)
+  }, [])
+
+  /** One fog painter per canvas element; null when the browser has no 2D canvas. */
+  const fogPainter = useCallback((): FogPainter | null => {
+    const canvas = canvasRef.current
+    if (canvas === null) return null
+    if (painterRef.current?.canvas !== canvas) painterRef.current = { canvas, painter: createFogPainter(canvas) }
+    return painterRef.current.painter
   }, [])
 
   const hasScale = scale !== null
@@ -134,48 +167,67 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
     if (!hasScale) return undefined
     const items = latest.current.placed
     const allIds = new Set(items.map((item) => item.haunting.id))
+    const veil = veilRef.current
     const finish = (): void => {
       setRevealed(allIds)
+      setFogSettled(true)
       announceOpen()
     }
-    const painter: FogPainter | null =
-      latest.current.reducedMotion || canvasRef.current === null ? null : createFogPainter(canvasRef.current)
+    // Closing Spirit Sight clears the fog and the haunted filter at once.
+    const clearFog = (): void => {
+      painterRef.current?.painter?.clear()
+      if (veil !== null) veil.style.height = '0px'
+    }
+    const painter = latest.current.reducedMotion ? null : fogPainter()
     if (painter === null) {
+      // Reduced motion (or no 2D canvas): the final haunted state at once, no wave.
       finish()
-      return undefined
+      return clearFog
     }
     const ys = items.map((item) => item.box.y)
     const start = performance.now()
-    let shown = 0
+    let shownCount = 0
     let frame = 0
     const tick = (now: number): void => {
       const current = latest.current.scale
       if (current === null) return
-      const progress = waveProgress(now - start)
+      const elapsed = now - start
+      const progress = waveProgress(elapsed)
       const center = waveCenter(progress, current.scaledHeight)
       const count = revealedCount(center, ys, current.scaleFactor)
-      if (count !== shown) {
-        shown = count
+      if (count !== shownCount) {
+        shownCount = count
         setRevealed(new Set(items.slice(0, count).map((item) => item.haunting.id)))
       }
       if (progress >= 1) {
-        painter.clear()
+        // The settle effect below paints the fog that stays; nothing is cleared here.
         finish()
         return
       }
-      painter.paint(center)
+      if (veil !== null) veil.style.height = `${hauntedExtent(center, current.scaledHeight)}px`
+      painter.paint(center, latest.current.patches, elapsed)
       frame = requestAnimationFrame(tick)
     }
+    if (veil !== null) veil.style.height = '0px'
     frame = requestAnimationFrame(tick)
     return () => {
       cancelAnimationFrame(frame)
-      painter.clear()
+      clearFog()
     }
-  }, [open, hasScale, announceOpen])
+  }, [open, hasScale, announceOpen, fogPainter])
+
+  // The haunted state that stays once the wave has passed. Repainted when the canvas is resized
+  // (a resize wipes it) and when a previewed fix lifts a patch of fog.
+  useLayoutEffect(() => {
+    if (!open || !fogSettled || scale === null) return
+    if (veilRef.current !== null) veilRef.current.style.height = '100%'
+    fogPainter()?.settle(patches)
+  }, [open, fogSettled, scale, patches, fogPainter])
 
   useEffect(() => {
     if (open) return undefined
     setStatus('')
+    setFogSettled(false)
     if (latest.current.revealed.size === 0) return undefined
     if (latest.current.reducedMotion) {
       setRevealed(NO_IDS)
@@ -226,7 +278,7 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
       focusTarget.current = nextId === null ? { kind: 'sidebar' } : { kind: 'overlay', id: nextId }
       setPreviewed(nextPreviewed)
       setDeparting((previous) => new Set(previous).add(haunting.id))
-      setStatus(exorcisedMessage(hauntingDisplayName(haunting.type), previewScore(remaining)))
+      setStatus(exorcisedMessage(hauntingDisplayName(haunting.type), remaining.length, previewScore(remaining)))
       setDialog(null)
       const timer = window.setTimeout(() => {
         setDeparting((previous) => {
@@ -269,7 +321,6 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => revealed.has(item.haunting.id) && (!previewed.has(item.haunting.id) || departing.has(item.haunting.id)))
   const interactive = rendered.filter(({ item }) => !previewed.has(item.haunting.id))
-  const imageFilter = open && reducedMotion ? REDUCED_MOTION_FILTER : undefined
   const imageSize = scale === null ? undefined : { width: scale.scaledWidth, height: scale.scaledHeight }
 
   return (
@@ -289,25 +340,13 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
           Audit another site
         </Link>
       </div>
-      {previewing ? (
-        <div className="preview-banner">
-          <p>
-            Preview only. {previewed.size} {previewed.size === 1 ? 'haunting is' : 'hauntings are'} taken out of this view to show what a
-            source-code fix would do. The audited page is unchanged and the audit has not been re-run. Preview score {shown.score}, audited
-            score {audit.score}.
-          </p>
-          <button type="button" className="button" onClick={resetPreview}>
-            Reset preview
-          </button>
-        </div>
-      ) : null}
       <div className="spirit-layout">
         <HauntingSidebar
           audit={shown}
           labels={labels}
           onOpen={openDialog}
           onActiveChange={setActiveId}
-          preview={previewing ? { auditedScore: audit.score } : undefined}
+          preview={previewing ? { auditedScore: audit.score, audited: audit.hauntings, takenOut: previewed, onReset: resetPreview } : undefined}
         >
           <div className="sidebar-nav">
             <LensNav basePath={basePath} current="spirit" />
@@ -319,12 +358,23 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
               ref={imgRef}
               src={screenshotEndpoint(source)}
               alt="Audited page screenshot"
-              style={{ ...imageSize, filter: imageFilter }}
+              style={imageSize}
               onLoad={readNaturalSize}
               onError={() => setImageFailed(true)}
             />
             {scale !== null ? (
               <>
+                {/* The haunted look (dimmed, desaturated) grows down with the wave and stays while open. */}
+                <div className="haunted-veil" ref={veilRef} aria-hidden="true" style={{ backdropFilter: HAUNTED_FILTER, WebkitBackdropFilter: HAUNTED_FILTER }} />
+                {/* The fog sits under the overlays, so they glow on top of it. */}
+                <canvas
+                  id="spirit-sight"
+                  ref={canvasRef}
+                  aria-hidden="true"
+                  width={Math.round(scale.scaledWidth)}
+                  height={Math.round(scale.scaledHeight)}
+                  style={{ opacity: open ? 1 : 0 }}
+                />
                 {rendered.length > 0 ? (
                   <svg
                     className="haunting-overlay"
@@ -350,13 +400,6 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
                     ))}
                   </svg>
                 ) : null}
-                <canvas
-                  id="spirit-sight"
-                  aria-hidden="true"
-                  width={Math.round(scale.scaledWidth)}
-                  height={Math.round(scale.scaledHeight)}
-                  style={{ opacity: open ? 1 : 0 }}
-                />
                 {interactive.length > 0 ? (
                   <div className="overlay-buttons">
                     {interactive.map(({ item, index }) => {

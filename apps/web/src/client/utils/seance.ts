@@ -17,7 +17,7 @@ export function retryDelayMs(retry: number): number {
 }
 
 export type StageName = 'loading' | 'tree' | 'walking' | 'classifying'
-/** A job status that is still running. The worker reports a stage when it has been reached. */
+/** A job status that is still running. The worker reports each stage when it starts. */
 export type RunningStatus = 'queued' | StageName
 
 /** Epoch-millisecond timestamps recorded by the server for each stage. */
@@ -44,8 +44,11 @@ export const STAGE_LABELS: Record<StageName, string> = {
   classifying: 'Classifying hauntings…',
 }
 
+/** Shown wherever an audit job has expired. The server keeps results for one hour (`RESULT_TTL_MS`). */
 export const SESSION_ENDED_MESSAGE = 'This séance has ended (results expire after 1 hour or when the server restarts).'
 export const UNREACHABLE_MESSAGE = 'Could not reach the server. Check your connection and try again.'
+/** The polite status line while polls are failing and being retried, before any answer has arrived. */
+export const RETRYING_MESSAGE = 'Trying to reach the server again…'
 
 const ERROR_MESSAGES: Record<string, string> = {
   TIMEOUT: 'The audit took too long (60s limit). The page may be too large or slow to load.',
@@ -61,21 +64,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * The stage being worked on while the job has `status`. The worker reports a stage once it has
- * been reached, and does not report that a job left the queue, so `queued` means "loading".
+ * The stage being worked on while the job has `status`. The worker reports each stage when it
+ * starts, so the status is the active stage; a job still in the queue is shown as "loading".
  */
 export function activeStage(status: RunningStatus): StageName {
-  switch (status) {
-    case 'queued':
-      return 'loading'
-    case 'loading':
-      return 'tree'
-    case 'tree':
-      return 'walking'
-    case 'walking':
-    case 'classifying':
-      return 'classifying'
-  }
+  return status === 'queued' ? 'loading' : status
 }
 
 export function activeStageLabel(status: RunningStatus): string {
@@ -86,9 +79,10 @@ export type CompletedStage = { stage: StageName; label: string; elapsedMs: numbe
 
 /** Where each stage begins and ends on the server timeline: queued, loading, tree, walking, classifying, done. */
 const STAGE_SPANS: ReadonlyArray<{ stage: StageName; from: keyof JobStages; to: keyof JobStages }> = [
-  { stage: 'loading', from: 'queued', to: 'loading' },
-  { stage: 'tree', from: 'loading', to: 'tree' },
-  { stage: 'walking', from: 'tree', to: 'walking' },
+  // Each stage runs from its own start timestamp to the next stage's start. Queue wait is not a stage.
+  { stage: 'loading', from: 'loading', to: 'tree' },
+  { stage: 'tree', from: 'tree', to: 'walking' },
+  { stage: 'walking', from: 'walking', to: 'classifying' },
   { stage: 'classifying', from: 'classifying', to: 'done' },
 ]
 
@@ -165,4 +159,62 @@ export const CLEAN_ANNOUNCEMENT =
 export function completionAnnouncement(audit: ClassifiedAudit): string {
   if (audit.hauntings.length === 0) return CLEAN_ANNOUNCEMENT
   return `Audit complete: ${audit.hauntings.length} hauntings found, Haunting Score ${audit.score}`
+}
+
+/** Why a séance stopped without a result: the audit failed, the job is gone, or the server could not be reached. */
+export type FailureReason = 'error' | 'ended' | 'unreachable'
+
+/**
+ * What the séance shows. `pending` is before the first answer; `retrying` is when polls have
+ * failed (or the user pressed Retry) and no answer has arrived since.
+ */
+export type SeanceState =
+  | { phase: 'pending' }
+  | { phase: 'retrying' }
+  | { phase: 'running'; status: RunningStatus; stages: JobStages }
+  | { phase: 'done'; audit: ClassifiedAudit; stages: JobStages }
+  | { phase: 'failed'; reason: FailureReason; message: string }
+
+export const PENDING_STATE: SeanceState = { phase: 'pending' }
+export const RETRYING_STATE: SeanceState = { phase: 'retrying' }
+
+/** The next state after one poll, how many retries have been used, and when to poll again (`null`: stop). */
+export type PollStep = { state: SeanceState; retries: number; delayMs: number | null }
+
+/**
+ * One step of the polling loop. A running answer resets the retry budget; done, error and
+ * not-found stop polling. A failed poll is retried up to `MAX_POLL_RETRIES` times with backoff
+ * and then reported as `unreachable`. While no answer has arrived yet the séance shows
+ * `retrying`; a séance that is already running keeps showing its stage through a brief blip.
+ */
+export function pollStep(previous: SeanceState, result: JobPoll, retries: number): PollStep {
+  switch (result.kind) {
+    case 'running':
+      return { state: { phase: 'running', status: result.status, stages: result.stages }, retries: 0, delayMs: POLL_INTERVAL_MS }
+    case 'done':
+      return { state: { phase: 'done', audit: result.audit, stages: result.stages }, retries, delayMs: null }
+    case 'error':
+      return { state: { phase: 'failed', reason: 'error', message: result.message }, retries, delayMs: null }
+    case 'not-found':
+      return { state: { phase: 'failed', reason: 'ended', message: SESSION_ENDED_MESSAGE }, retries, delayMs: null }
+    case 'unreachable': {
+      if (retries >= MAX_POLL_RETRIES) {
+        return { state: { phase: 'failed', reason: 'unreachable', message: UNREACHABLE_MESSAGE }, retries, delayMs: null }
+      }
+      const state = previous.phase === 'pending' ? RETRYING_STATE : previous
+      return { state, retries: retries + 1, delayMs: retryDelayMs(retries) }
+    }
+  }
+}
+
+/** Text of the séance's polite live region: the stage being worked on, the retry line, or nothing. */
+export function seanceStatusText(state: SeanceState): string {
+  if (state.phase === 'running') return activeStageLabel(state.status)
+  if (state.phase === 'retrying') return RETRYING_MESSAGE
+  return ''
+}
+
+/** While the audit is still on its way (requirement 31.1), the séance offers Cancel. */
+export function canCancel(state: SeanceState): boolean {
+  return state.phase === 'pending' || state.phase === 'running'
 }

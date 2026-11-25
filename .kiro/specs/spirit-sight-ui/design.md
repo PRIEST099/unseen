@@ -1664,7 +1664,7 @@ ${haunting.fix.codeSnippet}`
 
 ### Focus Management
 
-- **On open**: Focus moves to the close button or the first focusable element inside the dialog
+- **On open**: Focus moves to the dialog container (`tabindex="-1"`), so a screen reader reads the dialog from its title; the container draws no focus ring because its ecto border already marks it (fix list item 11)
 - **While open**: Focus is trapped inside the dialog (cannot Tab outside)
 - **On close**: Focus returns to the trigger element (the haunting overlay or sidebar item)
 - **Escape key**: Closes the dialog

@@ -20,7 +20,9 @@
 
 .status-line {
   flex: 1 1 16rem;
-  min-height: 1.5rem;
+  /* Room for two lines: longer preview messages wrap, and a growing status line would push the
+     screenshot down mid-animation (fix list item 20). */
+  min-height: 3rem;
   margin: 0;
   color: var(--color-ecto);
   font-weight: 700;
@@ -190,13 +192,22 @@ a.button {
   transform: rotate(90deg);
 }
 
+/* Fixed-width digits, so a count going down during a fix preview never re-wraps the row. */
 .group-count {
+  min-width: 2ch;
   margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .group-severity {
   font-size: var(--text-sm);
   font-weight: 700;
+}
+
+/* Every instance previewed as fixed: the severity keeps its room so the row height holds. */
+.group-severity.is-cleared {
+  visibility: hidden;
 }
 
 .group-empty {
@@ -218,6 +229,24 @@ a.button {
 
 .instance-button {
   font-size: var(--text-base);
+}
+
+/*
+ * An instance previewed as fixed keeps its row, struck through and not interactive. It has the
+ * button's box and line height ("normal", like the button), so the list keeps its height.
+ */
+.instance-taken-out {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  color: var(--color-mist);
+  font-size: var(--text-base);
+  line-height: normal;
+  text-decoration: line-through;
 }
 
 .gravestone {
@@ -330,6 +359,7 @@ a.button {
 
 .spirit-stage > svg,
 .spirit-stage > canvas,
+.spirit-stage > .haunted-veil,
 .overlay-buttons {
   position: absolute;
   top: 0;
@@ -338,12 +368,24 @@ a.button {
 
 /* Decorative layers never take pointer events (requirement 10.9). */
 .haunting-overlay,
+.haunted-veil,
 #spirit-sight {
   pointer-events: none;
 }
 
-#spirit-sight {
-  transition: opacity 200ms ease-out;
+/*
+ * The haunted screenshot: dimmed and desaturated (backdrop-filter set inline from HAUNTED_FILTER).
+ * Its height follows the fog wave, then stays at 100% until Spirit Sight closes, which clears it
+ * at once. The fog canvas has no transition for the same reason.
+ */
+.haunted-veil {
+  width: 100%;
+  height: 0;
+}
+
+/* The overlays sit above the fog and glow faintly, so they read through it. */
+.haunting-overlay {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-ecto) 45%, transparent));
 }
 
 .overlay-buttons {
@@ -576,6 +618,51 @@ a.button {
 
 .haunting-dialog {
   max-width: 44rem;
+  /*
+   * Keep focused controls clear of the sticky .dialog-header below (WCAG 2.4.11). The header is
+   * about 5rem tall: space-6 top padding, a 2.75rem button row, space-3 bottom padding, a border.
+   */
+  scroll-padding-top: calc(var(--space-6) + 2.75rem + var(--space-3) + var(--space-4));
+}
+
+/* On a phone the title and Close button can wrap onto two rows, so the header grows by a row. */
+@media (max-width: 24rem) {
+  .haunting-dialog {
+    scroll-padding-top: calc(var(--space-6) + 2 * 2.75rem + 2 * var(--space-3) + var(--space-4));
+  }
+}
+
+.haunting-dialog:focus-visible {
+  outline: none;
+}
+
+/*
+ * Title row with the Close button. It sticks to the top of the scrolling panel, so Close is always
+ * in view; the negative margins pull it over the panel padding so content scrolls under it cleanly.
+ */
+.dialog-header {
+  position: sticky;
+  top: calc(-1 * var(--space-6));
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-3);
+  border-bottom: 1px solid var(--color-mist);
+  background-color: var(--color-ink);
+}
+
+.dialog-header h2 {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.dialog-snippet-note {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+  font-size: var(--text-sm);
 }
 
 .haunting-dialog h3 {
@@ -621,18 +708,68 @@ a.button {
   text-align: right;
 }
 
-/*
- * "Takes form" (a previewed fix): the treatment resolves into a crisp ecto outline, bounces
- * 600ms on the design-system curve and fades out. Under reduced motion it is a 100ms opacity fade.
- */
-@keyframes takes-form {
+/* Each new copy result fades in, so a repeated success is visible as well as announced. */
+@keyframes dialog-copy-in {
   from {
+    opacity: 0;
+  }
+  to {
     opacity: 1;
+  }
+}
+
+.dialog-copy-message {
+  animation: dialog-copy-in 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-copy-message {
+    animation: none;
+  }
+}
+
+/*
+ * "Takes form" (a previewed fix), 600ms in all. Separate curves so the moment is visible:
+ * - the bounce (design-system overshoot curve) drives transform only;
+ * - in the first half the treatment fades out while the crisp ecto outline fades in;
+ * - the whole visual stays opaque until 55%, then fades out with ease-out.
+ * Under reduced motion it is a 100ms opacity fade.
+ */
+@keyframes takes-form-bounce {
+  from {
     transform: scale(1);
   }
   to {
-    opacity: 0;
     transform: scale(1.1);
+  }
+}
+
+@keyframes takes-form-vanish {
+  0%,
+  55% {
+    opacity: 1;
+    animation-timing-function: ease-out;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes takes-form-treatment-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes takes-form-outline-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -648,7 +785,17 @@ a.button {
 .takes-form {
   transform-box: fill-box;
   transform-origin: center;
-  animation: takes-form 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation:
+    takes-form-bounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    takes-form-vanish 600ms linear both;
+}
+
+.takes-form-treatment {
+  animation: takes-form-treatment-out 300ms ease-in both;
+}
+
+.takes-form .v-takes-form-outline {
+  animation: takes-form-outline-in 300ms ease-out both;
 }
 
 .v-takes-form-outline {
@@ -657,23 +804,67 @@ a.button {
   stroke-width: 3;
 }
 
-/* Fix preview notice */
-.preview-banner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding: var(--space-4);
+/*
+ * Fix preview slot, in the sidebar under the score. It is always rendered: the hint while idle, the
+ * notice during a preview. All its children share one grid cell, so the slot is as tall as the
+ * tallest of them.
+ */
+.preview-slot {
+  display: grid;
+  margin-bottom: var(--space-4);
+}
+
+.preview-slot > * {
+  grid-area: 1 / 1;
+}
+
+.preview-banner,
+.preview-reserve {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border: 2px solid var(--color-ecto);
   border-radius: 0.25rem;
   background-color: var(--color-ink);
   color: var(--color-bone);
 }
 
-.preview-banner p {
-  flex: 1 1 24rem;
+.preview-banner p,
+.preview-reserve p {
   margin: 0;
+}
+
+.preview-audited {
+  color: var(--color-mist);
+}
+
+.preview-hint {
+  margin: 0;
+  padding: var(--space-3);
+  border: 2px dashed var(--color-mist);
+  border-radius: 0.25rem;
+  color: var(--color-mist);
+}
+
+/*
+ * The reserve copies hold the room of the largest notice (the widest count, with and without
+ * hauntings left). Two columns: the sidebar sits beside the stage, so they are not needed.
+ */
+.preview-reserve {
+  display: none;
+  visibility: hidden;
+}
+
+/*
+ * One column: the sidebar sits above the stage. The slot keeps the reserved room whether a preview
+ * is on or not, so the screenshot and its overlays never move when one starts or is reset.
+ */
+@media (max-width: 60rem) {
+  .preview-reserve {
+    display: grid;
+  }
 }
 
 .dialog-preview {

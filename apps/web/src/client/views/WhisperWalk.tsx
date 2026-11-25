@@ -5,7 +5,6 @@ import type { ChangeEvent, ReactElement } from 'react'
 import { LensNav } from '../components/LensNav'
 import { ScreenshotStage } from '../components/ScreenshotStage'
 import { useReducedMotion } from '../contexts/ReducedMotionContext'
-import { useSound } from '../contexts/SoundContext'
 import { useWhisperPlayback } from '../hooks/useWhisperPlayback'
 import type { AuditSource } from '../utils/audit-source'
 import { isSpeechAvailable } from '../utils/whisper-speech'
@@ -96,7 +95,6 @@ function WhisperSettings(props: SettingsProps): ReactElement {
  */
 export function WhisperWalk({ source, audit, hostname, basePath }: WhisperWalkProps): ReactElement {
   const reducedMotion = useReducedMotion()
-  const { soundEnabled, toggleSound } = useSound()
   const track = useMemo(() => buildSpeechTrack(audit.raw), [audit])
   const [speechAvailable] = useState(isSpeechAvailable)
   const [speed, setSpeed] = useState<WhisperSpeed>(1)
@@ -120,8 +118,8 @@ export function WhisperWalk({ source, audit, hostname, basePath }: WhisperWalkPr
 
   const handlePlay = (): void => {
     engaged.current = true
-    // Pressing Play is the user gesture: it turns sound on when audio is going to play.
-    if (!captionsOnly && !soundEnabled) toggleSound()
+    // This click is the user gesture that allows Web Speech (requirement 20.4). It never touches the
+    // header's ambient sound flag, so it never starts the drone (requirement 33.2).
     playback.play()
   }
   const handleStep = (direction: 'back' | 'forward'): void => {
@@ -143,7 +141,7 @@ export function WhisperWalk({ source, audit, hostname, basePath }: WhisperWalkPr
             <p>This page has nothing for a screen reader to announce.</p>
           ) : (
             <>
-              <p>Press Play to hear what a screen reader says for each element, in page order. Playing turns sound on.</p>
+              <p>Press Play to hear what a screen reader says for each element, in page order. Play speaks the walk on its own; the header Sound toggle controls only the ambient sound.</p>
               {speechAvailable ? null : <p>This browser cannot speak, so the walk shows captions only.</p>}
               <div className="whisper-caption" aria-live={playback.playing && !captionsOnly ? 'off' : 'polite'} aria-atomic="true">
                 <p className="whisper-text">{line?.text}</p>

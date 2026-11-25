@@ -62,3 +62,31 @@ export function fogOpacityForStyle(style: TextNodeStyle | undefined): number {
   const density = computeFogDensity(contrastRatio(foreground, background), style.isLargeText)
   return density === 0 ? DEFAULT_FOG_OPACITY : density
 }
+
+/** A patch of denser fog on the fog canvas, in canvas (scaled CSS) px. `density` is an alpha in [0, 1]. */
+export type FogPatch = { x: number; y: number; width: number; height: number; density: number }
+
+type FogSource = {
+  haunting: { type: string; nodeIds: readonly number[] }
+  box: { x: number; y: number; width: number; height: number }
+}
+
+/**
+ * Denser fog over every The Fog (contrast) haunting, scaled from screenshot px to canvas px. The
+ * density comes from the node's real colours: worse contrast, thicker fog (requirement 9.3).
+ */
+export function fogPatches(
+  items: readonly FogSource[],
+  styles: Readonly<Record<string, TextNodeStyle | undefined>>,
+  scaleFactor: number,
+): FogPatch[] {
+  return items
+    .filter((item) => item.haunting.type === 'TheFog')
+    .map(({ haunting, box }) => ({
+      x: box.x * scaleFactor,
+      y: box.y * scaleFactor,
+      width: box.width * scaleFactor,
+      height: box.height * scaleFactor,
+      density: fogOpacityForStyle(styles[String(haunting.nodeIds[0])]),
+    }))
+}

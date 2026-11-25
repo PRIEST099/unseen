@@ -1,12 +1,14 @@
+import { absoluteHostname, isSamplePath, SAMPLE_SITE_SLUG } from './audited-url'
+
 export type ExportExtension = 'md' | 'json'
 
-/** The hostname of an audited URL; the raw string when it cannot be parsed. */
+/**
+ * The hostname of an audited URL; `cursed-shop-sample` for a bundled sample's relative
+ * `/cursed-shop/` path; the raw string when it is neither.
+ */
 function domainOf(auditedUrl: string): string {
-  try {
-    return new URL(auditedUrl).hostname
-  } catch {
-    return auditedUrl
-  }
+  if (isSamplePath(auditedUrl)) return SAMPLE_SITE_SLUG
+  return absoluteHostname(auditedUrl) ?? auditedUrl
 }
 
 /** Keeps letters, digits, hyphens and periods; anything else (ports, brackets, colons) becomes a hyphen. */

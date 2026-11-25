@@ -1,6 +1,7 @@
 import { FocusTrap } from 'focus-trap-react'
 import type { KeyboardEvent, ReactElement } from 'react'
 import { createPortal } from 'react-dom'
+import { useBackdropDismiss } from '../utils/backdrop-dismiss'
 
 type KeyboardHelpDialogProps = {
   onClose: () => void
@@ -13,6 +14,11 @@ const SHORTCUTS: ReadonlyArray<{ keys: readonly string[]; joiner: string; action
   { keys: ['Escape'], joiner: '', action: 'Close this dialog' },
 ]
 
+/**
+ * Keyboard help dialog. Same modal behaviour as the haunting detail dialog: focus is trapped in the
+ * panel, and Escape, the Close button or a press that starts and ends on the backdrop close it.
+ * The header returns focus to the trigger once `onClose` has unmounted this dialog.
+ */
 export function KeyboardHelpDialog({ onClose }: KeyboardHelpDialogProps): ReactElement {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (event.key !== 'Escape') return
@@ -20,19 +26,23 @@ export function KeyboardHelpDialog({ onClose }: KeyboardHelpDialogProps): ReactE
     onClose()
   }
 
+  const backdrop = useBackdropDismiss(onClose)
+
   return createPortal(
-    <div className="dialog-backdrop">
-      {/* The trap wraps the dialog only, so a click on the backdrop counts as outside and closes it. */}
+    <div
+      className="dialog-backdrop"
+      onPointerDown={backdrop.onPointerDown}
+      onPointerUp={backdrop.onPointerUp}
+      onPointerCancel={backdrop.onPointerCancel}
+    >
+      {/* The trap wraps the dialog only, so the backdrop counts as outside it. */}
       <FocusTrap
         focusTrapOptions={{
           escapeDeactivates: false,
-          // An outside click closes the dialog and is swallowed (return false), so the browser does
-          // not move focus to the page body before the header returns it to the trigger.
+          // Outside presses are swallowed, so focus never falls to the page body; only a press that
+          // starts and ends on the backdrop closes the dialog (never a drag out of the panel).
           clickOutsideDeactivates: false,
-          allowOutsideClick: () => {
-            onClose()
-            return false
-          },
+          allowOutsideClick: backdrop.allowOutsideClick,
           returnFocusOnDeactivate: false,
           fallbackFocus: '#keyboard-help',
           onDeactivate: onClose,

@@ -1,6 +1,17 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { easeInOut, FOG_FEATHER_PX, isOverlayRevealed, revealedCount, waveCenter, waveProgress } from './fog-wave'
+import {
+  easeInOut,
+  FOG_BAND_HEIGHT_PX,
+  FOG_FEATHER_PX,
+  HAUNTED_FILTER,
+  hauntedExtent,
+  isOverlayRevealed,
+  MIST_ALPHA,
+  revealedCount,
+  waveCenter,
+  waveProgress,
+} from './fog-wave'
 
 const unit = fc.double({ min: 0, max: 1, noNaN: true })
 
@@ -24,6 +35,33 @@ describe('wave timing', () => {
   it('waveCenter starts a feather above the image and ends a feather below it', () => {
     expect(waveCenter(0, 1000)).toBe(-FOG_FEATHER_PX)
     expect(waveCenter(1, 1000)).toBe(1000 + FOG_FEATHER_PX)
+  })
+})
+
+describe('the fog the wave leaves behind (fix 1.6)', () => {
+  it('uses a 240 px band, a 0.3 mist and the dimmed, desaturated filter', () => {
+    expect(FOG_BAND_HEIGHT_PX).toBe(240)
+    expect(FOG_FEATHER_PX * 2).toBe(FOG_BAND_HEIGHT_PX)
+    expect(MIST_ALPHA).toBeCloseTo(0.3, 9)
+    expect(HAUNTED_FILTER).toBe('grayscale(0.6) brightness(0.7)')
+  })
+
+  it('hauntedExtent follows the band centre and stays inside the image', () => {
+    expect(hauntedExtent(-FOG_FEATHER_PX, 1000)).toBe(0)
+    expect(hauntedExtent(400, 1000)).toBe(400)
+    expect(hauntedExtent(1000 + FOG_FEATHER_PX, 1000)).toBe(1000)
+    fc.assert(
+      fc.property(unit, unit, fc.double({ min: 1, max: 20000, noNaN: true }), (a, b, height) => {
+        const [early, late] = a <= b ? [a, b] : [b, a]
+        const first = hauntedExtent(waveCenter(early, height), height)
+        const second = hauntedExtent(waveCenter(late, height), height)
+        expect(first).toBeGreaterThanOrEqual(0)
+        expect(second).toBeLessThanOrEqual(height)
+        expect(first).toBeLessThanOrEqual(second)
+      }),
+    )
+    // Once the wave has passed, the haunted state covers the whole screenshot.
+    expect(hauntedExtent(waveCenter(waveProgress(800), 1234), 1234)).toBe(1234)
   })
 })
 

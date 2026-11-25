@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { SAMPLE_AUDIT } from '../test-support/audit-arbitraries'
 import {
   activeStageLabel,
+  canCancel,
   CLEAN_ANNOUNCEMENT,
   completedStages,
   completionAnnouncement,
@@ -11,35 +12,40 @@ import {
   formatElapsed,
   MAX_POLL_RETRIES,
   parseJobPoll,
+  PENDING_STATE,
+  POLL_INTERVAL_MS,
+  pollStep,
+  RETRYING_MESSAGE,
+  RETRYING_STATE,
   RETRY_BASE_DELAY_MS,
   RETRY_MAX_DELAY_MS,
   retryDelayMs,
+  seanceStatusText,
+  SESSION_ENDED_MESSAGE,
   STAGE_LABELS,
+  UNREACHABLE_MESSAGE,
 } from './seance'
-import type { JobStages } from './seance'
+import type { JobPoll, JobStages, SeanceState } from './seance'
 
 describe('activeStageLabel', () => {
-  it('names the stage being worked on, one past the last stage the worker reported', () => {
+  it('names the stage the worker reported as started; a queued job is shown as loading', () => {
     expect(activeStageLabel('queued')).toBe('Loading page…')
-    expect(activeStageLabel('loading')).toBe('Reading accessibility tree…')
-    expect(activeStageLabel('tree')).toBe('Walking the keyboard path…')
-    expect(activeStageLabel('walking')).toBe('Classifying hauntings…')
+    expect(activeStageLabel('loading')).toBe('Loading page…')
+    expect(activeStageLabel('tree')).toBe('Reading accessibility tree…')
+    expect(activeStageLabel('walking')).toBe('Walking the keyboard path…')
     expect(activeStageLabel('classifying')).toBe('Classifying hauntings…')
   })
 })
 
 describe('completedStages', () => {
-  it('measures each finished stage from the previous timestamp', () => {
+  it('measures each finished stage from its own start to the next stage start, without queue wait', () => {
     const stages: JobStages = { queued: 1000, loading: 2200, tree: 2700 }
-    expect(completedStages(stages)).toEqual([
-      { stage: 'loading', label: 'Loading page…', elapsedMs: 1200 },
-      { stage: 'tree', label: 'Reading accessibility tree…', elapsedMs: 500 },
-    ])
+    expect(completedStages(stages)).toEqual([{ stage: 'loading', label: 'Loading page…', elapsedMs: 500 }])
   })
 
   it('times classifying from its start to done', () => {
     const stages: JobStages = { queued: 0, loading: 10, tree: 20, walking: 30, classifying: 31, done: 431 }
-    expect(completedStages(stages).map((s) => s.elapsedMs)).toEqual([10, 10, 10, 400])
+    expect(completedStages(stages).map((s) => s.elapsedMs)).toEqual([10, 10, 1, 400])
   })
 
   it('lists nothing before any stage is reached', () => {
@@ -176,5 +182,88 @@ describe('completionAnnouncement', () => {
     expect(completionAnnouncement(audit)).toBe(
       `Audit complete: ${audit.hauntings.length} hauntings found, Haunting Score ${audit.score}`,
     )
+  })
+})
+
+describe('pollStep', () => {
+  const running: SeanceState = { phase: 'running', status: 'tree', stages: { queued: 1 } }
+  const unreachable: JobPoll = { kind: 'unreachable' }
+
+  it('a running answer shows the stage, resets the retry budget and polls again in 500 ms', () => {
+    const step = pollStep(RETRYING_STATE, { kind: 'running', status: 'loading', stages: { queued: 1 } }, 2)
+    expect(step).toEqual({ state: { phase: 'running', status: 'loading', stages: { queued: 1 } }, retries: 0, delayMs: POLL_INTERVAL_MS })
+  })
+
+  it('done, error and not-found stop polling', () => {
+    expect(pollStep(running, { kind: 'done', audit: SAMPLE_AUDIT, stages: {} }, 0)).toMatchObject({ state: { phase: 'done' }, delayMs: null })
+    expect(pollStep(running, { kind: 'error', code: 'TIMEOUT', message: 'm' }, 0)).toMatchObject({
+      state: { phase: 'failed', reason: 'error', message: 'm' },
+      delayMs: null,
+    })
+    expect(pollStep(PENDING_STATE, { kind: 'not-found' }, 0)).toMatchObject({
+      state: { phase: 'failed', reason: 'ended', message: SESSION_ENDED_MESSAGE },
+      delayMs: null,
+    })
+  })
+
+  it('a failed poll before any answer moves to retrying instead of sitting silent', () => {
+    expect(pollStep(PENDING_STATE, unreachable, 0)).toEqual({ state: RETRYING_STATE, retries: 1, delayMs: RETRY_BASE_DELAY_MS })
+    expect(pollStep(RETRYING_STATE, unreachable, 1)).toEqual({ state: RETRYING_STATE, retries: 2, delayMs: 2 * RETRY_BASE_DELAY_MS })
+  })
+
+  it('a running séance keeps its stage through a dropped poll', () => {
+    expect(pollStep(running, unreachable, 0)).toEqual({ state: running, retries: 1, delayMs: RETRY_BASE_DELAY_MS })
+  })
+
+  it('gives up with the unreachable error once the retries are used', () => {
+    expect(pollStep(RETRYING_STATE, unreachable, MAX_POLL_RETRIES)).toEqual({
+      state: { phase: 'failed', reason: 'unreachable', message: UNREACHABLE_MESSAGE },
+      retries: MAX_POLL_RETRIES,
+      delayMs: null,
+    })
+  })
+
+  it('property: from pending, consecutive failures wait 1 s, 2 s, 4 s and then fail', () => {
+    fc.assert(
+      fc.property(fc.constantFrom<SeanceState>(PENDING_STATE, RETRYING_STATE), (start) => {
+        let state = start
+        let retries = 0
+        const delays: Array<number | null> = []
+        for (let i = 0; i <= MAX_POLL_RETRIES; i++) {
+          const step = pollStep(state, unreachable, retries)
+          state = step.state
+          retries = step.retries
+          delays.push(step.delayMs)
+        }
+        expect(delays).toEqual([1000, 2000, 4000, null])
+        expect(state).toMatchObject({ phase: 'failed', reason: 'unreachable' })
+      }),
+    )
+  })
+})
+
+describe('seanceStatusText', () => {
+  it('is empty before the first answer, names the stage while running, and says so while retrying', () => {
+    expect(seanceStatusText(PENDING_STATE)).toBe('')
+    expect(seanceStatusText({ phase: 'running', status: 'queued', stages: {} })).toBe(STAGE_LABELS.loading)
+    expect(seanceStatusText(RETRYING_STATE)).toBe(RETRYING_MESSAGE)
+    expect(RETRYING_MESSAGE).toBe('Trying to reach the server again…')
+    expect(seanceStatusText({ phase: 'failed', reason: 'unreachable', message: UNREACHABLE_MESSAGE })).toBe('')
+  })
+})
+
+describe('canCancel', () => {
+  it('offers Cancel only while the audit is pending or running', () => {
+    expect(canCancel(PENDING_STATE)).toBe(true)
+    expect(canCancel({ phase: 'running', status: 'walking', stages: {} })).toBe(true)
+    expect(canCancel(RETRYING_STATE)).toBe(false)
+    expect(canCancel({ phase: 'done', audit: SAMPLE_AUDIT, stages: {} })).toBe(false)
+    expect(canCancel({ phase: 'failed', reason: 'error', message: 'm' })).toBe(false)
+  })
+})
+
+describe('SESSION_ENDED_MESSAGE', () => {
+  it('promises the same one-hour expiry the server enforces', () => {
+    expect(SESSION_ENDED_MESSAGE).toMatch(/expire after 1 hour/)
   })
 })

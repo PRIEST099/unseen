@@ -1,4 +1,8 @@
 import type { ClassifiedAudit } from '@the-unseen/core'
+import { siteLabel } from './audited-url'
+// seance.ts imports isClassifiedAudit from here; the cycle is safe because neither module
+// calls into the other while it is being evaluated, only later from functions.
+import { describeJobError } from './seance'
 
 export type AuditSource = { kind: 'job' | 'sample'; id: string }
 
@@ -48,7 +52,12 @@ export function parseAuditBody(source: AuditSource, body: unknown): AuditLoadRes
   if (body.status === 'done') {
     return isClassifiedAudit(body.result) ? { status: 'ok', audit: body.result } : { status: 'not-found' }
   }
-  if (body.status === 'error') return { status: 'not-found' }
+  if (body.status === 'error') {
+    // A failed job (TIMEOUT, SSRF_BLOCKED, …) still exists: say why, with the séance's copy.
+    const code = typeof body.error === 'string' ? body.error : ''
+    const message = typeof body.message === 'string' ? body.message : ''
+    return { status: 'failed', message: describeJobError(code, message) }
+  }
   return { status: 'in-progress' }
 }
 
@@ -96,10 +105,10 @@ export function primeAudit(source: AuditSource, audit: ClassifiedAudit): void {
   settled.set(cacheKey(source), { status: 'ok', audit })
 }
 
+/**
+ * The name of the audited site for headings: the real hostname for a live audit, or
+ * "Cursed Shop (sample)" for a bundled sample, whose URL is the relative `/cursed-shop/` path.
+ */
 export function hostnameOf(audit: ClassifiedAudit): string {
-  try {
-    return new URL(audit.raw.auditedUrl).hostname
-  } catch {
-    return audit.raw.auditedUrl
-  }
+  return siteLabel(audit.raw.auditedUrl)
 }

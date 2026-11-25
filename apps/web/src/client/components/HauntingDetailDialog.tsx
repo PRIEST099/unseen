@@ -9,10 +9,14 @@ import {
   criterionEntries,
   criterionLinkText,
   criterionRoleLabel,
+  hasSnippet,
   isSafeCriterionUrl,
+  isSnippetShortened,
   personaLine,
   relatedIssues,
+  SNIPPET_SHORTENED_NOTE,
 } from '../utils/haunting-detail'
+import { useBackdropDismiss } from '../utils/backdrop-dismiss'
 
 type HauntingDetailDialogProps = {
   haunting: Haunting
@@ -57,6 +61,20 @@ function CriteriaSection({ haunting }: { haunting: Haunting }): ReactElement {
   )
 }
 
+/** The offending HTML, with a note when core shortened it; omitted when there is none. */
+function OffendingHtmlSection({ htmlSnippet }: { htmlSnippet: string }): ReactElement | null {
+  if (!hasSnippet(htmlSnippet)) return null
+  return (
+    <section>
+      <h3>Offending HTML</h3>
+      <pre className="dialog-code">
+        <code>{htmlSnippet}</code>
+      </pre>
+      {isSnippetShortened(htmlSnippet) ? <p className="dialog-muted dialog-snippet-note">{SNIPPET_SHORTENED_NOTE}</p> : null}
+    </section>
+  )
+}
+
 function FixSection({ haunting }: { haunting: Haunting }): ReactElement {
   return (
     <section>
@@ -96,8 +114,15 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+type CopyStatus = { message: string; attempt: number }
+
+/**
+ * The copy button and its status line. The status is cleared when a copy starts and set when it
+ * finishes; the message sits in a span keyed by the attempt number, so a repeated success replaces
+ * the node and is announced (and fades in) again instead of leaving the live region unchanged.
+ */
 function CopyPromptButton({ prompt }: { prompt: string }): ReactElement {
-  const [message, setMessage] = useState('')
+  const [status, setStatus] = useState<CopyStatus>({ message: '', attempt: 0 })
   const mounted = useRef(true)
   useEffect(() => {
     mounted.current = true
@@ -106,17 +131,21 @@ function CopyPromptButton({ prompt }: { prompt: string }): ReactElement {
     }
   }, [])
   const handleCopy = (): void => {
+    setStatus((previous) => ({ message: '', attempt: previous.attempt }))
     void copyText(prompt).then((copied) => {
-      if (mounted.current) setMessage(copied ? COPIED_MESSAGE : COPY_FAILED_MESSAGE)
+      if (!mounted.current) return
+      setStatus((previous) => ({ message: copied ? COPIED_MESSAGE : COPY_FAILED_MESSAGE, attempt: previous.attempt + 1 }))
     })
   }
   return (
     <>
-      <button type="button" className="button" onClick={handleCopy}>
+      <button type="button" className="button button-primary" onClick={handleCopy}>
         Copy as Kiro prompt
       </button>
       <p className="dialog-copy-status" role="status">
-        {message}
+        <span key={status.attempt} className={status.message === '' ? undefined : 'dialog-copy-message'}>
+          {status.message}
+        </span>
       </p>
     </>
   )
@@ -124,8 +153,11 @@ function CopyPromptButton({ prompt }: { prompt: string }): ReactElement {
 
 /**
  * Haunting detail dialog (requirement 16, 24): name, severity, persona, WCAG criteria with links,
- * offending HTML, suggested fix, related issues and a Kiro prompt. Focus is trapped while open.
- * The caller returns focus to the trigger once `onClose` has unmounted this dialog.
+ * offending HTML, suggested fix, related issues and a Kiro prompt. Focus is trapped while open and
+ * starts on the dialog container, so a screen reader reads the dialog from its title down; the
+ * container draws no extra focus ring because its border already marks it. Escape, the Close
+ * button beside the title, or a press that starts and ends on the backdrop close it. The caller
+ * returns focus to the trigger once `onClose` has unmounted this dialog.
  */
 export function HauntingDetailDialog({
   haunting,
@@ -140,20 +172,23 @@ export function HauntingDetailDialog({
     onClose()
   }
   const prompt = buildKiroPrompt(haunting, elementLabel, auditedUrl)
+  const backdrop = useBackdropDismiss(onClose)
 
   return createPortal(
-    <div className="dialog-backdrop">
-      {/* The trap wraps the dialog only, so a click on the backdrop counts as outside and closes it. */}
+    <div
+      className="dialog-backdrop"
+      onPointerDown={backdrop.onPointerDown}
+      onPointerUp={backdrop.onPointerUp}
+      onPointerCancel={backdrop.onPointerCancel}
+    >
+      {/* The trap wraps the dialog only, so the backdrop counts as outside it. */}
       <FocusTrap
         focusTrapOptions={{
           escapeDeactivates: false,
-          // An outside click closes the dialog but is swallowed (return false), so the browser does
-          // not move focus to the page body before the caller returns it to the trigger.
+          // Outside presses are swallowed, so focus never falls to the page body; only a press that
+          // starts and ends on the backdrop closes the dialog (never a drag out of a code block).
           clickOutsideDeactivates: false,
-          allowOutsideClick: () => {
-            onClose()
-            return false
-          },
+          allowOutsideClick: backdrop.allowOutsideClick,
           returnFocusOnDeactivate: false,
           initialFocus: '#haunting-dialog',
           fallbackFocus: '#haunting-dialog',
@@ -169,22 +204,28 @@ export function HauntingDetailDialog({
           tabIndex={-1}
           onKeyDown={handleKeyDown}
         >
-          <h2 id="haunting-dialog-title">{hauntingDisplayName(haunting.type)}</h2>
+          <div className="dialog-header">
+            <h2 id="haunting-dialog-title">{hauntingDisplayName(haunting.type)}</h2>
+            <button type="button" className="button" aria-label="Close dialog" onClick={onClose}>
+              Close
+            </button>
+          </div>
           <p>
             <SeverityBadge haunting={haunting} />
           </p>
-          <p className="dialog-persona">{personaLine(haunting)}</p>
           <p>
             <strong>Affected element:</strong> {elementLabel}
           </p>
-          <p>{haunting.explanation}</p>
-          <CriteriaSection haunting={haunting} />
           <section>
-            <h3>Offending HTML</h3>
-            <pre className="dialog-code">
-              <code>{haunting.htmlSnippet}</code>
-            </pre>
+            <h3>Who is affected</h3>
+            <p className="dialog-persona">{personaLine(haunting)}</p>
           </section>
+          <section>
+            <h3>What&apos;s wrong</h3>
+            <p>{haunting.explanation}</p>
+          </section>
+          <CriteriaSection haunting={haunting} />
+          <OffendingHtmlSection htmlSnippet={haunting.htmlSnippet} />
           <FixSection haunting={haunting} />
           <RelatedSection related={relatedIssues(haunting)} />
           {onPreviewFix !== undefined ? (
@@ -200,9 +241,6 @@ export function HauntingDetailDialog({
           ) : null}
           <div className="dialog-actions">
             <CopyPromptButton prompt={prompt} />
-            <button type="button" className="button button-primary" aria-label="Close dialog" onClick={onClose}>
-              Close
-            </button>
           </div>
         </div>
       </FocusTrap>

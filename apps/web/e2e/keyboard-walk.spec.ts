@@ -3,8 +3,8 @@ import type { Page } from '@playwright/test'
 
 const SAMPLE = '/sample/cursed-shop-index'
 const CHECKOUT = '/sample/cursed-shop-checkout'
-// The committed samples rewrite the audited URL to https://the-unseen.app/cursed-shop/<page>.
-const HOSTNAME = 'the-unseen.app'
+// The committed samples record the relative URL /cursed-shop/<page>, shown as "Cursed Shop (sample)".
+const HOSTNAME = 'Cursed Shop (sample)'
 const TRAPPED = 'Trapped: keyboard users cannot leave this dialog'
 
 type Box = { backendDOMNodeId: number; x: number; y: number; width: number; height: number }

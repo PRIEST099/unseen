@@ -1,7 +1,7 @@
 {
   "id": "cursed-shop-checkout",
   "name": "Cursed Shop — Checkout",
-  "url": "https://the-unseen.app/cursed-shop/checkout.html",
+  "url": "/cursed-shop/checkout.html",
   "result": {
     "hauntings": [
       {
@@ -28,7 +28,7 @@
           "height": 338.765625
         },
         "soundCue": "chime",
-        "htmlSnippet": "<div class=\"modal-content\" role=\"dialog\" aria-labelledby=\"modalTitle\" aria-modal=\"true\"><button class=\"modal-close\" aria-label=\"Close modal\" tabindex=\"-1\">×</button><div class=\"modal-header\"><h2 id=\"modalTitle\">Join Our Newsletter</h2></div><p style=\"margin-bottom: 20px; color: #5c4d46;\">\n        Ge",
+        "htmlSnippet": "<div class=\"modal-content\" role=\"dialog\" aria-labelledby=\"modalTitle\" aria-modal=\"true\"><button class=\"modal-close\" aria-label=\"Close modal\" tabindex=\"-1\">×</button><div class=\"modal-header\"><h2 id=\"modalTitle\">Join Our Newsletter</h2></div><p style=\"margin-bottom: 20px; color: #5c4d46;\">\n        G…",
         "explanation": "Keyboard trap: focus cycles through 2 elements with no way out using Escape or Shift+Tab.",
         "persona": "As a keyboard user, I am trapped and cannot move on to the rest of the page.",
         "fix": {
@@ -114,7 +114,7 @@
           "height": 47.59375
         },
         "speech": "button",
-        "htmlSnippet": "<button class=\"icon-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path>",
+        "htmlSnippet": "<button class=\"icon-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path…",
         "explanation": "Interactive element has no accessible name. Screen readers announce only \"button\", leaving users unable to identify its purpose.",
         "persona": "As a screen-reader user, I cannot tell what this control does.",
         "fix": {
@@ -198,7 +198,7 @@
           "height": 32
         },
         "speech": "link",
-        "htmlSnippet": "<a href=\"#\" class=\"social-link\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></rect><circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></circle><circle cx=",
+        "htmlSnippet": "<a href=\"#\" class=\"social-link\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></rect><circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></circle><circle cx…",
         "explanation": "Interactive element has no accessible name. Screen readers announce only \"link\", leaving users unable to identify its purpose.",
         "persona": "As a screen-reader user, I cannot tell what this control does.",
         "fix": {
@@ -210,7 +210,7 @@
         "severity": "Restless"
       },
       {
-        "id": "WhisperingField-d4fe0e8d",
+        "id": "WhisperingField-3fad5a22",
         "type": "WhisperingField",
         "wcag": [
           {
@@ -233,10 +233,10 @@
           }
         ],
         "nodeIds": [
-          22
+          18
         ],
         "box": {
-          "backendDOMNodeId": 22,
+          "backendDOMNodeId": 18,
           "x": 702,
           "y": 455.953125,
           "width": 486,
@@ -256,7 +256,7 @@
         "severity": "Wraith"
       },
       {
-        "id": "WhisperingField-cefbc684",
+        "id": "WhisperingField-3daf9593",
         "type": "WhisperingField",
         "wcag": [
           {
@@ -279,10 +279,10 @@
           }
         ],
         "nodeIds": [
-          23
+          19
         ],
         "box": {
-          "backendDOMNodeId": 23,
+          "backendDOMNodeId": 19,
           "x": 702,
           "y": 1207.21875,
           "width": 486,
@@ -530,7 +530,7 @@
           "height": 2025.984375
         },
         "soundCue": "garbled-whisper",
-        "htmlSnippet": "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Hollow &amp; Vine — Checkout</title><meta name=\"description\" content=\"Secure checkout for Hollow &amp; Vine hand-poured candles.\"><style>\n    :root {\n      --color-primary: #6d4c41;\n      -",
+        "htmlSnippet": "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Hollow &amp; Vine — Checkout</title><meta name=\"description\" content=\"Secure checkout for Hollow &amp; Vine hand-poured candles.\"><style>\n    :root {\n      --color-primary: #6d4c41;\n      …",
         "explanation": "Page has no language declaration. Screen readers cannot choose the correct pronunciation rules.",
         "persona": "As a screen-reader user, I hear text read with the wrong pronunciation.",
         "fix": {
@@ -608,7 +608,7 @@
           "width": 1280,
           "height": 2025.984375
         },
-        "htmlSnippet": "<body><header><div class=\"container\"><div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Cont",
+        "htmlSnippet": "<body><header><div class=\"container\"><div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Con…",
         "explanation": "Page has no main landmark. Screen-reader users cannot quickly jump to the main content.",
         "persona": "As a screen-reader user, I cannot navigate this page by its structure.",
         "fix": {
@@ -769,7 +769,7 @@
       {
         "backendDOMNodeId": 116,
         "reason": "contrast-uncertain",
-        "htmlSnippet": "<button class=\"checkout-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3"
+        "htmlSnippet": "<button class=\"checkout-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 …"
       },
       {
         "backendDOMNodeId": 126,
@@ -874,8 +874,8 @@
     },
     "raw": {
       "schemaVersion": "1",
-      "auditedUrl": "https://the-unseen.app/cursed-shop/checkout.html",
-      "auditedAt": "2026-11-24T17:45:15.813Z",
+      "auditedUrl": "/cursed-shop/checkout.html",
+      "auditedAt": "2026-11-25T04:59:19.155Z",
       "screenshotPng": "",
       "viewportWidth": 1280,
       "viewportHeight": 900,
@@ -1350,7 +1350,7 @@
           "height": 38.390625
         },
         {
-          "backendDOMNodeId": 21,
+          "backendDOMNodeId": 17,
           "x": 702,
           "y": 317.171875,
           "width": 486,
@@ -1420,7 +1420,7 @@
           "height": 25.59375
         },
         {
-          "backendDOMNodeId": 22,
+          "backendDOMNodeId": 18,
           "x": 702,
           "y": 455.953125,
           "width": 486,
@@ -1651,7 +1651,7 @@
           "height": 25.59375
         },
         {
-          "backendDOMNodeId": 23,
+          "backendDOMNodeId": 19,
           "x": 702,
           "y": 1207.21875,
           "width": 486,
@@ -1917,91 +1917,91 @@
           "height": 1.5
         },
         {
-          "backendDOMNodeId": 20,
+          "backendDOMNodeId": 248,
           "x": 108,
           "y": 1752.421875,
           "width": 32,
           "height": 32
         },
         {
-          "backendDOMNodeId": 248,
+          "backendDOMNodeId": 249,
           "x": 115,
           "y": 1759.421875,
           "width": 18,
           "height": 18
         },
         {
-          "backendDOMNodeId": 249,
+          "backendDOMNodeId": 250,
           "x": 120.25,
           "y": 1760.921875,
           "width": 8.25,
           "height": 15
         },
         {
-          "backendDOMNodeId": 250,
+          "backendDOMNodeId": 251,
           "x": 156,
           "y": 1752.421875,
           "width": 32,
           "height": 32
         },
         {
-          "backendDOMNodeId": 251,
+          "backendDOMNodeId": 252,
           "x": 163,
           "y": 1759.421875,
           "width": 18,
           "height": 18
         },
         {
-          "backendDOMNodeId": 252,
+          "backendDOMNodeId": 253,
           "x": 163,
           "y": 1757.5640869140625,
           "width": 18,
           "height": 19.8577880859375
         },
         {
-          "backendDOMNodeId": 253,
+          "backendDOMNodeId": 254,
           "x": 358,
           "y": 1618.640625,
           "width": 266,
           "height": 175.96875
         },
         {
-          "backendDOMNodeId": 254,
+          "backendDOMNodeId": 255,
           "x": 358,
           "y": 1618.640625,
           "width": 266,
           "height": 25.59375
         },
         {
-          "backendDOMNodeId": 256,
+          "backendDOMNodeId": 257,
           "x": 358,
           "y": 1660.234375,
           "width": 266,
           "height": 126.375
         },
         {
-          "backendDOMNodeId": 257,
+          "backendDOMNodeId": 258,
           "x": 358,
           "y": 1660.234375,
           "width": 266,
           "height": 25.59375
         },
         {
-          "backendDOMNodeId": 258,
+          "backendDOMNodeId": 259,
           "x": 358,
           "y": 1665.234375,
           "width": 78.109375,
           "height": 16
         },
         {
-          "backendDOMNodeId": 260,
+          "backendDOMNodeId": 261,
           "x": 358,
           "y": 1693.828125,
           "width": 266,
           "height": 25.59375
         },
         {
-          "backendDOMNodeId": 261,
+          "backendDOMNodeId": 23,
           "x": 358,
           "y": 1698.828125,
           "width": 73.40625,
@@ -2220,8 +2220,8 @@
       ],
       "axNodes": [
         {
-          "nodeId": "19",
-          "backendDOMNodeId": 19,
+          "nodeId": "22",
+          "backendDOMNodeId": 22,
           "role": {
             "type": "internalRole",
             "value": "RootWebArea"
@@ -2275,7 +2275,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html"
+                "value": "http://localhost:57483/checkout.html"
               }
             }
           ],
@@ -2329,7 +2329,7 @@
           "childIds": [
             "35"
           ],
-          "parentId": "19"
+          "parentId": "22"
         },
         {
           "nodeId": "35",
@@ -2612,7 +2612,7 @@
           ],
           "childIds": [
             "126",
-            "21"
+            "17"
           ],
           "parentId": "65"
         },
@@ -2670,8 +2670,8 @@
           "parentId": "125"
         },
         {
-          "nodeId": "21",
-          "backendDOMNodeId": 21,
+          "nodeId": "17",
+          "backendDOMNodeId": 17,
           "role": {
             "type": "role",
             "value": "form"
@@ -2962,7 +2962,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/index.html"
+                "value": "http://localhost:57483/index.html"
               }
             }
           ],
@@ -3351,7 +3351,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/img/candle-midnight.svg"
+                "value": "http://localhost:57483/img/candle-midnight.svg"
               }
             }
           ],
@@ -3640,7 +3640,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/img/candle-lavender.svg"
+                "value": "http://localhost:57483/img/candle-lavender.svg"
               }
             }
           ],
@@ -4718,7 +4718,7 @@
             "129",
             "133"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "129",
@@ -5237,10 +5237,10 @@
           ],
           "childIds": [
             "138",
-            "22",
+            "18",
             "142"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "138",
@@ -5276,8 +5276,8 @@
           "parentId": "137"
         },
         {
-          "nodeId": "22",
-          "backendDOMNodeId": 22,
+          "nodeId": "18",
+          "backendDOMNodeId": 18,
           "role": {
             "type": "role",
             "value": "textbox"
@@ -5487,7 +5487,7 @@
             "145",
             "7"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "145",
@@ -5732,7 +5732,7 @@
             "149",
             "8"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "149",
@@ -5977,7 +5977,7 @@
             "153",
             "157"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "153",
@@ -6498,7 +6498,7 @@
             "162",
             "166"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "162",
@@ -6982,7 +6982,7 @@
           "childIds": [
             "187"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "188",
@@ -7013,7 +7013,7 @@
             "189",
             "13"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "189",
@@ -7256,9 +7256,9 @@
           ],
           "childIds": [
             "193",
-            "23"
+            "19"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "193",
@@ -7294,8 +7294,8 @@
           "parentId": "192"
         },
         {
-          "nodeId": "23",
-          "backendDOMNodeId": 23,
+          "nodeId": "19",
+          "backendDOMNodeId": 19,
           "role": {
             "type": "role",
             "value": "textbox"
@@ -7472,7 +7472,7 @@
             "198",
             "202"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "198",
@@ -7993,7 +7993,7 @@
             "16",
             "207"
           ],
-          "parentId": "21"
+          "parentId": "17"
         },
         {
           "nodeId": "16",
@@ -8315,7 +8315,7 @@
           ],
           "childIds": [
             "234",
-            "253",
+            "254",
             "269",
             "285"
           ],
@@ -8468,8 +8468,8 @@
           ],
           "childIds": [
             "243",
-            "20",
-            "250"
+            "248",
+            "251"
           ],
           "parentId": "234"
         },
@@ -8516,7 +8516,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -8535,8 +8535,8 @@
           "parentId": "241"
         },
         {
-          "nodeId": "20",
-          "backendDOMNodeId": 20,
+          "nodeId": "248",
+          "backendDOMNodeId": 248,
           "role": {
             "type": "role",
             "value": "link"
@@ -8587,7 +8587,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -8606,8 +8606,8 @@
           "parentId": "241"
         },
         {
-          "nodeId": "250",
-          "backendDOMNodeId": 250,
+          "nodeId": "251",
+          "backendDOMNodeId": 251,
           "role": {
             "type": "role",
             "value": "link"
@@ -8658,7 +8658,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -8677,8 +8677,8 @@
           "parentId": "241"
         },
         {
-          "nodeId": "253",
-          "backendDOMNodeId": 253,
+          "nodeId": "254",
+          "backendDOMNodeId": 254,
           "role": {
             "type": "role",
             "value": "none"
@@ -8702,14 +8702,14 @@
             }
           ],
           "childIds": [
-            "254",
-            "256"
+            "255",
+            "257"
           ],
           "parentId": "233"
         },
         {
-          "nodeId": "254",
-          "backendDOMNodeId": 254,
+          "nodeId": "255",
+          "backendDOMNodeId": 255,
           "role": {
             "type": "role",
             "value": "heading"
@@ -8756,13 +8756,13 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [
-            "255"
+            "256"
           ],
-          "parentId": "253"
+          "parentId": "254"
         },
         {
-          "nodeId": "256",
-          "backendDOMNodeId": 256,
+          "nodeId": "257",
+          "backendDOMNodeId": 257,
           "role": {
             "type": "role",
             "value": "list"
@@ -8793,12 +8793,12 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [
-            "257",
-            "260",
+            "258",
+            "261",
             "263",
             "266"
           ],
-          "parentId": "253"
+          "parentId": "254"
         },
         {
           "nodeId": "269",
@@ -9225,7 +9225,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/index.html"
+                "value": "http://localhost:57483/index.html"
               }
             }
           ],
@@ -9293,7 +9293,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/product.html"
+                "value": "http://localhost:57483/product.html"
               }
             }
           ],
@@ -9361,7 +9361,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -9429,7 +9429,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -10259,7 +10259,7 @@
           "ignored": true,
           "ignoredReasons": [],
           "childIds": [],
-          "parentId": "22"
+          "parentId": "18"
         },
         {
           "nodeId": "323",
@@ -10306,7 +10306,7 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [],
-          "parentId": "22"
+          "parentId": "18"
         },
         {
           "nodeId": "143",
@@ -11089,7 +11089,7 @@
           "ignored": true,
           "ignoredReasons": [],
           "childIds": [],
-          "parentId": "23"
+          "parentId": "19"
         },
         {
           "nodeId": "331",
@@ -11136,7 +11136,7 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [],
-          "parentId": "23"
+          "parentId": "19"
         },
         {
           "nodeId": "200",
@@ -11710,8 +11710,8 @@
           "parentId": "237"
         },
         {
-          "nodeId": "255",
-          "backendDOMNodeId": 255,
+          "nodeId": "256",
+          "backendDOMNodeId": 256,
           "role": {
             "type": "internalRole",
             "value": "StaticText"
@@ -11739,11 +11739,11 @@
           "childIds": [
             "-1000000056"
           ],
-          "parentId": "254"
+          "parentId": "255"
         },
         {
-          "nodeId": "257",
-          "backendDOMNodeId": 257,
+          "nodeId": "258",
+          "backendDOMNodeId": 258,
           "role": {
             "type": "role",
             "value": "listitem"
@@ -11782,13 +11782,13 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [
-            "258"
+            "259"
           ],
-          "parentId": "256"
+          "parentId": "257"
         },
         {
-          "nodeId": "260",
-          "backendDOMNodeId": 260,
+          "nodeId": "261",
+          "backendDOMNodeId": 261,
           "role": {
             "type": "role",
             "value": "listitem"
@@ -11827,9 +11827,9 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [
-            "261"
+            "23"
           ],
-          "parentId": "256"
+          "parentId": "257"
         },
         {
           "nodeId": "263",
@@ -11874,7 +11874,7 @@
           "childIds": [
             "264"
           ],
-          "parentId": "256"
+          "parentId": "257"
         },
         {
           "nodeId": "266",
@@ -11919,7 +11919,7 @@
           "childIds": [
             "267"
           ],
-          "parentId": "256"
+          "parentId": "257"
         },
         {
           "nodeId": "271",
@@ -14064,11 +14064,11 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [],
-          "parentId": "255"
+          "parentId": "256"
         },
         {
-          "nodeId": "258",
-          "backendDOMNodeId": 258,
+          "nodeId": "259",
+          "backendDOMNodeId": 259,
           "role": {
             "type": "role",
             "value": "link"
@@ -14114,7 +14114,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14130,13 +14130,13 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [
-            "259"
+            "260"
           ],
-          "parentId": "257"
+          "parentId": "258"
         },
         {
-          "nodeId": "261",
-          "backendDOMNodeId": 261,
+          "nodeId": "23",
+          "backendDOMNodeId": 23,
           "role": {
             "type": "role",
             "value": "link"
@@ -14182,7 +14182,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14200,7 +14200,7 @@
           "childIds": [
             "262"
           ],
-          "parentId": "260"
+          "parentId": "261"
         },
         {
           "nodeId": "264",
@@ -14250,7 +14250,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14318,7 +14318,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14407,7 +14407,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14475,7 +14475,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14543,7 +14543,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14611,7 +14611,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14700,7 +14700,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14768,7 +14768,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14836,7 +14836,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -14904,7 +14904,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:60392/checkout.html#"
+                "value": "http://localhost:57483/checkout.html#"
               }
             }
           ],
@@ -15266,8 +15266,8 @@
           "parentId": "228"
         },
         {
-          "nodeId": "259",
-          "backendDOMNodeId": 259,
+          "nodeId": "260",
+          "backendDOMNodeId": 260,
           "role": {
             "type": "internalRole",
             "value": "StaticText"
@@ -15295,7 +15295,7 @@
           "childIds": [
             "-1000000057"
           ],
-          "parentId": "258"
+          "parentId": "259"
         },
         {
           "nodeId": "262",
@@ -15327,7 +15327,7 @@
           "childIds": [
             "-1000000058"
           ],
-          "parentId": "261"
+          "parentId": "23"
         },
         {
           "nodeId": "265",
@@ -15710,7 +15710,7 @@
           "ignored": false,
           "ignoredReasons": [],
           "childIds": [],
-          "parentId": "259"
+          "parentId": "260"
         },
         {
           "nodeId": "-1000000058",
@@ -16174,6 +16174,14 @@
         }
       ],
       "textNodeStyles": {
+        "23": {
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(109, 76, 65)",
+          "fontSize": "14.4px",
+          "fontWeight": "400",
+          "backgroundUncertain": false,
+          "isLargeText": false
+        },
         "40": {
           "color": "rgb(109, 76, 65)",
           "backgroundColor": "rgb(255, 255, 255)",
@@ -16590,7 +16598,7 @@
           "backgroundUncertain": false,
           "isLargeText": false
         },
-        "254": {
+        "255": {
           "color": "rgb(215, 204, 200)",
           "backgroundColor": "rgb(109, 76, 65)",
           "fontSize": "16px",
@@ -16598,15 +16606,7 @@
           "backgroundUncertain": false,
           "isLargeText": false
         },
-        "258": {
-          "color": "rgb(255, 255, 255)",
-          "backgroundColor": "rgb(109, 76, 65)",
-          "fontSize": "14.4px",
-          "fontWeight": "400",
-          "backgroundUncertain": false,
-          "isLargeText": false
-        },
-        "261": {
+        "259": {
           "color": "rgb(255, 255, 255)",
           "backgroundColor": "rgb(109, 76, 65)",
           "fontSize": "14.4px",
@@ -16751,7 +16751,7 @@
             "class": "modal-content",
             "role": "dialog"
           },
-          "outerHTMLSnippet": "<div class=\"modal-content\" role=\"dialog\" aria-labelledby=\"modalTitle\" aria-modal=\"true\"><button class=\"modal-close\" aria-label=\"Close modal\" tabindex=\"-1\">×</button><div class=\"modal-header\"><h2 id=\"modalTitle\">Join Our Newsletter</h2></div><p style=\"margin-bottom: 20px; color: #5c4d46;\">\n        Ge"
+          "outerHTMLSnippet": "<div class=\"modal-content\" role=\"dialog\" aria-labelledby=\"modalTitle\" aria-modal=\"true\"><button class=\"modal-close\" aria-label=\"Close modal\" tabindex=\"-1\">×</button><div class=\"modal-header\"><h2 id=\"modalTitle\">Join Our Newsletter</h2></div><p style=\"margin-bottom: 20px; color: #5c4d46;\">\n        G…"
         },
         "3": {
           "tag": "input",
@@ -16769,7 +16769,7 @@
             "class": "modal-form",
             "id": "newsletterForm"
           },
-          "outerHTMLSnippet": "<form class=\"modal-form\" id=\"newsletterForm\"><input type=\"email\" placeholder=\"Your email address\" required=\"\" style=\"\"><div class=\"modal-actions\"><button type=\"button\" class=\"btn btn-secondary\" id=\"closeModalBtn\" tabindex=\"-1\">No thanks</button><button type=\"submit\" class=\"btn\">Subscribe</button></d"
+          "outerHTMLSnippet": "<form class=\"modal-form\" id=\"newsletterForm\"><input type=\"email\" placeholder=\"Your email address\" required=\"\" style=\"\"><div class=\"modal-actions\"><button type=\"button\" class=\"btn btn-secondary\" id=\"closeModalBtn\" tabindex=\"-1\">No thanks</button><button type=\"submit\" class=\"btn\">Subscribe</button></…"
         },
         "5": {
           "tag": "input",
@@ -16900,31 +16900,15 @@
           },
           "outerHTMLSnippet": "<input type=\"checkbox\" id=\"saveCard\" name=\"saveCard\" class=\"proper-label\" style=\"\">"
         },
-        "19": {
-          "tag": "#document",
-          "parentId": null,
-          "attrs": {},
-          "outerHTMLSnippet": ""
-        },
-        "20": {
-          "tag": "a",
-          "parentId": 241,
-          "attrs": {
-            "href": "#",
-            "class": "social-link",
-            "aria-label": "Facebook"
-          },
-          "outerHTMLSnippet": "<a href=\"#\" class=\"social-link\" aria-label=\"Facebook\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></path></svg></a>"
-        },
-        "21": {
+        "17": {
           "tag": "form",
           "parentId": 125,
           "attrs": {
             "id": "checkoutForm"
           },
-          "outerHTMLSnippet": "<form id=\"checkoutForm\"><div class=\"form-row\"><div class=\"form-group\"><label for=\"firstName\">First Name</label><input type=\"text\" id=\"firstName\" name=\"firstName\" required=\"\" class=\"proper-label\" placeholder=\"John\" style=\"\"></div><div class=\"form-group\"><label for=\"lastName\">Last Name</label><input t"
+          "outerHTMLSnippet": "<form id=\"checkoutForm\"><div class=\"form-row\"><div class=\"form-group\"><label for=\"firstName\">First Name</label><input type=\"text\" id=\"firstName\" name=\"firstName\" required=\"\" class=\"proper-label\" placeholder=\"John\" style=\"\"></div><div class=\"form-group\"><label for=\"lastName\">Last Name</label><input …"
         },
-        "22": {
+        "18": {
           "tag": "input",
           "parentId": 137,
           "attrs": {
@@ -16935,7 +16919,7 @@
           },
           "outerHTMLSnippet": "<input type=\"email\" id=\"email\" name=\"email\" class=\"placeholder-only\" placeholder=\"john@example.com\" required=\"\" style=\"\">"
         },
-        "23": {
+        "19": {
           "tag": "input",
           "parentId": 192,
           "attrs": {
@@ -16945,6 +16929,20 @@
             "placeholder": "1234 5678 9012 3456"
           },
           "outerHTMLSnippet": "<input type=\"text\" id=\"cardNumber\" name=\"cardNumber\" class=\"placeholder-only\" placeholder=\"1234 5678 9012 3456\" required=\"\" maxlength=\"19\" style=\"\">"
+        },
+        "22": {
+          "tag": "#document",
+          "parentId": null,
+          "attrs": {},
+          "outerHTMLSnippet": ""
+        },
+        "23": {
+          "tag": "a",
+          "parentId": 261,
+          "attrs": {
+            "href": "#"
+          },
+          "outerHTMLSnippet": "<a href=\"#\">Best Sellers</a>"
         },
         "24": {
           "tag": "div",
@@ -16956,13 +16954,13 @@
           "tag": "html",
           "parentId": null,
           "attrs": {},
-          "outerHTMLSnippet": "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Hollow &amp; Vine — Checkout</title><meta name=\"description\" content=\"Secure checkout for Hollow &amp; Vine hand-poured candles.\"><style>\n    :root {\n      --color-primary: #6d4c41;\n      -"
+          "outerHTMLSnippet": "<html><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Hollow &amp; Vine — Checkout</title><meta name=\"description\" content=\"Secure checkout for Hollow &amp; Vine hand-poured candles.\"><style>\n    :root {\n      --color-primary: #6d4c41;\n      …"
         },
         "27": {
           "tag": "head",
           "parentId": 26,
           "attrs": {},
-          "outerHTMLSnippet": "<head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Hollow &amp; Vine — Checkout</title><meta name=\"description\" content=\"Secure checkout for Hollow &amp; Vine hand-poured candles.\"><style>\n    :root {\n      --color-primary: #6d4c41;\n      --color"
+          "outerHTMLSnippet": "<head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Hollow &amp; Vine — Checkout</title><meta name=\"description\" content=\"Secure checkout for Hollow &amp; Vine hand-poured candles.\"><style>\n    :root {\n      --color-primary: #6d4c41;\n      --colo…"
         },
         "28": {
           "tag": "meta",
@@ -16992,19 +16990,19 @@
           "tag": "style",
           "parentId": 27,
           "attrs": {},
-          "outerHTMLSnippet": "<style>\n    :root {\n      --color-primary: #6d4c41;\n      --color-secondary: #8d6e63;\n      --color-accent: #d7ccc8;\n      --color-text: #2c1e1a;\n      --color-bg: #f5f0eb;\n      --color-white: #ffffff;\n      --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);\n      --shadow-md: 0 4px 12px rgba(0,0,0,0.12);\n  "
+          "outerHTMLSnippet": "<style>\n    :root {\n      --color-primary: #6d4c41;\n      --color-secondary: #8d6e63;\n      --color-accent: #d7ccc8;\n      --color-text: #2c1e1a;\n      --color-bg: #f5f0eb;\n      --color-white: #ffffff;\n      --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);\n      --shadow-md: 0 4px 12px rgba(0,0,0,0.12);\n …"
         },
         "35": {
           "tag": "body",
           "parentId": 26,
           "attrs": {},
-          "outerHTMLSnippet": "<body><header><div class=\"container\"><div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Cont"
+          "outerHTMLSnippet": "<body><header><div class=\"container\"><div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Con…"
         },
         "37": {
           "tag": "header",
           "parentId": 35,
           "attrs": {},
-          "outerHTMLSnippet": "<header><div class=\"container\"><div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Contact</a"
+          "outerHTMLSnippet": "<header><div class=\"container\"><div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Contact</…"
         },
         "38": {
           "tag": "div",
@@ -17012,7 +17010,7 @@
           "attrs": {
             "class": "container"
           },
-          "outerHTMLSnippet": "<div class=\"container\"><div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Contact</a></nav><"
+          "outerHTMLSnippet": "<div class=\"container\"><div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Contact</a></nav>…"
         },
         "39": {
           "tag": "div",
@@ -17020,7 +17018,7 @@
           "attrs": {
             "class": "header-inner"
           },
-          "outerHTMLSnippet": "<div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Contact</a></nav><div class=\"nav-icons\"><"
+          "outerHTMLSnippet": "<div class=\"header-inner\"><a href=\"index.html\" class=\"logo\">Hollow &amp; Vine</a><nav class=\"nav\"><a href=\"index.html\" class=\"nav-link\">Home</a><a href=\"product.html\" class=\"nav-link\">Shop</a><a href=\"#\" class=\"nav-link\">About</a><a href=\"#\" class=\"nav-link\">Contact</a></nav><div class=\"nav-icons\">…"
         },
         "40": {
           "tag": "a",
@@ -17111,7 +17109,7 @@
           "attrs": {
             "class": "nav-icons"
           },
-          "outerHTMLSnippet": "<div class=\"nav-icons\"><button class=\"icon-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11"
+          "outerHTMLSnippet": "<div class=\"nav-icons\"><button class=\"icon-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 1…"
         },
         "53": {
           "tag": "button",
@@ -17119,7 +17117,7 @@
           "attrs": {
             "class": "icon-btn"
           },
-          "outerHTMLSnippet": "<button class=\"icon-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path>"
+          "outerHTMLSnippet": "<button class=\"icon-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z\"></path…"
         },
         "54": {
           "tag": "svg",
@@ -17163,7 +17161,7 @@
           "attrs": {
             "class": "checkout-page"
           },
-          "outerHTMLSnippet": "<div class=\"checkout-page\"><div class=\"container\"><h1 class=\"section-title\">Secure Checkout</h1><div class=\"checkout-container\"><div class=\"checkout-section order-summary\"><h2>Order Summary</h2><div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div"
+          "outerHTMLSnippet": "<div class=\"checkout-page\"><div class=\"container\"><h1 class=\"section-title\">Secure Checkout</h1><div class=\"checkout-container\"><div class=\"checkout-section order-summary\"><h2>Order Summary</h2><div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><di…"
         },
         "62": {
           "tag": "div",
@@ -17171,7 +17169,7 @@
           "attrs": {
             "class": "container"
           },
-          "outerHTMLSnippet": "<div class=\"container\"><h1 class=\"section-title\">Secure Checkout</h1><div class=\"checkout-container\"><div class=\"checkout-section order-summary\"><h2>Order Summary</h2><div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><di"
+          "outerHTMLSnippet": "<div class=\"container\"><h1 class=\"section-title\">Secure Checkout</h1><div class=\"checkout-container\"><div class=\"checkout-section order-summary\"><h2>Order Summary</h2><div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><d…"
         },
         "63": {
           "tag": "h1",
@@ -17193,7 +17191,7 @@
           "attrs": {
             "class": "checkout-container"
           },
-          "outerHTMLSnippet": "<div class=\"checkout-container\"><div class=\"checkout-section order-summary\"><h2>Order Summary</h2><div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><div class=\"cart-item-title\">Midnight Wood</div><div class=\"cart-item-op"
+          "outerHTMLSnippet": "<div class=\"checkout-container\"><div class=\"checkout-section order-summary\"><h2>Order Summary</h2><div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><div class=\"cart-item-title\">Midnight Wood</div><div class=\"cart-item-o…"
         },
         "67": {
           "tag": "div",
@@ -17201,7 +17199,7 @@
           "attrs": {
             "class": "checkout-section order-summary"
           },
-          "outerHTMLSnippet": "<div class=\"checkout-section order-summary\"><h2>Order Summary</h2><div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><div class=\"cart-item-title\">Midnight Wood</div><div class=\"cart-item-options\">8oz Soy Candle • Amber Gl"
+          "outerHTMLSnippet": "<div class=\"checkout-section order-summary\"><h2>Order Summary</h2><div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><div class=\"cart-item-title\">Midnight Wood</div><div class=\"cart-item-options\">8oz Soy Candle • Amber G…"
         },
         "68": {
           "tag": "h2",
@@ -17221,7 +17219,7 @@
           "attrs": {
             "class": "cart-item"
           },
-          "outerHTMLSnippet": "<div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><div class=\"cart-item-title\">Midnight Wood</div><div class=\"cart-item-options\">8oz Soy Candle • Amber Glass</div><div class=\"cart-item-price\">$32.00</div></div><button cl"
+          "outerHTMLSnippet": "<div class=\"cart-item\" data-sku=\"HV-MW-08\"><img src=\"img/candle-midnight.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><div class=\"cart-item-title\">Midnight Wood</div><div class=\"cart-item-options\">8oz Soy Candle • Amber Glass</div><div class=\"cart-item-price\">$32.00</div></div><button c…"
         },
         "71": {
           "tag": "img",
@@ -17302,7 +17300,7 @@
           "attrs": {
             "class": "cart-item"
           },
-          "outerHTMLSnippet": "<div class=\"cart-item\" data-sku=\"HV-LH-08\"><img src=\"img/candle-lavender.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><div class=\"cart-item-title\">Lavender Haven</div><div class=\"cart-item-options\">8oz Soy Candle • Clear Glass</div><div class=\"cart-item-price\">$28.00</div></div><button c"
+          "outerHTMLSnippet": "<div class=\"cart-item\" data-sku=\"HV-LH-08\"><img src=\"img/candle-lavender.svg\" class=\"cart-item-image\"><div class=\"cart-item-info\"><div class=\"cart-item-title\">Lavender Haven</div><div class=\"cart-item-options\">8oz Soy Candle • Clear Glass</div><div class=\"cart-item-price\">$28.00</div></div><button …"
         },
         "82": {
           "tag": "img",
@@ -17383,7 +17381,7 @@
           "attrs": {
             "class": "cart-totals"
           },
-          "outerHTMLSnippet": "<div class=\"cart-totals\"><div class=\"cart-total-row\"><span>Subtotal</span><span>$60.00</span></div><div class=\"cart-total-row\"><span>Shipping</span><span>Free</span></div><div class=\"cart-total-row\"><span>Tax</span><span>$4.50</span></div><div class=\"cart-total-row total\"><span>Total</span><span>$64"
+          "outerHTMLSnippet": "<div class=\"cart-totals\"><div class=\"cart-total-row\"><span>Subtotal</span><span>$60.00</span></div><div class=\"cart-total-row\"><span>Shipping</span><span>Free</span></div><div class=\"cart-total-row\"><span>Tax</span><span>$4.50</span></div><div class=\"cart-total-row total\"><span>Total</span><span>$6…"
         },
         "93": {
           "tag": "div",
@@ -17534,7 +17532,7 @@
           "attrs": {
             "class": "checkout-btn"
           },
-          "outerHTMLSnippet": "<button class=\"checkout-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3"
+          "outerHTMLSnippet": "<button class=\"checkout-btn\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 …"
         },
         "117": {
           "tag": "svg",
@@ -17542,7 +17540,7 @@
           "attrs": {
             "role": "none"
           },
-          "outerHTMLSnippet": "<svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z\"></path></"
+          "outerHTMLSnippet": "<svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z\"></path><…"
         },
         "118": {
           "tag": "path",
@@ -17562,7 +17560,7 @@
           "attrs": {
             "class": "form-hint"
           },
-          "outerHTMLSnippet": "<p class=\"form-hint\" style=\"margin-top: 16px; text-align: center;\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"#4caf50\" role=\"none\" focusable=\"false\" style=\"vertical-align: middle; margin-right: 4px;\"><path d=\"M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 "
+          "outerHTMLSnippet": "<p class=\"form-hint\" style=\"margin-top: 16px; text-align: center;\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"#4caf50\" role=\"none\" focusable=\"false\" style=\"vertical-align: middle; margin-right: 4px;\"><path d=\"M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53…"
         },
         "121": {
           "tag": "svg",
@@ -17590,7 +17588,7 @@
           "attrs": {
             "class": "checkout-section"
           },
-          "outerHTMLSnippet": "<div class=\"checkout-section\"><h2>Shipping Information</h2><form id=\"checkoutForm\"><div class=\"form-row\"><div class=\"form-group\"><label for=\"firstName\">First Name</label><input type=\"text\" id=\"firstName\" name=\"firstName\" required=\"\" class=\"proper-label\" placeholder=\"John\" style=\"\"></div><div class=\""
+          "outerHTMLSnippet": "<div class=\"checkout-section\"><h2>Shipping Information</h2><form id=\"checkoutForm\"><div class=\"form-row\"><div class=\"form-group\"><label for=\"firstName\">First Name</label><input type=\"text\" id=\"firstName\" name=\"firstName\" required=\"\" class=\"proper-label\" placeholder=\"John\" style=\"\"></div><div class=…"
         },
         "126": {
           "tag": "h2",
@@ -17606,11 +17604,11 @@
         },
         "128": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-row"
           },
-          "outerHTMLSnippet": "<div class=\"form-row\"><div class=\"form-group\"><label for=\"firstName\">First Name</label><input type=\"text\" id=\"firstName\" name=\"firstName\" required=\"\" class=\"proper-label\" placeholder=\"John\" style=\"\"></div><div class=\"form-group\"><label for=\"lastName\">Last Name</label><input type=\"text\" id=\"lastName\""
+          "outerHTMLSnippet": "<div class=\"form-row\"><div class=\"form-group\"><label for=\"firstName\">First Name</label><input type=\"text\" id=\"firstName\" name=\"firstName\" required=\"\" class=\"proper-label\" placeholder=\"John\" style=\"\"></div><div class=\"form-group\"><label for=\"lastName\">Last Name</label><input type=\"text\" id=\"lastName…"
         },
         "129": {
           "tag": "div",
@@ -17654,7 +17652,7 @@
         },
         "137": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-group"
           },
@@ -17690,7 +17688,7 @@
         },
         "144": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-group"
           },
@@ -17710,7 +17708,7 @@
         },
         "148": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-group"
           },
@@ -17730,11 +17728,11 @@
         },
         "152": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-row"
           },
-          "outerHTMLSnippet": "<div class=\"form-row\"><div class=\"form-group\"><label for=\"apartment\">Apartment, suite, etc.</label><input type=\"text\" id=\"apartment\" name=\"apartment\" class=\"proper-label\" placeholder=\"(optional)\" style=\"\"></div><div class=\"form-group\"><label for=\"zip\">ZIP Code</label><input type=\"text\" id=\"zip\" name"
+          "outerHTMLSnippet": "<div class=\"form-row\"><div class=\"form-group\"><label for=\"apartment\">Apartment, suite, etc.</label><input type=\"text\" id=\"apartment\" name=\"apartment\" class=\"proper-label\" placeholder=\"(optional)\" style=\"\"></div><div class=\"form-group\"><label for=\"zip\">ZIP Code</label><input type=\"text\" id=\"zip\" nam…"
         },
         "153": {
           "tag": "div",
@@ -17778,11 +17776,11 @@
         },
         "161": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-row"
           },
-          "outerHTMLSnippet": "<div class=\"form-row\"><div class=\"form-group\"><label for=\"city\">City</label><input type=\"text\" id=\"city\" name=\"city\" required=\"\" class=\"proper-label\" placeholder=\"Seattle\" style=\"\"></div><div class=\"form-group\"><label for=\"state\">State</label><select id=\"state\" name=\"state\" required=\"\" class=\"proper"
+          "outerHTMLSnippet": "<div class=\"form-row\"><div class=\"form-group\"><label for=\"city\">City</label><input type=\"text\" id=\"city\" name=\"city\" required=\"\" class=\"proper-label\" placeholder=\"Seattle\" style=\"\"></div><div class=\"form-group\"><label for=\"state\">State</label><select id=\"state\" name=\"state\" required=\"\" class=\"prope…"
         },
         "162": {
           "tag": "div",
@@ -17810,7 +17808,7 @@
           "attrs": {
             "class": "form-group"
           },
-          "outerHTMLSnippet": "<div class=\"form-group\"><label for=\"state\">State</label><select id=\"state\" name=\"state\" required=\"\" class=\"proper-label\"><option value=\"\">Select state</option><option value=\"WA\">Washington</option><option value=\"OR\">Oregon</option><option value=\"CA\">California</option><option value=\"NY\">New York</op"
+          "outerHTMLSnippet": "<div class=\"form-group\"><label for=\"state\">State</label><select id=\"state\" name=\"state\" required=\"\" class=\"proper-label\"><option value=\"\">Select state</option><option value=\"WA\">Washington</option><option value=\"OR\">Oregon</option><option value=\"CA\">California</option><option value=\"NY\">New York</o…"
         },
         "167": {
           "tag": "label",
@@ -17864,7 +17862,7 @@
         },
         "186": {
           "tag": "h2",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {},
           "outerHTMLSnippet": "<h2>Payment Method</h2>"
         },
@@ -17876,7 +17874,7 @@
         },
         "188": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-group"
           },
@@ -17896,7 +17894,7 @@
         },
         "192": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-group"
           },
@@ -17918,11 +17916,11 @@
         },
         "197": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-row"
           },
-          "outerHTMLSnippet": "<div class=\"form-row\"><div class=\"form-group\"><label for=\"expiry\">Expiry</label><input type=\"text\" id=\"expiry\" name=\"expiry\" required=\"\" class=\"proper-label\" placeholder=\"MM/YY\" style=\"\"></div><div class=\"form-group\"><label for=\"cvv\">CVV</label><input type=\"text\" id=\"cvv\" name=\"cvv\" required=\"\" clas"
+          "outerHTMLSnippet": "<div class=\"form-row\"><div class=\"form-group\"><label for=\"expiry\">Expiry</label><input type=\"text\" id=\"expiry\" name=\"expiry\" required=\"\" class=\"proper-label\" placeholder=\"MM/YY\" style=\"\"></div><div class=\"form-group\"><label for=\"cvv\">CVV</label><input type=\"text\" id=\"cvv\" name=\"cvv\" required=\"\" cla…"
         },
         "198": {
           "tag": "div",
@@ -17966,7 +17964,7 @@
         },
         "206": {
           "tag": "div",
-          "parentId": 21,
+          "parentId": 17,
           "attrs": {
             "class": "form-group checkbox-row"
           },
@@ -18023,7 +18021,7 @@
             "class": "modal active",
             "id": "newsletterModal"
           },
-          "outerHTMLSnippet": "<div class=\"modal active\" id=\"newsletterModal\"><div class=\"modal-content\" role=\"dialog\" aria-labelledby=\"modalTitle\" aria-modal=\"true\"><button class=\"modal-close\" aria-label=\"Close modal\" tabindex=\"-1\">×</button><div class=\"modal-header\"><h2 id=\"modalTitle\">Join Our Newsletter</h2></div><p style=\"ma"
+          "outerHTMLSnippet": "<div class=\"modal active\" id=\"newsletterModal\"><div class=\"modal-content\" role=\"dialog\" aria-labelledby=\"modalTitle\" aria-modal=\"true\"><button class=\"modal-close\" aria-label=\"Close modal\" tabindex=\"-1\">×</button><div class=\"modal-header\"><h2 id=\"modalTitle\">Join Our Newsletter</h2></div><p style=\"m…"
         },
         "217": {
           "tag": "button",
@@ -18119,7 +18117,7 @@
           "tag": "footer",
           "parentId": 35,
           "attrs": {},
-          "outerHTMLSnippet": "<footer><div class=\"container\"><div class=\"footer-content\"><div class=\"footer-col\"><h4>Hollow &amp; Vine</h4><p style=\"color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;\">\n            Hand-poured with love in the Pacific Northwest.<br>\n            Crafting moments of calm, one candle a"
+          "outerHTMLSnippet": "<footer><div class=\"container\"><div class=\"footer-content\"><div class=\"footer-col\"><h4>Hollow &amp; Vine</h4><p style=\"color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;\">\n            Hand-poured with love in the Pacific Northwest.<br>\n            Crafting moments of calm, one candle …"
         },
         "232": {
           "tag": "div",
@@ -18127,7 +18125,7 @@
           "attrs": {
             "class": "container"
           },
-          "outerHTMLSnippet": "<div class=\"container\"><div class=\"footer-content\"><div class=\"footer-col\"><h4>Hollow &amp; Vine</h4><p style=\"color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;\">\n            Hand-poured with love in the Pacific Northwest.<br>\n            Crafting moments of calm, one candle at a time"
+          "outerHTMLSnippet": "<div class=\"container\"><div class=\"footer-content\"><div class=\"footer-col\"><h4>Hollow &amp; Vine</h4><p style=\"color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;\">\n            Hand-poured with love in the Pacific Northwest.<br>\n            Crafting moments of calm, one candle at a tim…"
         },
         "233": {
           "tag": "div",
@@ -18135,7 +18133,7 @@
           "attrs": {
             "class": "footer-content"
           },
-          "outerHTMLSnippet": "<div class=\"footer-content\"><div class=\"footer-col\"><h4>Hollow &amp; Vine</h4><p style=\"color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;\">\n            Hand-poured with love in the Pacific Northwest.<br>\n            Crafting moments of calm, one candle at a time.\n          </p><div cl"
+          "outerHTMLSnippet": "<div class=\"footer-content\"><div class=\"footer-col\"><h4>Hollow &amp; Vine</h4><p style=\"color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;\">\n            Hand-poured with love in the Pacific Northwest.<br>\n            Crafting moments of calm, one candle at a time.\n          </p><div c…"
         },
         "234": {
           "tag": "div",
@@ -18143,7 +18141,7 @@
           "attrs": {
             "class": "footer-col"
           },
-          "outerHTMLSnippet": "<div class=\"footer-col\"><h4>Hollow &amp; Vine</h4><p style=\"color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;\">\n            Hand-poured with love in the Pacific Northwest.<br>\n            Crafting moments of calm, one candle at a time.\n          </p><div class=\"social-links\"><a href=\""
+          "outerHTMLSnippet": "<div class=\"footer-col\"><h4>Hollow &amp; Vine</h4><p style=\"color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;\">\n            Hand-poured with love in the Pacific Northwest.<br>\n            Crafting moments of calm, one candle at a time.\n          </p><div class=\"social-links\"><a href=…"
         },
         "235": {
           "tag": "h4",
@@ -18187,7 +18185,7 @@
           "attrs": {
             "class": "social-links"
           },
-          "outerHTMLSnippet": "<div class=\"social-links\"><a href=\"#\" class=\"social-link\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></rect><circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\""
+          "outerHTMLSnippet": "<div class=\"social-links\"><a href=\"#\" class=\"social-link\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></rect><circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=…"
         },
         "243": {
           "tag": "a",
@@ -18196,7 +18194,7 @@
             "href": "#",
             "class": "social-link"
           },
-          "outerHTMLSnippet": "<a href=\"#\" class=\"social-link\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></rect><circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></circle><circle cx="
+          "outerHTMLSnippet": "<a href=\"#\" class=\"social-link\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></rect><circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></circle><circle cx…"
         },
         "244": {
           "tag": "svg",
@@ -18204,7 +18202,7 @@
           "attrs": {
             "role": "none"
           },
-          "outerHTMLSnippet": "<svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></rect><circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></circle><circle cx=\"17.5\" cy=\"6.5\" r=\"1\" fill=\"curr"
+          "outerHTMLSnippet": "<svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></rect><circle cx=\"12\" cy=\"12\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></circle><circle cx=\"17.5\" cy=\"6.5\" r=\"1\" fill=\"cur…"
         },
         "245": {
           "tag": "rect",
@@ -18225,20 +18223,30 @@
           "outerHTMLSnippet": "<circle cx=\"17.5\" cy=\"6.5\" r=\"1\" fill=\"currentColor\"></circle>"
         },
         "248": {
+          "tag": "a",
+          "parentId": 241,
+          "attrs": {
+            "href": "#",
+            "class": "social-link",
+            "aria-label": "Facebook"
+          },
+          "outerHTMLSnippet": "<a href=\"#\" class=\"social-link\" aria-label=\"Facebook\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></path></svg></a>"
+        },
+        "249": {
           "tag": "svg",
-          "parentId": 20,
+          "parentId": 248,
           "attrs": {
             "role": "none"
           },
           "outerHTMLSnippet": "<svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></path></svg>"
         },
-        "249": {
+        "250": {
           "tag": "path",
-          "parentId": 248,
+          "parentId": 249,
           "attrs": {},
           "outerHTMLSnippet": "<path d=\"M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\"></path>"
         },
-        "250": {
+        "251": {
           "tag": "a",
           "parentId": 241,
           "attrs": {
@@ -18246,23 +18254,23 @@
             "class": "social-link",
             "aria-label": "Pinterest"
           },
-          "outerHTMLSnippet": "<a href=\"#\" class=\"social-link\" aria-label=\"Pinterest\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.9-2.477v6.78c0 2.31-1.06 4.54-3.45 5.26-1.34.39-2.67-.66-2.67-2.22 0-1.86.79-3.62 2.67-3.62 1.67 0 2.67 1.2"
+          "outerHTMLSnippet": "<a href=\"#\" class=\"social-link\" aria-label=\"Pinterest\"><svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.9-2.477v6.78c0 2.31-1.06 4.54-3.45 5.26-1.34.39-2.67-.66-2.67-2.22 0-1.86.79-3.62 2.67-3.62 1.67 0 2.67 1.…"
         },
-        "251": {
+        "252": {
           "tag": "svg",
-          "parentId": 250,
+          "parentId": 251,
           "attrs": {
             "role": "none"
           },
-          "outerHTMLSnippet": "<svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.9-2.477v6.78c0 2.31-1.06 4.54-3.45 5.26-1.34.39-2.67-.66-2.67-2.22 0-1.86.79-3.62 2.67-3.62 1.67 0 2.67 1.26 2.67 2.67 0 1.53-.53 3.48-1.47 5.17-1.63 3.06-3.62 5."
-        },
-        "252": {
-          "tag": "path",
-          "parentId": 251,
-          "attrs": {},
-          "outerHTMLSnippet": "<path d=\"M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.9-2.477v6.78c0 2.31-1.06 4.54-3.45 5.26-1.34.39-2.67-.66-2.67-2.22 0-1.86.79-3.62 2.67-3.62 1.67 0 2.67 1.26 2.67 2.67 0 1.53-.53 3.48-1.47 5.17-1.63 3.06-3.62 5.43-6.85 5.43-3.66 0-6.66-3.09-6.66-6.89 0-3.32 2.39-6.0"
+          "outerHTMLSnippet": "<svg viewBox=\"0 0 24 24\" role=\"none\" focusable=\"false\"><path d=\"M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.9-2.477v6.78c0 2.31-1.06 4.54-3.45 5.26-1.34.39-2.67-.66-2.67-2.22 0-1.86.79-3.62 2.67-3.62 1.67 0 2.67 1.26 2.67 2.67 0 1.53-.53 3.48-1.47 5.17-1.63 3.06-3.62 5…"
         },
         "253": {
+          "tag": "path",
+          "parentId": 252,
+          "attrs": {},
+          "outerHTMLSnippet": "<path d=\"M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.9-2.477v6.78c0 2.31-1.06 4.54-3.45 5.26-1.34.39-2.67-.66-2.67-2.22 0-1.86.79-3.62 2.67-3.62 1.67 0 2.67 1.26 2.67 2.67 0 1.53-.53 3.48-1.47 5.17-1.63 3.06-3.62 5.43-6.85 5.43-3.66 0-6.66-3.09-6.66-6.89 0-3.32 2.39-6.…"
+        },
+        "254": {
           "tag": "div",
           "parentId": 233,
           "attrs": {
@@ -18270,67 +18278,59 @@
           },
           "outerHTMLSnippet": "<div class=\"footer-col\"><h4>Shop</h4><ul><li><a href=\"#\">All Products</a></li><li><a href=\"#\">Best Sellers</a></li><li><a href=\"#\">New Arrivals</a></li><li><a href=\"#\">Gift Sets</a></li></ul></div>"
         },
-        "254": {
+        "255": {
           "tag": "h4",
-          "parentId": 253,
+          "parentId": 254,
           "attrs": {},
           "outerHTMLSnippet": "<h4>Shop</h4>"
         },
-        "255": {
+        "256": {
           "tag": "#text",
-          "parentId": 254,
+          "parentId": 255,
           "attrs": {},
           "outerHTMLSnippet": "Shop"
         },
-        "256": {
+        "257": {
           "tag": "ul",
-          "parentId": 253,
+          "parentId": 254,
           "attrs": {},
           "outerHTMLSnippet": "<ul><li><a href=\"#\">All Products</a></li><li><a href=\"#\">Best Sellers</a></li><li><a href=\"#\">New Arrivals</a></li><li><a href=\"#\">Gift Sets</a></li></ul>"
         },
-        "257": {
+        "258": {
           "tag": "li",
-          "parentId": 256,
+          "parentId": 257,
           "attrs": {},
           "outerHTMLSnippet": "<li><a href=\"#\">All Products</a></li>"
         },
-        "258": {
+        "259": {
           "tag": "a",
-          "parentId": 257,
+          "parentId": 258,
           "attrs": {
             "href": "#"
           },
           "outerHTMLSnippet": "<a href=\"#\">All Products</a>"
         },
-        "259": {
+        "260": {
           "tag": "#text",
-          "parentId": 258,
+          "parentId": 259,
           "attrs": {},
           "outerHTMLSnippet": "All Products"
         },
-        "260": {
+        "261": {
           "tag": "li",
-          "parentId": 256,
+          "parentId": 257,
           "attrs": {},
           "outerHTMLSnippet": "<li><a href=\"#\">Best Sellers</a></li>"
         },
-        "261": {
-          "tag": "a",
-          "parentId": 260,
-          "attrs": {
-            "href": "#"
-          },
-          "outerHTMLSnippet": "<a href=\"#\">Best Sellers</a>"
-        },
         "262": {
           "tag": "#text",
-          "parentId": 261,
+          "parentId": 23,
           "attrs": {},
           "outerHTMLSnippet": "Best Sellers"
         },
         "263": {
           "tag": "li",
-          "parentId": 256,
+          "parentId": 257,
           "attrs": {},
           "outerHTMLSnippet": "<li><a href=\"#\">New Arrivals</a></li>"
         },
@@ -18350,7 +18350,7 @@
         },
         "266": {
           "tag": "li",
-          "parentId": 256,
+          "parentId": 257,
           "attrs": {},
           "outerHTMLSnippet": "<li><a href=\"#\">Gift Sets</a></li>"
         },
@@ -18620,7 +18620,7 @@
           "tag": "script",
           "parentId": 35,
           "attrs": {},
-          "outerHTMLSnippet": "<script>\n    // Newsletter modal - Cursed Loop: focus trap that doesn't close on Escape\n    const modal = document.getElementById('newsletterModal');\n    \n    // Open modal synchronously (no timer)\n    modal.classList.add('active');\n    const firstInput = modal.querySelector('input');\n    if (firstI"
+          "outerHTMLSnippet": "<script>\n    // Newsletter modal - Cursed Loop: focus trap that doesn't close on Escape\n    const modal = document.getElementById('newsletterModal');\n    \n    // Open modal synchronously (no timer)\n    modal.classList.add('active');\n    const firstInput = modal.querySelector('input');\n    if (first…"
         },
         "308": {
           "tag": "div",
@@ -18640,7 +18640,7 @@
         },
         "310": {
           "tag": "div",
-          "parentId": 22,
+          "parentId": 18,
           "attrs": {
             "id": "placeholder"
           },
@@ -18696,7 +18696,7 @@
         },
         "317": {
           "tag": "div",
-          "parentId": 23,
+          "parentId": 19,
           "attrs": {
             "id": "placeholder"
           },
@@ -18740,7 +18740,7 @@
         },
         "323": {
           "tag": "div",
-          "parentId": 22,
+          "parentId": 18,
           "attrs": {},
           "outerHTMLSnippet": "<div></div>"
         },
@@ -18788,7 +18788,7 @@
         },
         "331": {
           "tag": "div",
-          "parentId": 23,
+          "parentId": 19,
           "attrs": {},
           "outerHTMLSnippet": "<div></div>"
         },
@@ -19085,7 +19085,7 @@
           }
         ],
         "endReason": "trap",
-        "walkStartedAtMs": 1795542314706
+        "walkStartedAtMs": 1795582758777
       },
       "pageMetadata": {
         "htmlLang": null,
@@ -19130,7 +19130,7 @@
             "tagName": "h4",
             "accessibleName": "Shop",
             "domOrderIndex": 6,
-            "backendDOMNodeId": 254
+            "backendDOMNodeId": 255
           },
           {
             "tagName": "h4",
@@ -19757,7 +19757,7 @@
           "containsFocusable": false
         },
         {
-          "backendDOMNodeId": 21,
+          "backendDOMNodeId": 17,
           "tagName": "form",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -19857,7 +19857,7 @@
           "containsFocusable": false
         },
         {
-          "backendDOMNodeId": 22,
+          "backendDOMNodeId": 18,
           "tagName": "input",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20137,7 +20137,7 @@
           "containsFocusable": false
         },
         {
-          "backendDOMNodeId": 23,
+          "backendDOMNodeId": 19,
           "tagName": "input",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20507,7 +20507,7 @@
           "containsFocusable": false
         },
         {
-          "backendDOMNodeId": 20,
+          "backendDOMNodeId": 248,
           "tagName": "a",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20517,47 +20517,17 @@
           "containsFocusable": false
         },
         {
-          "backendDOMNodeId": 248,
+          "backendDOMNodeId": 249,
           "tagName": "svg",
           "hasAxNode": false,
           "ariaHidden": false,
           "isPresentational": true,
-          "isFocusable": false,
-          "hasVisibleText": false,
-          "containsFocusable": false
-        },
-        {
-          "backendDOMNodeId": 249,
-          "tagName": "path",
-          "hasAxNode": false,
-          "ariaHidden": false,
-          "isPresentational": false,
           "isFocusable": false,
           "hasVisibleText": false,
           "containsFocusable": false
         },
         {
           "backendDOMNodeId": 250,
-          "tagName": "a",
-          "hasAxNode": true,
-          "ariaHidden": false,
-          "isPresentational": false,
-          "isFocusable": true,
-          "hasVisibleText": false,
-          "containsFocusable": false
-        },
-        {
-          "backendDOMNodeId": 251,
-          "tagName": "svg",
-          "hasAxNode": false,
-          "ariaHidden": false,
-          "isPresentational": true,
-          "isFocusable": false,
-          "hasVisibleText": false,
-          "containsFocusable": false
-        },
-        {
-          "backendDOMNodeId": 252,
           "tagName": "path",
           "hasAxNode": false,
           "ariaHidden": false,
@@ -20567,7 +20537,37 @@
           "containsFocusable": false
         },
         {
+          "backendDOMNodeId": 251,
+          "tagName": "a",
+          "hasAxNode": true,
+          "ariaHidden": false,
+          "isPresentational": false,
+          "isFocusable": true,
+          "hasVisibleText": false,
+          "containsFocusable": false
+        },
+        {
+          "backendDOMNodeId": 252,
+          "tagName": "svg",
+          "hasAxNode": false,
+          "ariaHidden": false,
+          "isPresentational": true,
+          "isFocusable": false,
+          "hasVisibleText": false,
+          "containsFocusable": false
+        },
+        {
           "backendDOMNodeId": 253,
+          "tagName": "path",
+          "hasAxNode": false,
+          "ariaHidden": false,
+          "isPresentational": false,
+          "isFocusable": false,
+          "hasVisibleText": false,
+          "containsFocusable": false
+        },
+        {
+          "backendDOMNodeId": 254,
           "tagName": "div",
           "hasAxNode": false,
           "ariaHidden": false,
@@ -20577,7 +20577,7 @@
           "containsFocusable": true
         },
         {
-          "backendDOMNodeId": 254,
+          "backendDOMNodeId": 255,
           "tagName": "h4",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20587,7 +20587,7 @@
           "containsFocusable": false
         },
         {
-          "backendDOMNodeId": 256,
+          "backendDOMNodeId": 257,
           "tagName": "ul",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20597,7 +20597,7 @@
           "containsFocusable": true
         },
         {
-          "backendDOMNodeId": 257,
+          "backendDOMNodeId": 258,
           "tagName": "li",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20607,7 +20607,7 @@
           "containsFocusable": true
         },
         {
-          "backendDOMNodeId": 258,
+          "backendDOMNodeId": 259,
           "tagName": "a",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20617,7 +20617,7 @@
           "containsFocusable": false
         },
         {
-          "backendDOMNodeId": 260,
+          "backendDOMNodeId": 261,
           "tagName": "li",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20627,7 +20627,7 @@
           "containsFocusable": true
         },
         {
-          "backendDOMNodeId": 261,
+          "backendDOMNodeId": 23,
           "tagName": "a",
           "hasAxNode": true,
           "ariaHidden": false,
@@ -20933,19 +20933,19 @@
         "maxResourceBytes": 30997,
         "responseTimings": [
           {
-            "url": "http://localhost:60392/img/candle-midnight.svg",
+            "url": "http://localhost:57483/img/candle-midnight.svg",
             "bytesReceived": 1592,
-            "durationMs": 39
-          },
-          {
-            "url": "http://localhost:60392/img/candle-lavender.svg",
-            "bytesReceived": 1632,
-            "durationMs": 42
-          },
-          {
-            "url": "http://localhost:60392/checkout.html",
-            "bytesReceived": 30997,
             "durationMs": 20
+          },
+          {
+            "url": "http://localhost:57483/img/candle-lavender.svg",
+            "bytesReceived": 1632,
+            "durationMs": 21
+          },
+          {
+            "url": "http://localhost:57483/checkout.html",
+            "bytesReceived": 30997,
+            "durationMs": 12
           }
         ]
       },
@@ -20956,7 +20956,7 @@
   },
   "speechTrack": [
     {
-      "backendDOMNodeId": 19,
+      "backendDOMNodeId": 22,
       "text": "Hollow & Vine — Checkout, RootWebArea",
       "box": null
     },
@@ -20994,10 +20994,10 @@
       }
     },
     {
-      "backendDOMNodeId": 21,
+      "backendDOMNodeId": 17,
       "text": "form",
       "box": {
-        "backendDOMNodeId": 21,
+        "backendDOMNodeId": 17,
         "x": 702,
         "y": 317.171875,
         "width": 486,
@@ -21231,11 +21231,11 @@
       }
     },
     {
-      "backendDOMNodeId": 22,
+      "backendDOMNodeId": 18,
       "text": "john@example.com, edit text, required",
       "note": "name disappears when typing",
       "box": {
-        "backendDOMNodeId": 22,
+        "backendDOMNodeId": 18,
         "x": 702,
         "y": 455.953125,
         "width": 486,
@@ -21408,11 +21408,11 @@
       }
     },
     {
-      "backendDOMNodeId": 23,
+      "backendDOMNodeId": 19,
       "text": "1234 5678 9012 3456, edit text, required",
       "note": "name disappears when typing",
       "box": {
-        "backendDOMNodeId": 23,
+        "backendDOMNodeId": 19,
         "x": 702,
         "y": 1207.21875,
         "width": 486,
@@ -21519,10 +21519,10 @@
       }
     },
     {
-      "backendDOMNodeId": 20,
+      "backendDOMNodeId": 248,
       "text": "Facebook, link",
       "box": {
-        "backendDOMNodeId": 20,
+        "backendDOMNodeId": 248,
         "x": 108,
         "y": 1752.421875,
         "width": 32,
@@ -21530,10 +21530,10 @@
       }
     },
     {
-      "backendDOMNodeId": 250,
+      "backendDOMNodeId": 251,
       "text": "Pinterest, link",
       "box": {
-        "backendDOMNodeId": 250,
+        "backendDOMNodeId": 251,
         "x": 156,
         "y": 1752.421875,
         "width": 32,
@@ -21541,10 +21541,10 @@
       }
     },
     {
-      "backendDOMNodeId": 254,
+      "backendDOMNodeId": 255,
       "text": "Shop, heading level 4",
       "box": {
-        "backendDOMNodeId": 254,
+        "backendDOMNodeId": 255,
         "x": 358,
         "y": 1618.640625,
         "width": 266,
@@ -21552,10 +21552,10 @@
       }
     },
     {
-      "backendDOMNodeId": 256,
+      "backendDOMNodeId": 257,
       "text": "list",
       "box": {
-        "backendDOMNodeId": 256,
+        "backendDOMNodeId": 257,
         "x": 358,
         "y": 1660.234375,
         "width": 266,
@@ -21933,15 +21933,15 @@
       "box": null
     },
     {
-      "backendDOMNodeId": 255,
+      "backendDOMNodeId": 256,
       "text": "Shop, StaticText",
       "box": null
     },
     {
-      "backendDOMNodeId": 257,
+      "backendDOMNodeId": 258,
       "text": "list item",
       "box": {
-        "backendDOMNodeId": 257,
+        "backendDOMNodeId": 258,
         "x": 358,
         "y": 1660.234375,
         "width": 266,
@@ -21949,10 +21949,10 @@
       }
     },
     {
-      "backendDOMNodeId": 260,
+      "backendDOMNodeId": 261,
       "text": "list item",
       "box": {
-        "backendDOMNodeId": 260,
+        "backendDOMNodeId": 261,
         "x": 358,
         "y": 1693.828125,
         "width": 266,
@@ -22384,10 +22384,10 @@
       "box": null
     },
     {
-      "backendDOMNodeId": 258,
+      "backendDOMNodeId": 259,
       "text": "All Products, link",
       "box": {
-        "backendDOMNodeId": 258,
+        "backendDOMNodeId": 259,
         "x": 358,
         "y": 1665.234375,
         "width": 78.109375,
@@ -22395,10 +22395,10 @@
       }
     },
     {
-      "backendDOMNodeId": 261,
+      "backendDOMNodeId": 23,
       "text": "Best Sellers, link",
       "box": {
-        "backendDOMNodeId": 261,
+        "backendDOMNodeId": 23,
         "x": 358,
         "y": 1698.828125,
         "width": 73.40625,
@@ -22586,7 +22586,7 @@
       "box": null
     },
     {
-      "backendDOMNodeId": 259,
+      "backendDOMNodeId": 260,
       "text": "All Products, StaticText",
       "box": null
     },

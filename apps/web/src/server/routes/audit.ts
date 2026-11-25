@@ -180,7 +180,7 @@ function statusBody(job: Job): Record<string, unknown> | undefined {
     case 'queued':
       return { status: 'queued' }
     case 'done':
-      // The result is dropped 15 minutes after completion; an evicted job reads as expired.
+      // The result is dropped 60 minutes after completion (`RESULT_TTL_MS`); an evicted job reads as expired.
       return job.result === undefined ? undefined : { status: 'done', result: job.result, stages: job.stages }
     case 'error':
       return {

@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -49,12 +50,11 @@ test.describe('Séance', () => {
     const handle = await status.elementHandle()
     release()
     await expect(status).toHaveText('Loading page…')
-    await expect(status).toHaveText('Walking the keyboard path…')
+    await expect(status).toHaveText('Reading accessibility tree…')
     // Same node throughout: only the text changed.
     expect(await handle?.evaluate((node) => node.isConnected)).toBe(true)
     await expect(page.getByRole('list', { name: 'Completed stages' }).getByRole('listitem')).toHaveText([
-      'Loading page… 1.2s',
-      'Reading accessibility tree… 0.5s',
+      'Loading page… 0.5s',
     ])
   })
 
@@ -83,8 +83,41 @@ test.describe('Séance', () => {
     await expect(page.locator('main [aria-live="assertive"]').first()).toHaveText(
       'This séance has ended (results expire after 1 hour or when the server restarts).',
     )
-    // This tab never started that job, so there is no URL to audit again: only the way home is offered.
+    // This browser never started that job, so there is no URL to audit again: only the way home is offered.
     await expect(page.getByRole('button', { name: 'Audit again' })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Back to home' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Cancel' })).toHaveCount(0)
+  })
+
+  test('offers Cancel while the audit runs; it goes home and stops polling', async ({ page }) => {
+    let polls = 0
+    await page.route('**/api/audit/job-cancel', async (route) => {
+      polls += 1
+      await route.fulfill({ json: { status: 'walking', stages: { queued: 1000, loading: 1500, tree: 2000, walking: 2600 } } })
+    })
+    await page.goto('/seance/job-cancel')
+    await expect(page.locator('main [role="status"]')).toHaveText('Walking the keyboard path…')
+    const cancel = page.getByRole('link', { name: 'Cancel' })
+    await expect(cancel).toBeVisible()
+    await expect(cancel).toHaveAttribute('href', '/')
+    await expect(cancel).toHaveClass(/button-primary/)
+    const scan = await new AxeBuilder({ page }).analyze()
+    expect(scan.violations.map((v) => v.id)).toEqual([])
+
+    await cancel.click()
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('THE UNSEEN')
+    const settled = polls
+    await page.waitForTimeout(1200)
+    expect(polls).toBe(settled)
+  })
+
+  test('Cancel is gone once the audit has failed', async ({ page }) => {
+    await page.route('**/api/audit/job-cancel-failed', (route) =>
+      route.fulfill({ json: { status: 'error', error: 'TIMEOUT', message: 'raw' } }),
+    )
+    await page.goto('/seance/job-cancel-failed')
+    await expect(page.getByRole('button', { name: 'Try another URL' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Cancel' })).toHaveCount(0)
   })
 })

@@ -13,6 +13,7 @@ const SAMPLE = `/sample/${SAMPLE_ID}`
 const CLEAN_MESSAGE = 'No hauntings found by automated checks; a manual review is still needed.'
 const ENDED_MESSAGE = 'This séance has ended (results expire after 1 hour or when the server restarts).'
 const JOB_URLS_KEY = 'unseen.job-urls'
+const RETRYING_MESSAGE = 'Trying to reach the server again…'
 
 type SampleBody = { result: Record<string, unknown> & { automatedCoverageNote: string; needsManualCheck: unknown[] } }
 
@@ -27,10 +28,13 @@ async function fetchSample(page: Page): Promise<SampleBody> {
   return response.json()
 }
 
-/** Remembers a job URL the way the landing page does, in this tab's sessionStorage. */
+/** Remembers a job URL the way the landing page does, in this browser's localStorage. */
 async function rememberJob(page: Page, id: string, url: string): Promise<void> {
   await page.goto('/')
-  await page.evaluate(([key, entry]) => sessionStorage.setItem(key, entry), [JOB_URLS_KEY, JSON.stringify([{ id, url }])])
+  await page.evaluate(
+    ([key, jobId, jobUrl]) => localStorage.setItem(key, JSON.stringify([{ id: jobId, url: jobUrl, at: Date.now() }])),
+    [JOB_URLS_KEY, id, url],
+  )
 }
 
 test.describe('Not found states', () => {
@@ -66,7 +70,7 @@ test.describe('Not found states', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Audit not found')
     await expect(page).toHaveTitle('Audit not found – THE UNSEEN')
     await expect(page.getByText(ENDED_MESSAGE)).toBeVisible()
-    // This tab never started that job, so there is no URL to post again.
+    // This browser never started that job, so there is no URL to post again.
     await expect(page.getByRole('button', { name: 'Audit again' })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Back to home' })).toHaveAttribute('href', '/')
     await expectNoAxeFindings(page)
@@ -92,8 +96,50 @@ test.describe('Expired job: Audit again', () => {
     await expect(page).toHaveURL(/\/seance\/fresh-job$/)
     expect(posted).toEqual([{ url: 'https://example.com/pricing' }])
     // The new job is remembered too, so it can be audited again in turn.
-    const remembered = await page.evaluate((key) => sessionStorage.getItem(key), JOB_URLS_KEY)
+    const remembered = await page.evaluate((key) => localStorage.getItem(key), JOB_URLS_KEY)
     expect(remembered).toContain('fresh-job')
+  })
+
+  test('a link opened in a fresh page of the same browser still offers Audit again', async ({ page, context }) => {
+    // Start an audit from the landing page as a user would; the server answers with a job id.
+    const posted: unknown[] = []
+    const ids = ['shared-job', 'second-job']
+    await context.route('**/api/audit', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback()
+      posted.push(route.request().postDataJSON())
+      await route.fulfill({ status: 202, json: { id: ids[posted.length - 1] ?? 'extra-job' } })
+    })
+    await page.goto('/')
+    await page.getByLabel('Enter a URL to audit').fill('https://example.com/pricing')
+    await page.getByRole('button', { name: 'Begin audit' }).click()
+    await expect(page).toHaveURL(/\/seance\/shared-job$/)
+
+    // The job is unknown to the real server, so it reads as expired. A new tab, with its own
+    // sessionStorage, opens the link that was pasted or shared.
+    const fresh = await context.newPage()
+    await fresh.goto('/audit/shared-job')
+    await expect(fresh.getByRole('heading', { level: 1 })).toHaveText('Audit not found')
+    await expect(fresh.getByText(ENDED_MESSAGE)).toBeVisible()
+    await expect(fresh.getByRole('button', { name: 'Audit again' })).toBeVisible()
+    await expectNoAxeFindings(fresh)
+
+    await fresh.getByRole('button', { name: 'Audit again' }).click()
+    await expect(fresh).toHaveURL(/\/seance\/second-job$/)
+    expect(posted).toHaveLength(2)
+    expect(posted[1]).toEqual(posted[0])
+    await fresh.close()
+  })
+
+  test('a remembered job is forgotten after two hours', async ({ page }) => {
+    await page.goto('/')
+    await page.evaluate(
+      ([key, entry]) => localStorage.setItem(key, entry),
+      [JOB_URLS_KEY, JSON.stringify([{ id: 'stale-job', url: 'https://example.com/', at: Date.now() - 2 * 60 * 60 * 1000 - 60_000 }])],
+    )
+    await page.goto('/audit/stale-job')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Audit not found')
+    await expect(page.getByRole('button', { name: 'Audit again' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Back to home' })).toBeVisible()
   })
 
   test('shows why the re-audit could not start and stays on the page', async ({ page }) => {
@@ -210,6 +256,12 @@ test.describe('Network failure while polling', () => {
     })
     await page.goto('/seance/job-offline')
 
+    // While the first retries run, the page says what it is doing and keeps a way out.
+    const status = page.locator('main [role="status"]')
+    await expect(status).toHaveText(RETRYING_MESSAGE)
+    await expect(page.getByRole('button', { name: 'Try another URL' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Cancel' })).toHaveCount(0)
+
     const alert = page.locator('main [aria-live="assertive"]')
     await expect(alert).toHaveText('Could not reach the server. Check your connection and try again.', { timeout: 15_000 })
     const retry = page.getByRole('button', { name: 'Retry' })
@@ -229,12 +281,26 @@ test.describe('Network failure while polling', () => {
     await page.waitForTimeout(1500)
     expect(attempts).toHaveLength(4)
 
-    // Retry starts over with a fresh budget, and the server now answers.
+    // Retry starts over with a fresh budget. Until the server answers, the page says it is
+    // trying again (politely) and keeps "Try another URL"; then the answer replaces it.
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
     await page.unroute('**/api/audit/job-offline')
-    await page.route('**/api/audit/job-offline', (route) =>
-      route.fulfill({ json: { status: 'error', error: 'TIMEOUT', message: 'raw' } }),
-    )
+    await page.route('**/api/audit/job-offline', async (route) => {
+      await gate
+      await route.fulfill({ json: { status: 'error', error: 'TIMEOUT', message: 'raw' } })
+    })
     await retry.click()
+    await expect(status).toHaveText(RETRYING_MESSAGE)
+    await expect(alert).toHaveText('')
+    await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Try another URL' })).toBeVisible()
+    await expect(page.locator('main#main')).toBeFocused()
+    await expectNoAxeFindings(page)
+    release()
+    await expect(status).toHaveText('')
     await expect(alert).toHaveText('The audit took too long (60s limit). The page may be too large or slow to load.')
     await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0)
   })
@@ -250,7 +316,7 @@ test.describe('Network failure while polling', () => {
       await route.fulfill({ json: { status: 'tree', stages: { queued: 1000, loading: 2000, tree: 2500 } } })
     })
     await page.goto('/seance/job-blip')
-    await expect(page.locator('main [role="status"]')).toHaveText('Walking the keyboard path…', { timeout: 10_000 })
+    await expect(page.locator('main [role="status"]')).toHaveText('Reading accessibility tree…', { timeout: 10_000 })
     await expect(page.locator('main [aria-live="assertive"]')).toHaveText('')
     await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0)
   })
@@ -322,6 +388,20 @@ test.describe('Keyboard help dialog', () => {
     await page.getByRole('button', { name: 'Keyboard help' }).click()
     const dialog = page.getByRole('dialog', { name: 'Keyboard help' })
     await dialog.getByRole('heading', { level: 2, name: 'Keyboard help' }).click()
+    await expect(dialog).toBeVisible()
+  })
+
+  test('a drag from inside the dialog onto the backdrop keeps it open', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Keyboard help' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Keyboard help' })
+    const cell = dialog.getByRole('cell', { name: 'Move to the next control' })
+    const box = await cell.boundingBox()
+    expect(box).not.toBeNull()
+    await page.mouse.move((box?.x ?? 0) + 4, (box?.y ?? 0) + 4)
+    await page.mouse.down()
+    await page.mouse.move(5, 5, { steps: 8 })
+    await page.mouse.up()
     await expect(dialog).toBeVisible()
   })
 })

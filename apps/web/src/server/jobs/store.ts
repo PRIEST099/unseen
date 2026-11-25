@@ -1,7 +1,11 @@
 import type { Job } from './types.js'
 
 export const JOB_TTL_MS = 60 * 60 * 1000
-export const RESULT_TTL_MS = 15 * 60 * 1000
+/**
+ * How long a finished result is kept. It matches the client copy ("results expire after 1 hour",
+ * `SESSION_ENDED_MESSAGE`); memory stays bounded because at most `MAX_DONE_JOBS` done jobs are kept.
+ */
+export const RESULT_TTL_MS = 60 * 60 * 1000
 export const MAX_DONE_JOBS = 50
 export const CLEANUP_INTERVAL_MS = 5 * 60 * 1000
 
@@ -17,7 +21,9 @@ export type JobStoreOptions = {
 /**
  * In-memory job store. Created per server (not a module singleton) so tests can inject their own.
  * Cleanup rules: jobs idle for more than an hour are removed, finished results older than
- * 15 minutes are dropped (metadata stays), and at most 50 done jobs are kept (newest first).
+ * `RESULT_TTL_MS` (one hour) are dropped (metadata stays while the job lives), and at most 50 done
+ * jobs are kept (newest first). With the defaults both TTLs are one hour, so an expired done job is
+ * removed outright; a shorter `resultTtlMs` keeps the metadata after the result is dropped.
  */
 export class JobStore {
   private readonly jobs = new Map<string, Job>()

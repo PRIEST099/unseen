@@ -18,7 +18,7 @@ import {
 const time = fc.double({ min: 0, max: 100_000, noNaN: true })
 
 describe('shouldPlayDrone', () => {
-  it('plays only when sound is on and reduced motion is off', () => {
+  it('plays only when the header ambient toggle is on and reduced motion is off', () => {
     expect(shouldPlayDrone(true, false)).toBe(true)
     expect(shouldPlayDrone(true, true)).toBe(false)
     expect(shouldPlayDrone(false, false)).toBe(false)
@@ -26,7 +26,7 @@ describe('shouldPlayDrone', () => {
   })
 
   /** Validates: Requirements 19.6, 20.5, 33.2 */
-  test('property: the drone plays exactly when sound is on and reduced motion is off', async () => {
+  test('property: the drone plays exactly when ambient sound is on and reduced motion is off', async () => {
     await fc.assert(
       fc.asyncProperty(fc.boolean(), fc.boolean(), async (sound, reduced) => {
         expect(shouldPlayDrone(sound, reduced)).toBe(sound && !reduced)
