@@ -91,9 +91,17 @@ describe('findBox, snippet', () => {
     )
   })
 
-  it('snippet is at most 300 chars and falls back to <element>', () => {
-    const raw = baseRaw({ domNodes: { ...baseRaw().domNodes, 7: dom('div', BODY_ID, {}, 'x'.repeat(500)) } })
+  it('snippet is at most 300 chars, ends with an ellipsis when shortened, and falls back to <element>', () => {
+    const raw = baseRaw({
+      domNodes: {
+        ...baseRaw().domNodes,
+        7: dom('div', BODY_ID, {}, 'x'.repeat(500)),
+        8: dom('div', BODY_ID, {}, 'y'.repeat(300)),
+      },
+    })
     expect(snippet(raw, 7)).toHaveLength(300)
+    expect(snippet(raw, 7)).toBe(`${'x'.repeat(299)}…`)
+    expect(snippet(raw, 8)).toBe('y'.repeat(300)) // exactly 300 fits: unchanged, no ellipsis
     expect(snippet(raw, 999)).toBe('<element>')
     fc.assert(
       fc.property(arbRawAudit, (r) => {

@@ -220,6 +220,8 @@ async function collectAudit(
   parts: AuditParts
 ): Promise<RawAudit> {
   const meter = new ResourceMeter((limit) => guard.fail(limit))
+  // Each stage is reported when it starts, so the caller can show the slow step while it runs.
+  emitProgress(options.onProgress, 'loading')
   const loaded = await guard.race(
     parts.loader.loadPage(parts.context, url, meter.wrapPolicy(policy), options, async (page) => {
       // A renderer crash at any later point must end the audit, not hang it.
@@ -230,7 +232,6 @@ async function collectAudit(
     })
   )
   loaded.page.on('close', () => guard.fail(parts.crashed()))
-  emitProgress(options.onProgress, 'loading')
   try {
     const collectionErrors: CollectionError[] = []
     const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks, options.onProgress)
@@ -291,8 +292,8 @@ async function collectEvidence(
   hooks: AuditHooks,
   onProgress: OnProgressCallback | undefined
 ): Promise<Evidence> {
-  const axNodes = await guard.race(collectAxTree(page))
   emitProgress(onProgress, 'tree')
+  const axNodes = await guard.race(collectAxTree(page))
   const [axe, listeners, meta, mapping] = await guard.race(
     Promise.all([
       runAxe(page),
@@ -308,8 +309,8 @@ async function collectEvidence(
   // Two snapshots, one before and one after the Tab walk: the walk can open or remove elements.
   const referenced = new Set(axNodes.map((n) => n.backendDOMNodeId).filter((id) => id > 0))
   const before = await guard.race(collectDomNodes(page, referenced))
-  const tabWalkResult = await walkOrRecord(page, guard, collectionErrors, hooks)
   emitProgress(onProgress, 'walking')
+  const tabWalkResult = await walkOrRecord(page, guard, collectionErrors, hooks)
   const after = await guard.race(collectDomNodes(page, referenced))
   collectionErrors.push(...before.errors, ...after.errors)
   const domNodes = { ...after.domNodes, ...before.domNodes }

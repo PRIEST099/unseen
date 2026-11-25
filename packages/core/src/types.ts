@@ -39,7 +39,7 @@ export type DomNodeInfo = {
   tag: string // lower-case local name; '#text' and '#document' for those node types
   parentId: number | null // backendDOMNodeId of the parent element (the host for shadow roots and frames)
   attrs: Partial<Record<DomAttrName, string>> // present attributes only; a bare attribute is ''
-  outerHTMLSnippet: string // at most 300 characters
+  outerHTMLSnippet: string // at most 300 characters; a shortened snippet ends with "…"
 }
 
 // AX node from CDP Accessibility.getFullAXTree
@@ -216,10 +216,10 @@ export type AxeViolationNode = {
   failureSummary: string
 }
 
-// Audit stages reported through `onProgress`, in the order they complete
+// Audit stages reported through `onProgress`, in the order they start
 export type ProgressStage = 'loading' | 'tree' | 'walking' | 'classifying'
 
-// Called once per stage as it completes; `atMs` is epoch milliseconds. A throwing callback never fails the audit.
+// Called once per stage as it starts; `atMs` is epoch milliseconds. A throwing callback never fails the audit.
 export type OnProgressCallback = (stage: 'loading' | 'tree' | 'walking' | 'classifying', atMs: number) => void
 
 // Public API options

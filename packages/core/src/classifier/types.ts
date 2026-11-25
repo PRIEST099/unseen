@@ -53,7 +53,7 @@ export type Haunting = {
   speech?: string // screen-reader announcement
   speechNote?: string // e.g. "name disappears when typing"
   soundCue?: string // e.g. "garbled-whisper", "chime"; never part of speech
-  htmlSnippet: string // at most 300 chars
+  htmlSnippet: string // at most 300 chars; a shortened snippet ends with "…"
   explanation: string // what is wrong (1-2 sentences)
   persona: string // who is affected (one sentence starting with "As a")
   fix: HauntingFix

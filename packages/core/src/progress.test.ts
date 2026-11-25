@@ -49,3 +49,15 @@ test('a throwing callback is logged with its stage', () => {
   expect(String(log.mock.calls[0]?.[0])).toContain('tree')
   expect(String(log.mock.calls[0]?.[0])).toContain('boom')
 })
+
+test('a thrown value that cannot be stringified is still logged, not rethrown', () => {
+  const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  const unprintable = Object.create(null) as object // String() on this throws a TypeError
+  expect(() =>
+    emitProgress(() => {
+      throw unprintable
+    }, 'walking')
+  ).not.toThrow()
+  expect(log).toHaveBeenCalledTimes(1)
+  expect(String(log.mock.calls[0]?.[0])).toContain('walking')
+})
