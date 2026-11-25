@@ -2,12 +2,14 @@ import type { ReactElement } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { AppHeader } from './components/AppHeader'
 import { AnnouncerProvider } from './contexts/AnnouncerContext'
+import { useAmbientDrone } from './hooks/useAmbientDrone'
 import { AuditResultView } from './views/AuditResultView'
 import { LandingView } from './views/LandingView'
 import { NotFoundView } from './views/NotFoundView'
 import { SeanceView } from './views/SeanceView'
 
 export function App(): ReactElement {
+  useAmbientDrone()
   return (
     <AnnouncerProvider>
       <div className="app-shell">
