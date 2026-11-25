@@ -1,9 +1,20 @@
+import { readServerConfig } from './config.js'
 import { createServer } from './server.js'
 
-const PORT = Number(process.env.PORT) || 3000
-const MAX_CONCURRENCY = Number(process.env.UNSEEN_MAX_CONCURRENCY) || 2
+const config = readServerConfig(process.env)
+const PORT = config.port
 
-const server = createServer({ maxConcurrency: MAX_CONCURRENCY, logger: true })
+const server = createServer({
+  maxConcurrency: config.maxConcurrency,
+  limits: {
+    maxQueueDepth: config.maxQueueDepth,
+    auditTimeoutMs: config.auditTimeoutMs,
+    ratePerMinute: config.ratePerMinute,
+    ratePerHour: config.ratePerHour,
+    resourceLimits: config.resourceLimits,
+  },
+  logger: true,
+})
 
 process.once('SIGTERM', () => {
   server.log.info('SIGTERM received, closing server')

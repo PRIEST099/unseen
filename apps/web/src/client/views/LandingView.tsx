@@ -9,6 +9,7 @@ import { INVALID_URL_MESSAGE, parseAuditUrl, submitAudit } from '../utils/audit-
 import { rememberJobUrl } from '../utils/job-urls'
 import { SCORE_EXPLANATION, scoreBandLabel, scoreOutOf } from '../utils/score-band'
 import { fetchSamples } from '../utils/samples'
+import { LIVE_AUDITOR_LEAD, REPLAY_NOTICE, replayConfig } from '../utils/replay-config'
 import type { SampleMetadata } from '../utils/samples'
 
 type SamplesState =
@@ -90,11 +91,33 @@ function SampleList({ state, onSelect }: { state: SamplesState; onSelect: (id: s
   )
 }
 
-export function LandingView(): ReactElement {
-  useDocumentTitle('THE UNSEEN')
-  useFocusMain()
+/** The replay edition cannot audit: the form is disabled and one plain note says why. */
+function ReplayForm(): ReactElement {
+  const { liveUrl } = replayConfig
+  return (
+    <form className="url-form" noValidate>
+      <div className="field">
+        <label htmlFor="url-input">Enter a URL to audit</label>
+        <input id="url-input" type="url" disabled aria-describedby="replay-note" />
+      </div>
+      <button type="submit" className="button button-primary" disabled>
+        Begin audit
+      </button>
+      <p id="replay-note" className="replay-note">
+        {REPLAY_NOTICE}
+        {liveUrl === '' ? null : (
+          <>
+            {' '}
+            {LIVE_AUDITOR_LEAD} <a href={liveUrl}>{liveUrl}</a>.
+          </>
+        )}
+      </p>
+    </form>
+  )
+}
+
+function UrlForm(): ReactElement {
   const navigate = useNavigate()
-  const samples = useSamples()
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -120,6 +143,37 @@ export function LandingView(): ReactElement {
   }
 
   return (
+    <form className="url-form" noValidate onSubmit={(event) => void handleSubmit(event)}>
+      <div className="field">
+        <label htmlFor="url-input">Enter a URL to audit</label>
+        <input
+          id="url-input"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+          aria-invalid={error === '' ? undefined : true}
+          aria-describedby="url-error"
+        />
+      </div>
+      <button type="submit" className="button button-primary" aria-disabled={submitting}>
+        Begin audit
+      </button>
+      <p id="url-error" className="form-error" aria-live="assertive">
+        {error}
+      </p>
+    </form>
+  )
+}
+
+export function LandingView(): ReactElement {
+  useDocumentTitle('THE UNSEEN')
+  useFocusMain()
+  const navigate = useNavigate()
+  const samples = useSamples()
+
+  return (
     <main id="main" tabIndex={-1} className="view landing">
       {/* The hero is the brand on this route: the header leaves its wordmark out on "/". */}
       <div className="landing-hero">
@@ -139,27 +193,7 @@ export function LandingView(): ReactElement {
           <Candle />
           <h1 className="landing-title">THE UNSEEN</h1>
           <p className="tagline">Which site do you dare to see through their eyes?</p>
-          <form className="url-form" noValidate onSubmit={(event) => void handleSubmit(event)}>
-            <div className="field">
-              <label htmlFor="url-input">Enter a URL to audit</label>
-              <input
-                id="url-input"
-                type="url"
-                inputMode="url"
-                autoComplete="url"
-                value={url}
-                onChange={(event) => setUrl(event.target.value)}
-                aria-invalid={error === '' ? undefined : true}
-                aria-describedby="url-error"
-              />
-            </div>
-            <button type="submit" className="button button-primary" aria-disabled={submitting}>
-              Begin audit
-            </button>
-            <p id="url-error" className="form-error" aria-live="assertive">
-              {error}
-            </p>
-          </form>
+          {replayConfig.replay ? <ReplayForm /> : <UrlForm />}
         </div>
       </div>
       <h2>Try a sample</h2>

@@ -242,3 +242,10 @@ Implement the browser automation pipeline in `packages/core/src/runner/` that ac
   ]
 }
 ```
+
+## Notes
+
+### Implementation notes (2026-11-27 run, deploy and replay)
+
+- **Additive drift in `RawAudit` and `AuditOptions`, no schema version bump.** `RawAudit.engine?: { unseenVersion, axeVersion, chromiumVersion }` records the versions an audit ran with (axe from `results.testEngine.version`, Chromium from `browser.version()`, THE UNSEEN from `packages/core/package.json` through `src/version.ts`). It is optional so audits recorded earlier still validate. `AuditOptions.resourceLimits?` overrides the page weight limits of security.md (500 requests, 50 MB total, 10 MB per resource) so the hosted server can set them from environment variables; absent or unusable values keep the defaults. Tests: `tests/engine-versions.int.spec.ts`, `src/runner/resource-limits.test.ts`.
+- **`playwright` moved to `dependencies` of core** (pinned 1.65.1, `peerDependencies` entry removed; `@playwright/test` pinned 1.65.1). Found by the Docker smoke test: with only a dev and peer entry, `npm ci --omit=dev` left Playwright out of the runtime image and the server failed to start.

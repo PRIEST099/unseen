@@ -4,7 +4,7 @@ import {
   AuditTimeoutError,
   SsrfBlockedError,
 } from '@the-unseen/core'
-import type { AuditOptions, ClassifiedAudit } from '@the-unseen/core'
+import type { AuditOptions, ClassifiedAudit, ResourceLimits } from '@the-unseen/core'
 import type { JobStore } from './store.js'
 import type { JobError, JobLogger } from './types.js'
 
@@ -19,6 +19,10 @@ export type WorkerDeps = {
   /** Receives the raw error (with URL and stack) for server-side diagnosis only. */
   logger?: JobLogger
   now?: () => number
+  /** Full-audit timeout; defaults to AUDIT_TIMEOUT_MS (security.md: 60 seconds). */
+  timeoutMs?: number
+  /** Page weight limits; absent fields keep the security.md defaults. */
+  resourceLimits?: Partial<ResourceLimits>
 }
 
 /**
@@ -57,7 +61,8 @@ export async function executeJob(jobId: string, deps: WorkerDeps): Promise<void>
   try {
     const classified = await audit(job.url, {
       allowPrivate: isPrivateAllowed(),
-      timeoutMs: AUDIT_TIMEOUT_MS,
+      timeoutMs: deps.timeoutMs ?? AUDIT_TIMEOUT_MS,
+      ...(deps.resourceLimits === undefined ? {} : { resourceLimits: deps.resourceLimits }),
       onProgress: (stage, atMs): void => {
         store.update(jobId, (current) => ({ status: stage, stages: { ...current.stages, [stage]: atMs } }))
       },

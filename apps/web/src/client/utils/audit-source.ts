@@ -3,6 +3,8 @@ import { siteLabel } from './audited-url'
 // seance.ts imports isClassifiedAudit from here; the cycle is safe because neither module
 // calls into the other while it is being evaluated, only later from functions.
 import { describeJobError } from './seance'
+import { replayAssetUrl, replayConfig } from './replay-config'
+import type { ReplayConfig } from './replay-config'
 
 export type AuditSource = { kind: 'job' | 'sample'; id: string }
 
@@ -35,12 +37,14 @@ export function isClassifiedAudit(value: unknown): value is ClassifiedAudit {
   )
 }
 
-export function auditEndpoint(source: AuditSource): string {
+export function auditEndpoint(source: AuditSource, config: ReplayConfig = replayConfig): string {
+  if (config.replay) return replayAssetUrl(config, `${encodeURIComponent(source.id)}.json`)
   return source.kind === 'job' ? `/api/audit/${encodeURIComponent(source.id)}` : `/api/samples/${encodeURIComponent(source.id)}`
 }
 
-export function screenshotEndpoint(source: AuditSource): string {
-  return `${auditEndpoint(source)}/screenshot.png`
+export function screenshotEndpoint(source: AuditSource, config: ReplayConfig = replayConfig): string {
+  if (config.replay) return replayAssetUrl(config, `${encodeURIComponent(source.id)}.png`)
+  return `${auditEndpoint(source, config)}/screenshot.png`
 }
 
 /** Pulls the audit out of a job-status or sample response body. */
@@ -61,9 +65,15 @@ export function parseAuditBody(source: AuditSource, body: unknown): AuditLoadRes
   return { status: 'in-progress' }
 }
 
-export async function fetchAudit(source: AuditSource, fetchFn: typeof fetch = fetch): Promise<AuditLoadResult> {
+export async function fetchAudit(
+  source: AuditSource,
+  fetchFn: typeof fetch = fetch,
+  config: ReplayConfig = replayConfig,
+): Promise<AuditLoadResult> {
+  // The replay edition has no jobs and no API: a job id is simply unknown, without any request.
+  if (config.replay && source.kind === 'job') return { status: 'not-found' }
   try {
-    const response = await fetchFn(auditEndpoint(source))
+    const response = await fetchFn(auditEndpoint(source, config))
     if (response.status === 404) return { status: 'not-found' }
     if (!response.ok) return { status: 'failed', message: NETWORK_MESSAGE }
     const body: unknown = await response.json()

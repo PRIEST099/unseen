@@ -1,0 +1,19 @@
+# Render Blueprint for the hosted auditor. Not applied by this repository's automation:
+# the owner connects the repository and applies it (see apps/web/DEPLOY.md).
+# Render has no 1 GB plan: "standard" (2 GB) is the smallest one that clears the 1 GB minimum.
+# Check the current plan names and prices on render.com before applying.
+services:
+  - type: web
+    name: unseen-web
+    runtime: docker
+    dockerfilePath: ./apps/web/Dockerfile
+    dockerContext: .
+    region: oregon # a single region: jobs and results live in memory, so there is one instance
+    plan: standard
+    numInstances: 1
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: UNSEEN_MAX_CONCURRENCY
+        value: "2"

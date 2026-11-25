@@ -1,11 +1,19 @@
 // Schema version literal — increment when a breaking change is made
 export type SchemaVersion = "1"
 
+// The tool versions an audit ran with, so another tester can rerun it. Empty string = could not be read.
+export type EngineVersions = {
+  unseenVersion: string
+  axeVersion: string
+  chromiumVersion: string
+}
+
 // Top-level audit result
 export type RawAudit = {
   schemaVersion: SchemaVersion
   auditedUrl: string
   auditedAt: string // ISO 8601
+  engine?: EngineVersions // absent in audits recorded before this field existed
   screenshotPng: string // base64-encoded PNG
   viewportWidth: number
   viewportHeight: number
@@ -230,6 +238,14 @@ export type AuditOptions = {
   safeFetchPolicy?: SafeFetchPolicy // override for testing
   viewport?: { width: number; height: number } // default 1280×900
   onProgress?: OnProgressCallback // optional stage reporting; absent means no callbacks
+  resourceLimits?: Partial<ResourceLimits> // page weight limits; absent fields keep the security.md defaults
+}
+
+// Page weight limits enforced while the page loads
+export type ResourceLimits = {
+  maxRequests: number // default 500
+  maxTotalBytes: number // default 50 MB
+  maxResourceBytes: number // default 10 MB
 }
 
 // SSRF guard interface

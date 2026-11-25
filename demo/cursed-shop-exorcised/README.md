@@ -10,7 +10,7 @@ npx serve demo/cursed-shop-exorcised
 
 ## Scores
 
-Haunting Score from the audit engine (`auditAndClassify` through the unseen MCP server, 0 is best). `tests/exorcise.int.test.ts` in `packages/mcp` recomputes these rows and fails if they differ.
+Haunting Score from the audit engine (0 is best). The re-audit called `auditAndClassify` from `@the-unseen/core` directly, with `allowPrivate: true`, not through the unseen MCP server. `audit_url` calls the same function. `tests/exorcise.int.test.ts` in `packages/mcp` recomputes these rows and fails if they differ.
 
 | Page | Before (apps/cursed-shop) | After (this folder) |
 |------|---------------------------|---------------------|
@@ -65,4 +65,4 @@ Each fix is in the source. Nothing is injected at runtime.
 
 ## How the scores were produced
 
-Serve each folder on a local port and call `audit_url` (or `auditAndClassify` with `allowPrivate: true`) on the three pages. The "before" run is the unmodified `apps/cursed-shop`.
+Serve each folder on a local port and call `auditAndClassify` with `allowPrivate: true` on the three pages (`audit_url` runs the same function). The "before" run is the unmodified `apps/cursed-shop`.

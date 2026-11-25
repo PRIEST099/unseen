@@ -1229,7 +1229,7 @@
     "raw": {
       "schemaVersion": "1",
       "auditedUrl": "/cursed-shop/product.html",
-      "auditedAt": "2026-11-25T04:59:14.895Z",
+      "auditedAt": "2026-11-25T13:57:01.528Z",
       "screenshotPng": "",
       "viewportWidth": 1280,
       "viewportHeight": 900,
@@ -2518,8 +2518,8 @@
       ],
       "axNodes": [
         {
-          "nodeId": "8",
-          "backendDOMNodeId": 8,
+          "nodeId": "3",
+          "backendDOMNodeId": 3,
           "role": {
             "type": "internalRole",
             "value": "RootWebArea"
@@ -2573,7 +2573,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html"
+                "value": "http://localhost:63101/product.html"
               }
             }
           ],
@@ -2627,7 +2627,7 @@
           "childIds": [
             "20"
           ],
-          "parentId": "8"
+          "parentId": "3"
         },
         {
           "nodeId": "20",
@@ -2958,7 +2958,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/index.html"
+                "value": "http://localhost:63101/index.html"
               }
             }
           ],
@@ -3369,7 +3369,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/img/candle-midnight.svg"
+                "value": "http://localhost:63101/img/candle-midnight.svg"
               }
             }
           ],
@@ -3452,7 +3452,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/img/candle-midnight.svg"
+                "value": "http://localhost:63101/img/candle-midnight.svg"
               }
             }
           ],
@@ -3503,7 +3503,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/img/candle-midnight.svg"
+                "value": "http://localhost:63101/img/candle-midnight.svg"
               }
             }
           ],
@@ -3554,7 +3554,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/img/candle-midnight.svg"
+                "value": "http://localhost:63101/img/candle-midnight.svg"
               }
             }
           ],
@@ -6798,7 +6798,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -6869,7 +6869,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -6940,7 +6940,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -7473,7 +7473,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/index.html"
+                "value": "http://localhost:63101/index.html"
               }
             }
           ],
@@ -7541,7 +7541,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html"
+                "value": "http://localhost:63101/product.html"
               }
             }
           ],
@@ -7609,7 +7609,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -7677,7 +7677,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -7745,7 +7745,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/index.html"
+                "value": "http://localhost:63101/index.html"
               }
             }
           ],
@@ -7845,7 +7845,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html"
+                "value": "http://localhost:63101/product.html"
               }
             }
           ],
@@ -8951,7 +8951,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/img/candle-lavender.svg"
+                "value": "http://localhost:63101/img/candle-lavender.svg"
               }
             }
           ],
@@ -9115,7 +9115,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/img/candle-cedar.svg"
+                "value": "http://localhost:63101/img/candle-cedar.svg"
               }
             }
           ],
@@ -9279,7 +9279,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/img/candle-meadow.svg"
+                "value": "http://localhost:63101/img/candle-meadow.svg"
               }
             }
           ],
@@ -9443,7 +9443,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/img/candle-sea.svg"
+                "value": "http://localhost:63101/img/candle-sea.svg"
               }
             }
           ],
@@ -12017,7 +12017,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12085,7 +12085,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12153,7 +12153,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12221,7 +12221,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12310,7 +12310,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12378,7 +12378,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12446,7 +12446,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12514,7 +12514,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12603,7 +12603,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12671,7 +12671,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12739,7 +12739,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -12807,7 +12807,7 @@
               "name": "url",
               "value": {
                 "type": "string",
-                "value": "http://localhost:57483/product.html#"
+                "value": "http://localhost:63101/product.html#"
               }
             }
           ],
@@ -14655,7 +14655,7 @@
           },
           "outerHTMLSnippet": "<select class=\"quantity-select\" aria-label=\"Quantity\"><option value=\"1\">1</option><option value=\"2\">2</option><option value=\"3\">3</option><option value=\"4\">4</option><option value=\"5\">5</option></select>"
         },
-        "8": {
+        "3": {
           "tag": "#document",
           "parentId": null,
           "attrs": {},
@@ -17731,7 +17731,7 @@
         "stepCapReached": false,
         "cycles": [],
         "endReason": "body",
-        "walkStartedAtMs": 1795582753438
+        "walkStartedAtMs": 1795615020124
       },
       "pageMetadata": {
         "htmlLang": "en",
@@ -19517,45 +19517,50 @@
         "maxResourceBytes": 29749,
         "responseTimings": [
           {
-            "url": "http://localhost:57483/product.html",
+            "url": "http://localhost:63101/product.html",
             "bytesReceived": 29749,
-            "durationMs": 9
+            "durationMs": 12
           },
           {
-            "url": "http://localhost:57483/img/candle-midnight.svg",
+            "url": "http://localhost:63101/img/candle-midnight.svg",
             "bytesReceived": 1592,
-            "durationMs": 31
+            "durationMs": 27
           },
           {
-            "url": "http://localhost:57483/img/candle-lavender.svg",
+            "url": "http://localhost:63101/img/candle-lavender.svg",
             "bytesReceived": 1632,
-            "durationMs": 33
+            "durationMs": 28
           },
           {
-            "url": "http://localhost:57483/img/candle-cedar.svg",
+            "url": "http://localhost:63101/img/candle-cedar.svg",
             "bytesReceived": 1630,
-            "durationMs": 33
+            "durationMs": 28
           },
           {
-            "url": "http://localhost:57483/img/candle-meadow.svg",
+            "url": "http://localhost:63101/img/candle-meadow.svg",
             "bytesReceived": 1635,
-            "durationMs": 36
+            "durationMs": 29
           },
           {
-            "url": "http://localhost:57483/img/candle-sea.svg",
+            "url": "http://localhost:63101/img/candle-sea.svg",
             "bytesReceived": 1630,
-            "durationMs": 36
+            "durationMs": 29
           }
         ]
       },
       "blockedRequests": [],
       "abortedResources": [],
-      "collectionErrors": []
+      "collectionErrors": [],
+      "engine": {
+        "unseenVersion": "0.1.0",
+        "axeVersion": "4.14.1",
+        "chromiumVersion": "159.0.8154.6"
+      }
     }
   },
   "speechTrack": [
     {
-      "backendDOMNodeId": 8,
+      "backendDOMNodeId": 3,
       "text": "Hollow & Vine — Midnight Wood, RootWebArea",
       "box": null
     },

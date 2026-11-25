@@ -5,12 +5,15 @@ import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
 import { auditRoutes } from './routes/audit.js'
+import type { ServerConfig } from './config.js'
 import { healthRoutes } from './routes/health.js'
 import { samplesRoutes } from './routes/samples.js'
 
 export type ServerOptions = {
   /** Global cap on audits running at once. Default 2. */
   maxConcurrency?: number
+  /** Operational limits read from the environment (see config.ts); absent fields keep the security.md defaults. */
+  limits?: Pick<ServerConfig, 'maxQueueDepth' | 'auditTimeoutMs' | 'ratePerMinute' | 'ratePerHour' | 'resourceLimits'>
   /** Overrides the default logger (JSON in production, pino-pretty otherwise). */
   logger?: FastifyServerOptions['logger']
   /** Directory holding the built SPA. Defaults to dist/client next to dist/server. */
@@ -62,14 +65,14 @@ function assertSafeEnvironment(): void {
   }
 }
 
-function registerApi(server: FastifyInstance, maxConcurrency: number): void {
+function registerApi(server: FastifyInstance, maxConcurrency: number, limits: ServerOptions['limits']): void {
   server.register(
     async (api): Promise<void> => {
       // Helmet is opt-in per route (global: false), so only this scope and the SPA get the CSP.
       api.addHook('onRequest', async (_request, reply): Promise<void> => {
         reply.helmet()
       })
-      await api.register(auditRoutes, { maxConcurrency })
+      await api.register(auditRoutes, { maxConcurrency, ...limits })
       await api.register(samplesRoutes)
       await api.register(healthRoutes)
     },
@@ -127,7 +130,7 @@ export function createServer(options: ServerOptions = {}): FastifyInstance {
   server.register(helmet, { global: false, contentSecurityPolicy: CONTENT_SECURITY_POLICY })
   server.register(rateLimit, { global: false })
 
-  registerApi(server, options.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY)
+  registerApi(server, options.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY, options.limits)
   registerCursedShop(server)
   if (shouldServeSpa()) {
     registerSpa(server, options.clientDir ?? DEFAULT_CLIENT_DIR)

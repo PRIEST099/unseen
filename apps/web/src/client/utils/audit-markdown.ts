@@ -1,6 +1,7 @@
 import type { ClassifiedAudit, Haunting, HauntingSeverity, HauntingType } from '@the-unseen/core'
 import { hauntingDisplayName, HAUNTING_TYPE_ORDER, mostSevere, SEVERITY_ORDER } from './haunting-display'
 import { manualCheckLabel } from './manual-check'
+import { scanRecord } from './scan-record'
 import { groupByWCAG } from './wcag-groups'
 
 export const CLEAN_SITE_MESSAGE = 'No hauntings found by automated checks; a manual review is still needed.'
@@ -109,6 +110,14 @@ export function buildMarkdown(audit: ClassifiedAudit): string {
     '## Needs Manual Check',
     '',
     ...manualCheckLines(audit),
+    '',
+    '---',
+    '',
+    '## Scan Record',
+    '',
+    'Rerun the audit with these to confirm the findings.',
+    '',
+    ...scanRecord(audit).map(({ label, value }) => `- **${label}**: ${value}`),
     '',
     '---',
     '',

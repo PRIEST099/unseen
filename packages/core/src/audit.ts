@@ -30,8 +30,9 @@ import {
 import { collectAxTree } from './runner/ax-tree.js'
 import { runAxe } from './runner/axe.js'
 import { walkTabsWithErrors } from './runner/tab-walker.js'
-import { ResourceMeter } from './runner/resource-limits.js'
+import { ResourceMeter, resolveResourceLimits } from './runner/resource-limits.js'
 import { PermissiveSafeFetchPolicy, RestrictiveSafeFetchPolicy } from './runner/safe-fetch.js'
+import { UNSEEN_VERSION } from './version.js'
 
 export const FULL_AUDIT_TIMEOUT_MS = 60_000
 export const MAX_HTML_BYTES = 10_485_760
@@ -201,7 +202,14 @@ async function runAudit(
     const loader = new PageLoader()
     const context = await createContextGuarded(loader, browser, options, guard, egress.context)
     try {
-      return await collectAudit(url, policy, options, guard, { loader, context, crashed, hooks, blockedLog: egress.blockedLog })
+      return await collectAudit(url, policy, options, guard, {
+        loader,
+        context,
+        crashed,
+        hooks,
+        blockedLog: egress.blockedLog,
+        chromiumVersion: browser.version(),
+      })
     } finally {
       await closeContext(context, browser)
     }
@@ -217,6 +225,7 @@ type AuditParts = {
   crashed: () => AuditTimeoutError
   hooks: AuditHooks
   blockedLog: readonly BlockedEntry[]
+  chromiumVersion: string
 }
 
 async function collectAudit(
@@ -226,7 +235,7 @@ async function collectAudit(
   guard: AuditGuard,
   parts: AuditParts
 ): Promise<RawAudit> {
-  const meter = new ResourceMeter((limit) => guard.fail(limit))
+  const meter = new ResourceMeter((limit) => guard.fail(limit), resolveResourceLimits(options.resourceLimits))
   // Each stage is reported when it starts, so the caller can show the slow step while it runs.
   emitProgress(options.onProgress, 'loading')
   const loaded = await guard.race(
@@ -243,6 +252,7 @@ async function collectAudit(
     const collectionErrors: CollectionError[] = []
     const evidence = await collectEvidence(loaded.page, guard, collectionErrors, parts.hooks, options.onProgress)
     const raw = assemble(url, options, loaded, meter, evidence, collectionErrors, parts.blockedLog)
+    raw.engine = { unseenVersion: UNSEEN_VERSION, axeVersion: evidence.axe.version, chromiumVersion: parts.chromiumVersion }
     await parts.hooks.beforeClose?.(loaded.page, raw)
     return raw
   } finally {

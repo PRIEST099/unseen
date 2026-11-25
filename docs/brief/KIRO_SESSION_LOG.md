@@ -701,3 +701,20 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-25 · Run 48 · started (owner account): guard shell loophole, then deploy and replay edition
 - **Instruction:** `prompts/48-guard-shell-then-deploy.md`. It covers Part A (the shell guard) and Part B, which is `prompts/45`.
+
+## 2026-11-25 · Night Shift is back in scope (owner's decision): run 49 · started
+- The owner asked for Night Shift to be included, for the Best Kiro Crew App bonus.
+- **A research agent checked the current Kiro Crew docs and the prize rules:**
+  - A Crew app is an `app.json` package with agents, skills, MCP servers, crons and dashboard pages.
+  - The prize needs its own public GitHub repo under the same account.
+  - It is judged only for entries in the overall top 50.
+- **Kiro Crew is not installed on this Windows host.** `kiro-cli crew` does not auto-install on Windows, and the lead's attempt to install it from source was refused by the permission system. The owner decides how to install it.
+- **Instruction:** `prompts/49-night-shift-spec.md`. The workspace is the new sibling repo `../night-shift` (local only for now).
+- **Run 48 result (Kiro):**
+  - **Part A:** the protected-files guard now also covers shell commands (`execute_bash` and `execute_pwsh`; 72 tests). It even blocked Kiro's own first attempt to append notes through the shell. The hook files were again placed with a node copy after the write tool refused them. That deviation is accepted and logged.
+  - **Part B:** the Docker image (Playwright 1.65.1, `pwuser`, port 8080). Its smoke test found a real defect: `playwright` was missing from the production install. Also: environment-configurable limits, the replay edition with its Pages workflow, a scan record in Daylight and the export, and the samples regenerated with real engine versions (scores unchanged).
+- **Product-lead verification (independent rerun):**
+  - Build and typecheck are clean.
+  - **Unit tests:** core 649, mcp 184, web 425.
+  - **Integration and e2e:** mcp integration 35; core Playwright 109; shop verify passes; web e2e 84 (self-audit included); replay e2e 13.
+  - I ran the shell guard live: it blocks `cp …` and `git checkout -- …` against the golden file, and allows `cat`.

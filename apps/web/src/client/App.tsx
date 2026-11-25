@@ -4,6 +4,7 @@ import { AppHeader } from './components/AppHeader'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AnnouncerProvider } from './contexts/AnnouncerContext'
 import { useAmbientDrone } from './hooks/useAmbientDrone'
+import { replayConfig } from './utils/replay-config'
 import { AuditResultView } from './views/AuditResultView'
 import { LandingView } from './views/LandingView'
 import { NotFoundView } from './views/NotFoundView'
@@ -23,8 +24,9 @@ export function App(): ReactElement {
         <ErrorBoundary resetKey={pathname}>
           <Routes>
             <Route path="/" element={<LandingView />} />
-            <Route path="/seance/:jobId" element={<SeanceView />} />
-            <Route path="/audit/:jobId/*" element={<AuditResultView source="job" />} />
+            {/* The replay edition has no jobs: these routes fall through to "Page not found". */}
+            {!replayConfig.replay && <Route path="/seance/:jobId" element={<SeanceView />} />}
+            {!replayConfig.replay && <Route path="/audit/:jobId/*" element={<AuditResultView source="job" />} />}
             <Route path="/sample/:sampleId/*" element={<AuditResultView source="sample" />} />
             <Route path="*" element={<NotFoundView />} />
           </Routes>

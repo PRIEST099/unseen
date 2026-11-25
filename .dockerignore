@@ -1,0 +1,27 @@
+# Build context for apps/web/Dockerfile (repo root). Keep the image small and free of secrets.
+.git
+.github
+.kiro
+.unseen
+.env*
+docs
+demo
+power
+**/node_modules
+**/dist
+**/dist-replay
+**/test-results
+**/playwright-report
+**/*.log
+**/*.tsbuildinfo
+packages/*/tests
+packages/*/vitest*.ts
+packages/core/playwright.config.ts
+apps/web/e2e
+apps/web/e2e-replay
+apps/web/playwright*.ts
+apps/web/vitest*.ts
+apps/web/vite.replay.config.ts
+apps/web/Dockerfile
+CLAUDE.md
+README.md

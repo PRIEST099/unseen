@@ -47,6 +47,8 @@ export type {
   HeadingRecord,
   PageMetadata,
   RawAudit,
+  EngineVersions,
+  ResourceLimits,
   ResourceUsage,
   SafeFetchPolicy,
   SchemaVersion,

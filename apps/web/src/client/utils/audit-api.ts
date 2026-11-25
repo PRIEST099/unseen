@@ -1,4 +1,9 @@
+import { replayConfig } from './replay-config'
+import type { ReplayConfig } from './replay-config'
+
 export type SubmitResult = { ok: true; id: string } | { ok: false; message: string }
+
+const REPLAY_SUBMIT_MESSAGE = 'The replay edition cannot audit new URLs.'
 
 export const INVALID_URL_MESSAGE = 'Enter a valid http or https URL, for example https://example.com.'
 const SSRF_MESSAGE = 'Cannot audit private or internal URLs for security reasons.'
@@ -50,7 +55,13 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-export async function submitAudit(url: string, fetchFn: typeof fetch = fetch): Promise<SubmitResult> {
+export async function submitAudit(
+  url: string,
+  fetchFn: typeof fetch = fetch,
+  config: ReplayConfig = replayConfig,
+): Promise<SubmitResult> {
+  // The replay edition has no server: refuse before any request is made.
+  if (config.replay) return { ok: false, message: REPLAY_SUBMIT_MESSAGE }
   try {
     const response = await fetchFn('/api/audit', {
       method: 'POST',

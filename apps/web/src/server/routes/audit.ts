@@ -3,7 +3,7 @@ import { normalizeIP } from '@fastify/rate-limit'
 import type { errorResponseBuilderContext } from '@fastify/rate-limit'
 import type { FastifyBaseLogger, FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import { PermissiveSafeFetchPolicy, RestrictiveSafeFetchPolicy } from '@the-unseen/core'
-import type { SafeFetchPolicy } from '@the-unseen/core'
+import type { ResourceLimits, SafeFetchPolicy } from '@the-unseen/core'
 import { JobQueue, QueueFullError } from '../jobs/queue.js'
 import { JobStore } from '../jobs/store.js'
 import type { Job } from '../jobs/types.js'
@@ -24,6 +24,16 @@ export type AuditRoutesOptions = {
   ssrfPolicy?: SafeFetchPolicy
   /** Replaces the 30-per-hour per-IP limiter. */
   hourlyLimiter?: SlidingWindowLimiter
+  /** Audits per IP per minute. Default RATE_LIMIT_PER_MINUTE (security.md). */
+  ratePerMinute?: number
+  /** Audits per IP per hour for the default limiter. Default RATE_LIMIT_PER_HOUR (security.md). */
+  ratePerHour?: number
+  /** Audits allowed to wait, for the default queue. Default 20 (security.md). */
+  maxQueueDepth?: number
+  /** Full-audit timeout for the default queue's worker. */
+  auditTimeoutMs?: number
+  /** Page weight limits for the default queue's worker. */
+  resourceLimits?: Partial<ResourceLimits>
 }
 
 export const RATE_LIMIT_PER_MINUTE = 5
@@ -129,11 +139,12 @@ type RouteDeps = {
   queue: JobQueue
   ssrfPolicy: SafeFetchPolicy | undefined
   hourly: SlidingWindowLimiter
+  ratePerMinute: number
 }
 
 function registerPostAudit(server: FastifyInstance, deps: RouteDeps): void {
   const perMinute = {
-    max: RATE_LIMIT_PER_MINUTE,
+    max: deps.ratePerMinute,
     timeWindow: '1 minute',
     errorResponseBuilder: (_request: FastifyRequest, context: errorResponseBuilderContext): Error =>
       new RateLimitedError(Math.max(1, Math.ceil(context.ttl / 1000))),
@@ -219,10 +230,19 @@ export const auditRoutes: FastifyPluginAsync<AuditRoutesOptions> = async (
     options.queue ??
     new JobQueue({
       maxConcurrency: options.maxConcurrency,
-      execute: (jobId) => executeJob(jobId, { store, audit: options.audit, logger: server.log }),
+      ...(options.maxQueueDepth === undefined ? {} : { maxQueueDepth: options.maxQueueDepth }),
+      execute: (jobId) =>
+        executeJob(jobId, {
+          store,
+          audit: options.audit,
+          logger: server.log,
+          ...(options.auditTimeoutMs === undefined ? {} : { timeoutMs: options.auditTimeoutMs }),
+          ...(options.resourceLimits === undefined ? {} : { resourceLimits: options.resourceLimits }),
+        }),
       onError: (error, jobId) => server.log.error({ err: error, jobId }, 'job execution crashed'),
     })
-  const hourly = options.hourlyLimiter ?? new SlidingWindowLimiter({ max: RATE_LIMIT_PER_HOUR, windowMs: HOUR_MS })
+  const hourly =
+    options.hourlyLimiter ?? new SlidingWindowLimiter({ max: options.ratePerHour ?? RATE_LIMIT_PER_HOUR, windowMs: HOUR_MS })
 
   if (ownsStore) {
     store.startCleanup()
@@ -230,6 +250,12 @@ export const auditRoutes: FastifyPluginAsync<AuditRoutesOptions> = async (
   }
 
   installErrorHandler(server)
-  registerPostAudit(server, { store, queue, ssrfPolicy: options.ssrfPolicy, hourly })
+  registerPostAudit(server, {
+    store,
+    queue,
+    ssrfPolicy: options.ssrfPolicy,
+    hourly,
+    ratePerMinute: options.ratePerMinute ?? RATE_LIMIT_PER_MINUTE,
+  })
   registerGetRoutes(server, store)
 }

@@ -1,6 +1,7 @@
 import { Component, useEffect } from 'react'
 import type { ErrorInfo, ReactElement, ReactNode } from 'react'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { replayConfig } from '../utils/replay-config'
 
 type ErrorBoundaryProps = {
   children: ReactNode
@@ -26,7 +27,7 @@ function ErrorFallback(): ReactElement {
           Reload page
         </button>
         {/* A plain link on purpose: it reloads the app, which clears whatever state caused the error. */}
-        <a href="/" className="button">
+        <a href={replayConfig.basePath} className="button">
           Back to home
         </a>
       </div>

@@ -21,7 +21,7 @@ async function readDownload(download: Download): Promise<string> {
 test.describe('Daylight report', () => {
   test('has the heading outline, a prominent coverage note and a criterion table', async ({ page }) => {
     await openDaylight(page)
-    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Findings by WCAG criterion', 'Needs manual check'])
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Findings by WCAG criterion', 'Needs manual check', 'Scan record'])
 
     const note = page.getByRole('note', { name: 'Coverage note' })
     await expect(note).toBeVisible()

@@ -7,6 +7,7 @@ import { buildExportFilename } from '../utils/export-filename'
 import type { ExportExtension } from '../utils/export-filename'
 import { hauntingDisplayName } from '../utils/haunting-display'
 import { manualCheckHelp, manualCheckLabel } from '../utils/manual-check'
+import { scanRecord } from '../utils/scan-record'
 import { groupByWCAG } from '../utils/wcag-groups'
 import type { CriterionGroup } from '../utils/wcag-groups'
 import { LensNav } from './LensNav'
@@ -205,6 +206,19 @@ export function DaylightReport({ audit, hostname, basePath, now = Date.now }: Da
         <h2 id="daylight-manual">Needs manual check</h2>
         <p>These elements could not be verified automatically. A person has to check them.</p>
         <ManualCheckTable audit={audit} />
+      </section>
+
+      <section aria-labelledby="daylight-scan-record">
+        <h2 id="daylight-scan-record">Scan record</h2>
+        <p>Use these to rerun the audit and confirm the findings.</p>
+        <dl className="scan-record">
+          {scanRecord(audit).map(({ label, value }) => (
+            <div key={label} className="scan-record-row">
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
     </>
   )

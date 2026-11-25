@@ -41,6 +41,8 @@ export function normalizeAxeResult(r: AxeResultLike): AxeViolation {
 export type AxeRunResult = {
   violations: AxeViolation[]
   incomplete: AxeViolation[]
+  /** The axe-core version that produced the results (`testEngine.version`); '' when the run failed. */
+  version: string
   error?: CollectionError
 }
 
@@ -126,11 +128,13 @@ export async function runAxe(page: Page, timeoutMs = AXE_TIMEOUT_MS): Promise<Ax
     const incomplete = rawIncomplete.map(normalizeAxeResult)
     await resolveAxeNodeIds(page, rawViolations, violations)
     await resolveAxeNodeIds(page, rawIncomplete, incomplete)
-    return { violations, incomplete }
+    const version = typeof results.testEngine?.version === 'string' ? results.testEngine.version : ''
+    return { violations, incomplete, version }
   } catch (err) {
     return {
       violations: [],
       incomplete: [],
+      version: '',
       error: { step: 'axe', message: err instanceof Error ? err.message : String(err) },
     }
   } finally {

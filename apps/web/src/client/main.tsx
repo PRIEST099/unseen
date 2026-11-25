@@ -20,13 +20,14 @@ import { BrowserRouter } from 'react-router-dom'
 import { App } from './App'
 import { ReducedMotionProvider } from './contexts/ReducedMotionContext'
 import { SoundProvider } from './contexts/SoundContext'
+import { replayConfig } from './utils/replay-config'
 
 const container = document.getElementById('root')
 
 if (container !== null) {
   createRoot(container).render(
     <StrictMode>
-      <BrowserRouter>
+      <BrowserRouter basename={replayConfig.basePath === '/' ? undefined : replayConfig.basePath.replace(/\/$/, '')}>
         <ReducedMotionProvider>
           <SoundProvider>
             <App />
