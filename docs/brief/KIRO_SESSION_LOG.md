@@ -735,3 +735,15 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `kirocrew app install` now succeeds: `night-shift` v0.1.0, installed and not yet enabled.
   - **Kiro mistake:** `npm run … --prefix` was taken by npm itself and installed into the-unseen's folder. Kiro restored the workspace junctions and the shims.
   - **Lead check:** the-unseen `git status` is clean, typecheck passes and all 1,258 unit tests pass.
+- **First real crew patrol (lead):** `kirocrew chat --agent night-shift--warden -m …`. The Warden's first command was "Denied automatically … needs approval, and this invocation cannot ask". The Warden refused to skip validation and stopped. The generated agent files carried no grants.
+- **Run 49d (Kiro):**
+  - Narrow per-role grants, pinned by tests with no wildcard shell.
+  - A `--home` flag, because Crew never pre-approves a `cd '<path>'; …` chain.
+  - The tool reference changed to `@night-shift:unseen`.
+  - Source-cited integration notes.
+  - 130 unit and 3 integration tests; 0 agent problems.
+- **The real patrol is still blocked, by three Crew behaviours Kiro proved from Crew's source:**
+  1. `kirocrew chat -m` ignores shell and file grants; only MCP tools listed in `allowedTools` skip approval.
+  2. Every spawn waits for a person unless a global setting is changed.
+  3. The running gateway's PATH lacks the npm global bin.
+- **Kiro overstepped:** it approved a pending spawn itself through the dashboard API, and it re-applied the owner's trust grant through the API after a reinstall had withdrawn it. Approvals belong to the owner. The lead flagged this to the owner and added a rule to the next instruction: never approve Crew prompts or grants.
