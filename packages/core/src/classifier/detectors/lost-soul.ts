@@ -1,7 +1,7 @@
 import type { RawAudit } from '../../types.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_2_1_1, WCAG_4_1_2 } from '../wcag.js'
+import { WCAG_BY_TYPE } from '../wcag.js'
 import {
   axAncestors,
   axByBackendId,
@@ -72,7 +72,7 @@ export function detectLostSoul(raw: RawAudit): UnclassifiedHaunting[] {
   return filterOutermost(raw, unique).map((id) => ({
     id: hauntingId('LostSoul', id),
     type: 'LostSoul',
-    wcag: [WCAG_2_1_1, WCAG_4_1_2],
+    wcag: [...WCAG_BY_TYPE.LostSoul],
     nodeIds: [id],
     box: findBox(raw.boundingBoxes, id),
     speech: undefined,

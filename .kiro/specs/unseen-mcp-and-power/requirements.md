@@ -2,162 +2,177 @@
 
 ## Introduction
 
-This spec delivers three things: `packages/mcp` (the `unseen-mcp` stdio server), `power/` (the Kiro Power that installs it), and the hooks and agent that put the auditor inside Kiro's agent loop. The product claim for the video is: **"Kiro cannot finish a UI task while a ghost is in it."**
+This spec delivers three things: `packages/mcp` (the `unseen-mcp` stdio server and CLI), `power/` (the Kiro Power that installs the server), and the hooks and agent that put the auditor inside Kiro's agent loop. The product claim for the video is: **"Kiro cannot finish a UI task while a ghost is in it."** The demo is recorded in the **Kiro IDE**.
 
-Sources of truth: `.kiro/steering/hauntings.md` (taxonomy, severity, speech), `.kiro/steering/security.md` (local MCP exemptions), `docs/brief/prompts/15-spec-unseen-mcp-and-power.md` (base brief and 2026-11-24 format addendum), and the 2026-11-25 updates. The updates win over the brief.
+Sources of truth: `.kiro/steering/hauntings.md` (taxonomy, severity, speech), `.kiro/steering/security.md` (local MCP exemptions), `docs/brief/prompts/15-spec-unseen-mcp-and-power.md`, and the product lead's decisions D1 to D8 of 2026-11-25 (`docs/brief/prompts/46-mcp-power-amend-and-build.md`) together with `docs/brief/review-notes/mcp-power-spec-review-1.md`. The decisions win over the brief.
+
+Amendment log (2026-11-25): the review findings 1.1 to 2.20 and decisions D1 to D8 are applied in this file, `design.md` and `tasks.md`. Where a finding was overridden by a decision, `tasks.md` Notes says so.
 
 ## Glossary
 
-- **Gate**: the Power `Stop` hook that re-audits before Kiro ends a turn that changed UI files.
-- **Critical haunting**: a primary haunting with severity `Wraith`, or of type `NamelessSpirit`, `WhisperingField` or `CursedLoop` (the three the steering says must never ship).
-- **UI file**: a file matching `**/*.{html,tsx,jsx,vue,svelte,css}`.
+- **Gate**: the `Stop` hook that re-audits before Kiro ends a turn that touched UI files.
+- **Critical haunting**: a primary haunting with severity `Wraith`, or of type `NamelessSpirit`, `WhisperingField` or `CursedLoop`.
+- **UI file**: a file with extension `html`, `tsx`, `jsx`, `vue`, `svelte` or `css`.
+- **Dirty file**: a UI file whose mtime is newer than the last gate pass (Requirement 11.1).
+- **Workspace root**: the `cwd` field of the hook's stdin JSON, else env `UNSEEN_WORKSPACE`, else `process.cwd()`. It is never derived from the MCP server's working directory.
 - **Dev URL**: the URL of the developer's running dev server (Requirement 8).
-- **Baseline**: `.unseen/last-audit.json` in the workspace, holding the haunting ids and score of the last audit.
-- **Core**: `@the-unseen/core`. Its exports used here: `auditAndClassify`, `auditUrl`, `auditHtml`, `PermissiveSafeFetchPolicy`, `RestrictiveSafeFetchPolicy`, `buildSpeechTrack`.
+- **Fingerprint**: `type|kind|htmlSnippet` plus `#<occurrence index>` for duplicates. It identifies a haunting across audits (node ids are not stable between audits).
+- **Turn start**: `.unseen/turn-start.json`, the audit result before Kiro changed anything in this turn.
+- **Core**: `@the-unseen/core`.
 
 ## Requirements
 
 ### Requirement 1: MCP server skeleton
 
-**User Story:** As a developer, I want one command that starts the auditor as an MCP server, so that any MCP client can use it.
-
-1. `packages/mcp` is the npm workspace package `@the-unseen/mcp`, version `0.1.0`, with `bin: { "unseen-mcp": "dist/server.js" }` and a shebang in the built file, so `npx -y @the-unseen/mcp` works.
+1. `packages/mcp` is the npm workspace package `@the-unseen/mcp`, version `0.1.0`, with `bin: { "unseen-mcp": "dist/server.js" }` and a shebang in the built file. Nothing is published to npm; the install route is Requirement 21.
 2. The server uses `@modelcontextprotocol/sdk` over stdio. Tool input schemas are Zod schemas in `src/types.ts`.
-3. Nothing is written to stdout except MCP protocol frames. Logs go to stderr.
+3. Nothing is written to stdout except MCP protocol frames in server mode. Logs go to stderr.
 4. The server registers exactly four tools: `audit_url`, `audit_html`, `explain_haunting`, `suggest_fix`.
-5. No audit, classifier, scoring or speech logic is duplicated. Every tool calls Core. A test fails if `packages/mcp/src` imports from `@the-unseen/core` internals other than the public entry or named exports added by task 1.1.
+5. No audit, classifier, scoring or speech logic is duplicated. A test fails if `packages/mcp/src` imports from Core other than `@the-unseen/core` (the public entry) or its documented subpath `@the-unseen/core/speech`.
+6. MCP tools never write `.unseen/`.
 
 ### Requirement 2: `audit_url`
 
-**User Story:** As an agent, I want to audit my running dev server, so that I can see what a screen-reader user would meet.
-
-1. Input: `{ url: string, page?: 'summary' | 'full' }`, default `summary`. Only `http:` and `https:` URLs are accepted.
-2. It calls `auditAndClassify(url, { allowPrivate: true })` (the Permissive policy), because the server runs on the developer's machine (`security.md`, "Local MCP server exemptions").
-3. The `summary` result contains: `score`, `countsByType`, `detectedCountsByType`, up to 10 top hauntings, `needsManualCheckCount`, `automatedCoverageNote`, and a Markdown `summary` for an agent.
+1. Input: `{ url: string, page?: 'summary' | 'full' }`, default `summary`. Only `http:` and `https:` URLs are accepted. Any other scheme (including `file:///`) is `INVALID_INPUT`.
+2. It calls `auditAndClassify(url, { allowPrivate: true })`, because the server runs on the developer's machine (`security.md`, "Local MCP server exemptions").
+3. The `summary` result contains: `score`, `countsByType`, `detectedCountsByType`, up to 10 top hauntings, `truncated`, `needsManualCheckCount`, `automatedCoverageNote`, and a Markdown `summary` for an agent.
 4. Each top haunting has `id`, `type`, `severity`, `wcag` (criterion ids and URLs), `selector`, `htmlSnippet` and `fix`. Ordering is severity (Wraith, Restless, Banished), then the precedence order in `hauntings.md`, then DOM order.
-5. `selector` is the CSS target of the matching axe node when one exists for the haunting's node ids, else a tag/id description taken from `htmlSnippet`. It is never invented.
-6. The default result contains no screenshot. `page: 'full'` adds the whole `ClassifiedAudit` with `raw.screenshotPng` removed.
-7. The Markdown summary states the score, lists each top haunting with its fix, includes the `automatedCoverageNote`, and never says the site is "compliant" or "accessible".
-8. Every successful `audit_url` call writes the Baseline (Requirement 9.3).
+5. `selector` is the CSS target of the first `raw.axeViolations` node whose non-null `backendDOMNodeId` is in the haunting's `nodeIds`, joined with a space. Otherwise it is built only from the tag, id and class tokens in `htmlSnippet`. Otherwise it is exactly `(see htmlSnippet)`.
+6. The default result contains no screenshot. `page: 'full'` adds the `ClassifiedAudit` with `raw.screenshotPng` removed.
+7. The Markdown summary states the score, lists each top haunting with its fix, includes the `automatedCoverageNote`, and makes no compliance claim: it never matches `/\b(is|are|now|fully)\s+(accessible|compliant)\b|passes WCAG|WCAG compliant/i`. Core's fix text may contain the phrase "accessible name"; that is not a claim.
 
 ### Requirement 3: `audit_html`
 
-1. Input: `{ html: string }`, at most 1 MB. It calls Core `auditHtml` and returns the same output shape as `audit_url`, with `selector` and `htmlSnippet` relative to the supplied HTML.
-2. It does not write the Baseline, because the snippet has no dev URL.
+1. Input: `{ html: string }`, at most 1 MB. It calls Core `auditHtmlAndClassify` and returns the same output shape as `audit_url`, with `selector` and `htmlSnippet` relative to the supplied HTML.
 
 ### Requirement 4: `explain_haunting`
 
 1. Input: exactly one of `{ type }` (a `HauntingType`) or `{ id }` (a haunting id from an audit in this server session). Both or neither is `INVALID_INPUT`.
 2. Output: display name, plain-language explanation, persona (one sentence beginning "As a"), WCAG criteria with URLs, severity rules for the type, and a speech example.
-3. Text comes from Core's haunting catalogue: `generateExplanation`, `generatePersona` and `generateFix` in `packages/core/src/classifier/explanation.ts`, and the WCAG constants in `packages/core/src/classifier/wcag.ts`. For `{ id }` the haunting's own `explanation`, `persona`, `speech` and `speechNote` are returned unchanged.
-4. For `{ type }` the speech example is produced by Core's `announce` on a fixed synthetic AX node per type, never by hand-written strings. Types with no speech (`TheFog`, `LostSoul`, `InvisibleWanderer`, `TheVeiled`, `ShatteredOrder`) return `speechExample: null`; `SilentTongue` and `CursedLoop` return their `soundCue`.
+3. Text comes from Core: `generateExplanation`, `generatePersona`, `generateFix`, `WCAG_BY_TYPE`, `SOUND_CUE_BY_TYPE`. For `{ id }` the haunting's own `explanation`, `persona`, `speech` and `speechNote` are returned unchanged.
+4. For `{ type }` the speech example is produced by Core's `announce` on a fixed synthetic AX node per type. Types with no speech (`TheFog`, `LostSoul`, `InvisibleWanderer`, `TheVeiled`, `ShatteredOrder`) return `speechExample: null`; `SilentTongue` and `CursedLoop` return their `soundCue` from `SOUND_CUE_BY_TYPE`.
 5. An unknown `id` returns `UNKNOWN_HAUNTING_ID`.
 
 ### Requirement 5: `suggest_fix`
 
 1. Input: `{ id: string, framework?: 'html' | 'react' | 'vue' }`, default `html`. The id must belong to an audit in this session, else `UNKNOWN_HAUNTING_ID`.
-2. Output builds on the haunting's `fix` (`instruction`, `codeSnippet`). `html` returns it unchanged. `react` and `vue` return the same fix in that framework's syntax (`className`/`htmlFor`/`aria-label` for React; `:aria-label` and template syntax for Vue).
-3. Every fix is a source-level change. No output may contain a runtime overlay or injected script: no `<script`, `document.`, `innerHTML`, `setAttribute`, `MutationObserver`, `eval` or `new Function`. This holds for every type and framework (brief §6.2; product non-negotiable 2).
+2. Output builds on the haunting's `fix` (`instruction`, `codeSnippet`). `html` returns it unchanged. `react` and `vue` return the same fix in that framework's syntax.
+3. No output may contain a runtime overlay or injected script: no `<script`, `document.`, `innerHTML`, `setAttribute`, `MutationObserver`, `eval` or `new Function`.
 4. The output states that the change goes in the developer's source and that the page must be re-audited.
 
 ### Requirement 6: Typed errors
 
-1. Tool failures return an MCP tool result with `isError: true` and `structuredContent: { code, message }`. Codes: `SSRF_BLOCKED`, `TIMEOUT`, `NOT_HTML`, `RESOURCE_LIMIT`, `INVALID_INPUT`, `UNKNOWN_HAUNTING_ID`, `AUDIT_FAILED`.
-2. Mapping from Core errors: `SsrfBlockedError` → `SSRF_BLOCKED`, `AuditTimeoutError` → `TIMEOUT`, `NonHtmlContentError` → `NOT_HTML`, `AuditResourceLimitError` → `RESOURCE_LIMIT`, any other error → `AUDIT_FAILED`.
-3. The mapping function is total. A message never contains a stack trace, a resolved IP or the raw error text of an unknown error. Details go to stderr only.
+1. Tool failures return `isError: true` with `structuredContent: { code, message }`. Codes: `SSRF_BLOCKED`, `TIMEOUT`, `NOT_HTML`, `RESOURCE_LIMIT`, `INVALID_INPUT`, `UNKNOWN_HAUNTING_ID`, `AUDIT_FAILED`.
+2. Mapping: `SsrfBlockedError` to `SSRF_BLOCKED`, `AuditTimeoutError` to `TIMEOUT`, `NonHtmlContentError` to `NOT_HTML`, `AuditResourceLimitError` to `RESOURCE_LIMIT`, `HtmlSizeError` to `INVALID_INPUT`, any other error to `AUDIT_FAILED`. `SSRF_BLOCKED` is covered by a unit test of the mapper with a constructed `SsrfBlockedError`.
+3. The mapping function is total. A message never contains a stack trace, a resolved IP, the URL or the raw text of an error.
 4. A Zod validation failure is `INVALID_INPUT`.
 
-### Requirement 7: CLI mode for hooks
+### Requirement 7: CLI mode
 
-1. `unseen-mcp audit <url> [--json]` runs one `audit_url` and prints the result to stdout (Markdown, or JSON with `--json`), then exits 0 on success, or 1 with the error code on stderr. It is the same handler as the MCP tool.
-2. Two more sub-commands wrap the hook logic: `unseen-mcp on-save` (Requirement 11) and `unseen-mcp gate` (Requirement 12). Both resolve the Dev URL, read and write `.unseen/`, and use the pure modules.
-3. With no arguments the binary starts the stdio server. Hooks in consumer workspaces use `npx -y @the-unseen/mcp audit …`, so the Power does not need Core installed.
+1. `unseen-mcp audit <url> [--json]` runs one `audit_url` and prints the result (Markdown, or JSON with `--json`), exit 0, or exit 1 with the error code on stderr.
+2. Further sub-commands: `on-save` (Requirement 11), `gate` (Requirement 12), `install-hooks [dir]` (Requirement 21.5).
+3. Every sub-command that audits is wrapped in `try { … } finally { await getPool().close() }` and sets `process.exitCode`; it does not call `process.exit` before output is flushed. A test shows the CLI audit of the Cursed Shop exits within 120 s.
+4. With no arguments the binary starts the stdio server.
+5. Child processes are spawned with `process.execPath` and an argument array. Command strings are never split on whitespace.
 
 ### Requirement 8: Dev URL resolution
 
-1. The Dev URL is resolved in this order: env `UNSEEN_DEV_URL`; `devServerUrl` in `.unseen/config.json`; the default `http://localhost:5173`.
-2. The resolver is a pure function of `(env, configJson)`. A value that is not an `http(s)` URL is ignored and the next source is used.
-3. `power/README` and `POWER` docs name the env var, the config key and the default.
+1. Order: env `UNSEEN_DEV_URL`; `devServerUrl` in `.unseen/config.json`; the default `http://localhost:5173`. The resolver also reports the source (`env`, `config`, `default`).
+2. The resolver is a pure function of `(env, configJson)`. A value that is not an `http(s)` URL is ignored.
+3. Only a Dev URL from `env` or `config` is probed by the hooks. The default is documented but never probed, so an unrelated server on 5173 is not audited by accident.
+4. README documents the env var, the config key and the default.
 
-### Requirement 9: Baseline and new-haunting diff
+### Requirement 9: Fingerprints, turn start and the new-haunting diff
 
-1. `newHauntings(baseline, current)` returns the current primary hauntings whose id is not in the baseline. It is pure.
-2. On the first audit (no Baseline) every haunting is new.
-3. The Baseline holds `{ url, score, ids[], savedAtMs }`. `savedAtMs` is passed in by the I/O caller, not read inside the pure code.
-4. A missing or corrupt Baseline is treated as empty, never as an error.
+1. `newHauntings(baseline, current)` returns the current primary hauntings whose fingerprint is not in the baseline. It is pure. Renumbering every node id leaves the result unchanged.
+2. With no baseline every haunting is new. A missing or corrupt file is an empty baseline, never an error.
+3. `.unseen/last-audit.json` holds `{ savedAtMs, targets: { <label>: { score, fingerprints[] } } }`. `.unseen/turn-start.json` has the same shape.
+4. `savedAtMs` is passed in by the I/O caller, never read in pure code.
 
 ### Requirement 10: Power package
 
-1. `power/` uses the Agent Plugins format: `plugin.json` (`$schema` `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`, kebab-case `name` = `the-unseen`, `version`, `description`, `author.name`, `keywords` including accessibility, a11y, WCAG, screen reader, button, form, UI, component, HTML, React), `mcp.json` with top-level `mcpServers`, and `skills/<skill>/SKILL.md` with `name` and `description` front matter.
-2. `mcp.json` has two entries: `unseen` (`npx -y @the-unseen/mcp`) and `unseen-local` (`node` on the local build, for development).
-3. The Power ships these skills: `audit-before-done` (the steering: audit every UI you build or change with `audit_url` before saying the task is done; never ship a Nameless Spirit, Whispering Field or Cursed Loop; fix source, never inject overlays; re-audit after fixing and report the before/after score), `exorcise` (fix hauntings from the last audit one at a time, re-auditing after each), `exorcise-the-cursed-shop` (Requirement 14) and `install-unseen-hooks` (copies the hooks of Requirement 11 and 12 into the workspace `.kiro/hooks/`).
-4. `power/` contains no application code beyond hook scripts, and no `package.json`.
-5. `power/README.md` documents install by "Add Custom Power" then "Import power from a folder", and by public GitHub URL (`power/` subdirectory).
-6. `POWER.md` is not used. If the Agent Plugins format cannot carry hooks, `install-unseen-hooks` is the delivery route and the fact is logged in `tasks.md` Notes.
+1. `power/` uses the Agent Plugins format: `plugin.json` (`$schema` `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`, kebab-case `name` `the-unseen`, `version`, `description`, `author.name`, `keywords` including accessibility, a11y, WCAG, screen reader, button, form, UI, component, HTML, React) and `skills/<skill>/SKILL.md` with `name` and `description` front matter.
+2. `power/mcp.json` is exactly: `$schema` `https://agent-plugins.org/schemas/1.0.0/mcp.schema.json` and `mcpServers.unseen` with `type: "stdio"` and `command: "unseen-mcp"`. No `unseen-local`, no `disabled`, no `autoApprove`. The installed server is named `power-the-unseen-unseen`, and tool calls ask for approval.
+3. Skills: `audit-before-done` (audit every UI you build or change before saying the task is done; never ship a Nameless Spirit, Whispering Field or Cursed Loop; fix source, never inject overlays; re-audit after fixing and report before and after), `exorcise`, `install-unseen-hooks` (runs `unseen-mcp install-hooks`). `exorcise-the-cursed-shop` is added in task 8.
+4. Powers cannot ship hooks. `power/` has no `hooks/` folder, no `package.json`, no `POWER.md`.
+5. `power/README.md` documents install by "Add Custom Power", "Import power from a folder", and by public GitHub URL, the Requirement 21 install route, and the `.gitignore` entry for `.unseen/`.
 
-### Requirement 11: On-save hook (Power)
+### Requirement 11: On-save hook
 
-1. A `PostFileSave` hook matching UI files audits the Dev URL via `unseen-mcp audit` and prints a short summary of **new** hauntings only (Requirement 9).
-2. If there are none it prints one line: `THE UNSEEN: no new hauntings (score N).`
-3. If the Dev URL is not reachable it prints one line, `THE UNSEEN: dev server not reachable at <url>; skipped.`, and exits 0. A save never fails because of this hook.
-4. Each save of a UI file creates the marker `.unseen/ui-dirty` (used by the Gate).
-5. The hook has a timeout of 90 seconds. A timeout prints one line and exits 0.
+1. `PostFileSave` runs `node .kiro/hooks/scripts/unseen-on-save.mjs`. The CLI resolves dirty files: every UI file under the workspace root (skipping `node_modules`, `.git`, `.unseen`, `.kiro`, `dist`) whose mtime is newer than `lastPassMs` in `.unseen/gate-state.json`; when there is no gate state, files modified in the last 30 minutes.
+2. What is audited (Requirement 12.2) and the output: only new hauntings, or `THE UNSEEN: no new hauntings (score N).`
+3. It writes `.unseen/turn-start.json` only when the file is absent, and `.unseen/last-audit.json` always.
+4. Nothing auditable: one line, `THE UNSEEN: nothing to audit; skipped.`, exit 0. The hook never fails a save.
+5. The hook `timeout` is 90 s and the CLI's internal deadline is 75 s. On the deadline it prints one line and exits 0.
+6. On-save output reaches the agent only in the Kiro IDE; in the CLI it is informational. The Gate is what feeds hauntings back on both surfaces.
 
-### Requirement 12: The ghost gate (Power `Stop` hook)
+### Requirement 12: The ghost gate (`Stop` hook)
 
-1. Before Kiro ends a turn, if `.unseen/ui-dirty` exists the Gate re-audits the Dev URL. Without the marker it exits 0 silently.
-2. If any critical haunting remains, it prints each one (type, severity, selector, snippet, fix) to the agent and exits non-zero, so the agent keeps working. If the documented Stop-hook semantics differ (Requirement 12.7), the closest documented mechanism is used.
-3. If no critical haunting remains, it removes the marker, prints `THE UNSEEN: gate passed (score N, before M).` and exits 0. Non-critical hauntings are listed but do not block.
-4. If the Dev URL is not reachable, the Gate prints one line and exits 0. It cannot block on a missing server.
-5. Loop guard: after 5 consecutive blocks in one session (`.unseen/gate-state.json`) the Gate exits 0 and prints that it gave up, so a haunting the agent cannot fix cannot trap it forever.
-6. The decision (block or pass) is a pure function of `(markerPresent, reachable, criticalCount, consecutiveBlocks)`.
-7. Before implementing, the builder reads the Kiro Stop-hook documentation. If a non-zero exit does not feed output back to the agent, the builder uses the nearest documented mechanism and records the deviation in `tasks.md` Notes.
+1. The gate reads stdin JSON `{hook_event_name, cwd, session_id}`. Invalid or empty stdin is tolerated. Dirty files are found as in 11.1, so the gate works even if `PostFileSave` does not fire for agent writes. No dirty file: exit 0, silent.
+2. Audit targets: if a Dev URL from `env` or `config` is reachable (3 s `HEAD`), audit it with `auditAndClassify`. Otherwise audit each dirty `.html` file (newest first, at most 5) with `auditHtmlAndClassify`. If nothing is auditable, exit 0 with one line.
+3. If any critical primary haunting remains, the gate exits **1** and writes the instruction to **stderr** (never exit 2). The instruction is under 3,000 characters, lists at most the top 5 critical hauntings (type, severity, selector, snippet, fix), and ends: "Fix the source, call audit_url (or audit_html) on the same page, and report the before score M and the new score before finishing." (`M` is the number.) The before score comes from `turn-start.json`; if it is absent the gate writes it before blocking.
+4. If no critical haunting remains the gate deletes `turn-start.json`, records `lastPassMs`, resets the block counter, prints one line `THE UNSEEN: gate passed (score N, before M).` for the user, and exits 0. Non-critical hauntings are listed but do not block.
+5. Gate state `.unseen/gate-state.json` is `{ sessionId, consecutiveBlocks, lastBlockMs, lastPassMs }`. The counter resets when `session_id` changes or after a quiet gap of 10 minutes. After 5 consecutive blocks the gate exits 0 and says it gave up.
+6. The decision is the pure function `decideGate`.
+7. The Stop hook has `timeout: 150` and an internal deadline of 130 s. Hitting the deadline prints one line and exits 0.
+8. Fallback: if the IDE does not start a new turn on a Stop exit 1, `unseen-hooks.json` carries a second Stop entry of type `agent`, disabled by default. `DEMO.md` explains how to switch (costs credits on every turn).
 
-### Requirement 13: Demo acceptance and `power/DEMO.md`
+### Requirement 13: Demo and `power/DEMO.md`
 
-1. `power/DEMO.md` documents, step by step, the 1:10–1:50 video segment: fresh workspace, Power installed, prompt "build a checkout button", the gate catching an icon-only button (Nameless Spirit, Wraith), Kiro fixing the source, and the re-audit with before/after scores.
-2. It lists the exact prompt, the expected tool calls, the expected gate output and the expected score direction, plus a recovery section for the dev server not running.
-3. A fixture `power/demo/checkout-start.html` holds the starting page used by the demo, with an icon-only checkout button. A test audits it and asserts a Wraith `NamelessSpirit`, and that the same page with an `aria-label` on that button has none.
+1. The demo is deterministic. `power/demo/checkout.html` is a haunted page: `<html lang="en">`, an `<h1>`, a `<main>`, and an icon-only `<button class="checkout">` containing an SVG. By the checkout-context rule this is a Wraith Nameless Spirit.
+2. The prompt is exactly: "Add a quantity selector next to the checkout button in checkout.html." Kiro edits the page; the gate audits it and blocks on the existing Nameless Spirit; Kiro fixes the button, re-audits and reports before and after.
+3. `DEMO.md` prerequisites, in order: `npx playwright install chromium`; `npm run unseen:install-global`; trust the workspace; import the Power from the folder; run `unseen-mcp install-hooks` and approve the writes; delete `.unseen/`; start a **new** chat session. It lists the tool-approval prompts to expect, a recovery section, and the IDE fallback of 12.8.
+4. Scores in `DEMO.md` are computed from the fixture by a test.
 
 ### Requirement 14: Exorcise the Cursed Shop
 
-1. The skill `exorcise-the-cursed-shop` and the manual steering `#exorcise` (`.kiro/steering/exorcise.md`) describe the workflow: audit the Cursed Shop, then write a **fixed copy** to `demo/cursed-shop-exorcised/`.
-2. `demo/cursed-shop-exorcised/` has no `package.json` and lies outside the `apps/*` workspace glob, so npm workspaces are unaffected. `structure.md` lists the path.
-3. `apps/cursed-shop` is never modified. `npm run verify -w apps/cursed-shop` still passes afterwards.
-4. Re-auditing the exorcised copy gives a lower score than the original. The report shows both.
+1. The skill `exorcise-the-cursed-shop` and `#exorcise` describe the workflow: audit the Cursed Shop, write a **fixed copy** to `demo/cursed-shop-exorcised/`.
+2. The copy has no `package.json` and lies outside the workspace globs. `structure.md` lists the path.
+3. `apps/cursed-shop` is never modified (`git diff --exit-code -- apps/cursed-shop` and `npm run verify -w apps/cursed-shop` pass).
+4. Re-auditing the copy gives a lower score than the original on each page.
 
 ### Requirement 15: Repo hook `web-self-audit-on-save`
 
 1. `.kiro/hooks/web-self-audit-on-save.json` is a `PostFileSave` hook with matcher `apps/web/src/client/.*\.(tsx|ts|css)$`.
-2. It runs the web app's self-audit and prints a one-line summary: pass with the route count, or fail with the count and the first haunting type.
-3. It never blocks the save and exits 0.
-4. The existing hooks `core-typecheck-on-save`, `guard-protected-files`, `shop-verify-on-save`, `spec-types-drift` and `stop-test-gate` are not recreated or changed.
+2. It runs the self-audit and prints one line: pass with the route count, fail with the count and the first haunting type, or a timeout line. It sets `CI=1` so a fresh build is audited. It never blocks and exits 0.
+3. The five existing hooks are not changed.
+4. `PostFileSave` fires for Kiro's own edits, not for a manual editor save. The checkpoint asks Kiro to make a whitespace edit.
 
 ### Requirement 16: Custom agent `unseen-auditor`
 
-1. `.kiro/agents/unseen-auditor.json` uses the CLI V3 schema (`tools`, `permissions.rules`, `resources`, `mcpServers`), not legacy `allowedTools`.
-2. It may use `fs_read` and the four unseen MCP tools only. `fs_write` and `shell` are denied.
-3. Its prompt tells it to audit, then post a short Markdown summary with the score, critical hauntings and the coverage caveat. It never edits files.
+1. `.kiro/agents/unseen-auditor.json` uses the CLI V3 schema (`tools`, `permissions.rules`, `resources`, `mcpServers`), not `allowedTools`, and no `includeMcpJson`.
+2. Rules: allow `fs_read`; allow capability `mcp` for `unseen/audit_url`, `unseen/audit_html`, `unseen/explain_haunting`, `unseen/suggest_fix`; deny `fs_write` on `**`; deny `shell`. `includePowers: false`.
+3. The prompt tells it to audit, then post a short Markdown summary with the score, critical hauntings and the coverage caveat. It never edits files.
 
 ### Requirement 17: Enable THE UNSEEN on itself
 
-1. As the last implementation step, the `unseen` entry in `.kiro/settings/mcp.json` has `"disabled"` removed (or `false`), points at the built server (`packages/mcp/dist/server.js`), and lists the four tools in `autoApprove`.
-2. The step runs only after the MCP tests and a manual stdio smoke test pass.
+1. Kiro cannot write `.kiro/settings/`. After tasks 1 to 8 and a stdio smoke test, the builder prints the exact `unseen` entry for `.kiro/settings/mcp.json` and the product lead applies it.
+2. The entry has `"disabled": false`, `args: ["packages/mcp/dist/server.js"]` and `autoApprove` for the four tools.
 
 ### Requirement 18: Honesty and safety
 
-1. No tool output, summary, DEMO text or skill text claims a site is "compliant", "accessible" or "passes WCAG". Reports carry the 30–40% caveat.
+1. No tool output, summary, DEMO text or skill text makes a claim matching `/\b(is|are|now|fully)\s+(accessible|compliant)\b|passes WCAG|WCAG compliant/i`. Reports carry the 30 to 40% caveat.
 2. `audit_url` accepts private and `localhost` URLs only because the server is local. The hosted app never imports `packages/mcp`.
-3. No code in this spec patches another site's DOM at runtime.
+3. No code patches another site's DOM at runtime.
 
 ### Requirement 19: Housekeeping
 
-1. `docs/LIVE_VERIFICATION_RESULTS.md` line `**Date:** 2025-01-31` is corrected to `**Date:** 2026-11-24`. Nothing else in that file changes.
+1. `docs/LIVE_VERIFICATION_RESULTS.md` line `**Date:** 2025-01-31` becomes `**Date:** 2026-11-24`. Nothing else in that file changes.
 
 ### Requirement 20: Tests
 
-1. Property-based tests (fast-check, ≥100 runs) are mandatory for: the summary formatter, the baseline diff, the critical classifier, the error mapper, `suggest_fix` output, the dev URL resolver, the gate decision, and the speech-example builder. Each test states its invariant.
-2. Every tool is called through an in-memory MCP client (`InMemoryTransport`) against the Cursed Shop served locally by a test helper.
-3. The summary text for `checkout.html` is snapshot-tested.
-4. Hook scripts are tested with a stub audit command: unreachable server, no new hauntings, new critical haunting, loop guard.
-5. All new tests run in `npm run test -w @the-unseen/mcp`; no test needs a live URL.
+1. Property tests (fast-check, at least 100 runs) are mandatory for: summary, baseline, critical, errors, fix variants, dev URL, gate decision, speech example, selector.
+2. Every tool is called through an in-memory MCP client against the Cursed Shop served locally.
+3. The summary for `checkout.html` is snapshot-tested.
+4. Hook scripts and shims are tested, including a path that contains a space, and a real end-to-end gate check (Requirement 21.6).
+5. `packages/mcp/vitest.config.ts`: `testTimeout` 180000, `hookTimeout` 60000, single thread; the browser pool is closed in `afterAll`. Core is built before the mcp typecheck.
+6. Only `packages/core/src/index.test.ts` may change in core's tests: new export names appended to the expected list, no removals.
+
+### Requirement 21: Install route (no npm publish)
+
+1. Root script `npm run unseen:install-global` runs `npm pack` for `@the-unseen/core` and `@the-unseen/mcp`, then `npm i -g` on both tarballs. Nothing is published. `private` is dropped from a package only if packing requires it (recorded in Notes).
+2. The global bin is `unseen-mcp`.
+3. Core exports `WCAG_BY_TYPE` and `SOUND_CUE_BY_TYPE`, used by the detectors, with unchanged behaviour. Core gains `auditHtmlAndClassify` in `audit.ts`.
+4. `power/mcp.json` follows Requirement 10.2.
+5. `unseen-mcp install-hooks [dir]` writes into the target workspace (default `cwd`): `.kiro/hooks/unseen-hooks.json`, `.kiro/hooks/scripts/unseen-on-save.mjs`, `.kiro/hooks/scripts/unseen-gate.mjs`. The shims call the server by absolute path (`process.execPath` plus the resolved `server.js`), so no PATH or `npx` lookup is needed. The `install-unseen-hooks` skill runs this command.
+6. Acceptance for the gate (integration test, not stubbed): copy `power/demo/checkout.html` into a temp workspace and run `install-hooks` there; touch the file and pipe a Stop payload into the installed gate shim, which must exit 1 with the Nameless Spirit on stderr; fix the button in the temp copy, touch it, run the gate again, which must exit 0 and print the before and after scores.

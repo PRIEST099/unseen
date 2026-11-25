@@ -6,20 +6,29 @@ import type { SpeechLine } from './index.js'
 describe('public API of @the-unseen/core (finding 42)', () => {
   it('exports exactly the public contract by name, and no internals', () => {
     expect(Object.keys(api).sort()).toEqual([
+      'ALL_WCAG',
       'AuditCollectionError',
       'AuditContextError',
       'AuditResourceLimitError',
       'AuditTimeoutError',
+      'HAUNTING_TYPES',
       'HtmlSizeError',
       'NonHtmlContentError',
       'OriginScopedPolicy',
       'PermissiveSafeFetchPolicy',
       'RestrictiveSafeFetchPolicy',
+      'SOUND_CUE_BY_TYPE',
       'SsrfBlockedError',
+      'WCAG_BY_TYPE',
+      'announce',
       'auditAndClassify',
       'auditHtml',
+      'auditHtmlAndClassify',
       'auditUrl',
       'buildSpeechTrack',
+      'generateExplanation',
+      'generateFix',
+      'generatePersona',
       'getPool',
     ])
   })

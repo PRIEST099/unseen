@@ -1,7 +1,7 @@
 import type { RawAudit } from '../../types.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_2_1_2 } from '../wcag.js'
+import { SOUND_CUE_BY_TYPE, WCAG_BY_TYPE } from '../wcag.js'
 import { findBox, hauntingId, snippet } from '../util.js'
 
 /**
@@ -19,11 +19,11 @@ export function detectCursedLoop(raw: RawAudit): UnclassifiedHaunting[] {
     {
       id: hauntingId('CursedLoop', region),
       type: 'CursedLoop',
-      wcag: [WCAG_2_1_2],
+      wcag: [...WCAG_BY_TYPE.CursedLoop],
       nodeIds,
       box: findBox(raw.boundingBoxes, region),
       speech: undefined,
-      soundCue: 'chime',
+      soundCue: SOUND_CUE_BY_TYPE.CursedLoop,
       htmlSnippet: snippet(raw, region),
       explanation: generateExplanation('CursedLoop', { trapSize: nodeIds.length - 1 }),
       persona: generatePersona('CursedLoop'),

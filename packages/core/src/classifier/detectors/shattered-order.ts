@@ -1,7 +1,7 @@
 import type { RawAudit } from '../../types.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import type { ShatteredOrderKind, UnclassifiedHaunting } from '../types.js'
-import { WCAG_1_3_1, WCAG_2_4_6 } from '../wcag.js'
+import { WCAG_BY_TYPE } from '../wcag.js'
 import { findBox, hauntingId, snippet } from '../util.js'
 
 type Target = { id: number; kind: ShatteredOrderKind; fromLevel?: number; toLevel?: number }
@@ -11,7 +11,7 @@ function build(raw: RawAudit, t: Target): UnclassifiedHaunting {
     id: hauntingId('ShatteredOrder', t.id, t.kind),
     type: 'ShatteredOrder',
     kind: t.kind,
-    wcag: [WCAG_1_3_1, WCAG_2_4_6],
+    wcag: [...WCAG_BY_TYPE.ShatteredOrder],
     nodeIds: [t.id],
     box: findBox(raw.boundingBoxes, t.id),
     speech: undefined,

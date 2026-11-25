@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "the-unseen",
+  "version": "0.1.0",
+  "description": "Audit every UI you build or change for accessibility hauntings (missing names, unlabelled fields, keyboard traps, contrast) before you say it is done. Bundles the unseen-mcp server with skills for auditing and exorcising.",
+  "author": {
+    "name": "THE UNSEEN"
+  },
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "WCAG",
+    "screen reader",
+    "button",
+    "form",
+    "UI",
+    "component",
+    "HTML",
+    "React"
+  ]
+}

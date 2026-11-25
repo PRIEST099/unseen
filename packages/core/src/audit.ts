@@ -113,6 +113,13 @@ export async function auditAndClassify(url: string, options: AuditOptions = {}):
   return classify(raw)
 }
 
+/** Audit an HTML string and classify the evidence, like `auditAndClassify` does for a URL. */
+export async function auditHtmlAndClassify(html: string, options: AuditOptions = {}): Promise<ClassifiedAudit> {
+  const raw = await auditHtml(html, options)
+  emitProgress(options.onProgress, 'classifying')
+  return classify(raw)
+}
+
 export async function auditUrlWithHooks(url: string, options: AuditOptions, hooks: AuditHooks): Promise<RawAudit> {
   validateUrl(url)
   const policy = selectPolicy(options)

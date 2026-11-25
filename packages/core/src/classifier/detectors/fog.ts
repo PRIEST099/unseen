@@ -2,7 +2,7 @@ import type { RawAudit } from '../../types.js'
 import { contrastRatio } from '../contrast.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_1_4_3 } from '../wcag.js'
+import { WCAG_BY_TYPE } from '../wcag.js'
 import { axByBackendId, axProp, blend, domAncestors, findBox, hauntingId, parseCssColor, snippet } from '../util.js'
 
 export const NORMAL_TEXT_MIN_RATIO = 4.5
@@ -39,7 +39,7 @@ export function detectTheFog(raw: RawAudit): UnclassifiedHaunting[] {
     out.push({
       id: hauntingId('TheFog', id),
       type: 'TheFog',
-      wcag: [WCAG_1_4_3],
+      wcag: [...WCAG_BY_TYPE.TheFog],
       nodeIds: [id],
       box: findBox(raw.boundingBoxes, id),
       speech: undefined,

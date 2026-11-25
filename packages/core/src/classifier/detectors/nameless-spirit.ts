@@ -2,7 +2,7 @@ import type { AXNode, RawAudit } from '../../types.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import { announce } from '../speech.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_1_1_1, WCAG_2_4_4, WCAG_4_1_2 } from '../wcag.js'
+import { WCAG_BY_TYPE } from '../wcag.js'
 import { axName, axRole, domDescendants, findBox, hauntingId, snippet } from '../util.js'
 
 export const NAMELESS_ROLES: ReadonlySet<string> = new Set([
@@ -47,7 +47,9 @@ export function detectNamelessSpirit(raw: RawAudit): UnclassifiedHaunting[] {
     out.push({
       id: hauntingId('NamelessSpirit', id),
       type: 'NamelessSpirit',
-      wcag: [WCAG_4_1_2, ...(role === 'link' ? [WCAG_2_4_4] : []), ...(onlyContentIsImage(raw, node) ? [WCAG_1_1_1] : [])],
+      wcag: WCAG_BY_TYPE.NamelessSpirit.filter(
+        (c) => c.id === '4.1.2' || (c.id === '2.4.4' && role === 'link') || (c.id === '1.1.1' && onlyContentIsImage(raw, node))
+      ),
       nodeIds: [id],
       box: findBox(raw.boundingBoxes, id),
       speech: announce(node, raw),

@@ -1,7 +1,7 @@
 import type { DomAxMapping, RawAudit } from '../../types.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_1_3_1, WCAG_4_1_2 } from '../wcag.js'
+import { WCAG_BY_TYPE } from '../wcag.js'
 import { axByBackendId, axName, axRole, domAncestors, findBox, hauntingId, snippet } from '../util.js'
 
 const HIDDEN_REASONS = new Set(['ariaHiddenElement', 'presentationalRole'])
@@ -48,7 +48,7 @@ export function detectTheVeiled(raw: RawAudit): UnclassifiedHaunting[] {
     return {
       id: hauntingId('TheVeiled', m.backendDOMNodeId),
       type: 'TheVeiled' as const,
-      wcag: [WCAG_1_3_1, WCAG_4_1_2],
+      wcag: [...WCAG_BY_TYPE.TheVeiled],
       nodeIds: [m.backendDOMNodeId, ...focusable],
       box: findBox(raw.boundingBoxes, m.backendDOMNodeId),
       speech: undefined,

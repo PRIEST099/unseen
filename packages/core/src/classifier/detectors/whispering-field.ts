@@ -2,7 +2,7 @@ import type { RawAudit } from '../../types.js'
 import { generateExplanation, generateFix, generatePersona } from '../explanation.js'
 import { announce, announceNote } from '../speech.js'
 import type { UnclassifiedHaunting } from '../types.js'
-import { WCAG_1_3_1, WCAG_3_3_2, WCAG_4_1_2 } from '../wcag.js'
+import { WCAG_BY_TYPE } from '../wcag.js'
 import { axName, axRole, findBox, hauntingId, isPlaceholderSource, snippet, winningNameSource } from '../util.js'
 
 export const FORM_FIELD_ROLES: ReadonlySet<string> = new Set(['textbox', 'searchbox', 'spinbutton', 'slider', 'combobox'])
@@ -22,7 +22,7 @@ export function detectWhisperingField(raw: RawAudit): UnclassifiedHaunting[] {
     out.push({
       id: hauntingId('WhisperingField', id),
       type: 'WhisperingField',
-      wcag: [WCAG_1_3_1, WCAG_3_3_2, WCAG_4_1_2],
+      wcag: [...WCAG_BY_TYPE.WhisperingField],
       nodeIds: [id],
       box: findBox(raw.boundingBoxes, id),
       speech: announce(node, raw),
