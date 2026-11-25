@@ -611,3 +611,22 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - **e2e 84/84**, including the self-audit on all 8 routes (zero hauntings, zero unmapped axe violations)
   - In the browser at 1280×800: after "Open Spirit Sight" the canvas stays fully painted (average alpha 0.33) and the screenshot is dimmed by the haunted veil. The demo-critical fog reveal (item 6) now persists.
 - **Not done here:** the `.kiro/settings/permissions.yaml` written by the IDE (it allows `git *`) is still uncommitted; it should be narrowed before it is committed.
+
+## 2026-11-25 · Visual redesign "gothic séance manor" (Claude Code, user decision)
+- **Decision (user):** Claude Code implements the redesign itself (recorded as a second exception in `CLAUDE.md`). The user chose the gothic séance-manor direction and original AI-generated images.
+- **Images:** 8 original images generated with Figma AI from prompts written for this project, then converted to WebP (about 0.5 MB in total). Provenance is in `apps/web/src/client/assets/manor/README.md`.
+  - hero hall, séance table, corridor, damask, gilt frame
+  - the three lens banners (Spirit Sight, Whisper walk, Daylight)
+- **Fonts:** Cinzel Decorative (title), Cinzel (headings) and IM Fell English (flavour lines). Atkinson Hyperlegible stays as the body font.
+- **Accessibility rule:** text only ever sits on solid panels.
+  - The classifier's conservative layering check flagged the landing title once, so the plaque's overlap with the painting was reduced.
+  - Daylight became a parchment ledger with a scoped token set, every text colour at least 5.2:1.
+- **Bugs found while verifying:**
+  - An endless banner animation blocked the tests that wait for the page to settle, so the banners are now static.
+  - An Escape-before-focus race in the haunting dialog, fixed with focus-trap `escapeDeactivates`.
+- **Commits:** c22838e and 29feea1. **Verified:** typecheck clean, web unit 392/392, e2e 84/84, including the self-audit on 8 routes.
+- **Strength research (same day):**
+  - A workflow ran 4 research agents and 2 critic judges.
+  - **Verdict:** the engineering and the Kiro paper trail are strong. Innovation is the weak criterion: "haunted accessibility" is crowded in Kiroween 2026 (Ghostlight, Ghost Crew, KeyQuest, Skeleton Key).
+  - **Biggest drag:** nothing judge-facing exists yet. `main` is 33 commits behind and the README is stale; there is no live URL, video or write-up.
+  - **Recommended order:** public repo and README → deploy → Kiro-built MCP and Power → video → write-up and blog; cut Night Shift.
