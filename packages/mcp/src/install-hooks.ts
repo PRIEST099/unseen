@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 export const HOOK_MATCHER = '.*\\.(html|tsx|jsx|vue|svelte|css)$'
 export const ON_SAVE_SHIM = 'unseen-on-save.mjs'
 export const GATE_SHIM = 'unseen-gate.mjs'
+export const FALLBACK_HOOK_FILE = 'unseen-gate-agent-fallback.json'
 
 export const FALLBACK_PROMPT =
   'Before you finish: run `node .kiro/hooks/scripts/unseen-gate.mjs`. If it prints "gate passed" or nothing, reply with nothing more. ' +
@@ -12,7 +13,7 @@ export const FALLBACK_PROMPT =
 
 export type InstallResult = { dir: string; files: string[]; serverJs: string }
 
-/** The hook file in `.kiro/hooks` v1 shape. The agent-type Stop entry is the IDE fallback and is disabled. */
+/** The main hook file in `.kiro/hooks` v1 shape: the two command hooks only. */
 export function hooksJson(): string {
   const hooks = [
     {
@@ -28,15 +29,24 @@ export function hooksJson(): string {
       trigger: 'Stop',
       action: { type: 'command', command: `node .kiro/hooks/scripts/${GATE_SHIM}`, timeout: 150 },
     },
+  ]
+  return `${JSON.stringify({ version: 'v1', hooks }, null, 2)}\n`
+}
+
+/**
+ * The agent-type fallback gate in its own file. The top-level `enabled` flag is the one Kiro is known to honour,
+ * so the fallback is switched off there and the main hook file stays free of unknown fields.
+ */
+export function fallbackHooksJson(): string {
+  const hooks = [
     {
       name: 'THE UNSEEN ghost gate (agent fallback)',
       description: 'Disabled by default. Enable only if the IDE does not start a new turn when the command gate exits 1. Costs credits on every turn.',
       trigger: 'Stop',
-      enabled: false,
       action: { type: 'agent', prompt: FALLBACK_PROMPT },
     },
   ]
-  return `${JSON.stringify({ version: 'v1', hooks }, null, 2)}\n`
+  return `${JSON.stringify({ version: 'v1', enabled: false, hooks }, null, 2)}\n`
 }
 
 /** A shim with absolute paths baked in, so no PATH or npx lookup finds the server. */
@@ -61,13 +71,14 @@ export function defaultServerJs(): string {
   return fileURLToPath(new URL('./server.js', import.meta.url))
 }
 
-/** Writes the three hook files into `dir`'s `.kiro/hooks`. Existing copies are replaced. */
+/** Writes the four hook files into `dir`'s `.kiro/hooks`. Existing copies are replaced. */
 export async function installHooks(dir: string, serverJs: string = defaultServerJs(), nodePath: string = process.execPath): Promise<InstallResult> {
   const root = resolve(dir)
   const scripts = join(root, '.kiro', 'hooks', 'scripts')
   await mkdir(scripts, { recursive: true })
   const files = [
     [join(root, '.kiro', 'hooks', 'unseen-hooks.json'), hooksJson()],
+    [join(root, '.kiro', 'hooks', FALLBACK_HOOK_FILE), fallbackHooksJson()],
     [join(scripts, ON_SAVE_SHIM), shimSource('on-save', nodePath, serverJs)],
     [join(scripts, GATE_SHIM), shimSource('gate', nodePath, serverJs)],
   ] as const

@@ -15,8 +15,9 @@ A Power cannot ship hooks, so the server writes them into the workspace.
 
    To install into another folder, pass it: `unseen-mcp install-hooks <dir>`.
 
-2. It writes three files. Kiro asks before writing into `.kiro/hooks/`; approve the writes.
-   - `.kiro/hooks/unseen-hooks.json` (an on-save hook, the ghost gate Stop hook, and a disabled agent-type Stop hook used only as a fallback)
+2. It writes four files. Kiro asks before writing into `.kiro/hooks/`; approve the writes.
+   - `.kiro/hooks/unseen-hooks.json` (the on-save hook and the ghost gate Stop hook, both command hooks)
+   - `.kiro/hooks/unseen-gate-agent-fallback.json` (an agent-type Stop hook, disabled by a top-level `"enabled": false`; used only as a fallback)
    - `.kiro/hooks/scripts/unseen-on-save.mjs`
    - `.kiro/hooks/scripts/unseen-gate.mjs`
 

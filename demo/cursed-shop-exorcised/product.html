@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hollow & Vine — Midnight Wood</title>
+  <meta name="description" content="Midnight Wood candle - black coffee, aged oak, and tobacco leaf scent.">
+  <style>
+    :root {
+      --color-primary: #6d4c41;
+      --color-secondary: #8d6e63;
+      --color-accent: #d7ccc8;
+      --color-text: #2c1e1a;
+      --color-bg: #f5f0eb;
+      --color-white: #ffffff;
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      color: var(--color-text);
+      background-color: var(--color-bg);
+      line-height: 1.6;
+    }
+
+    /* === Header === */
+    header {
+      background-color: var(--color-white);
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+    }
+
+    .logo {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .nav-link {
+      color: var(--color-text);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .nav-link:hover {
+      color: var(--color-primary);
+    }
+
+    .nav-icons {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Nameless Spirit: Icon-only button with empty accessible name */
+    .icon-btn {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .icon-btn:hover {
+      background-color: var(--color-accent);
+    }
+
+    .icon-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--color-primary);
+    }
+
+    /* === Product Details === */
+    .product-page {
+      padding: 60px 0;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: start;
+    }
+
+    .product-images {
+      display: grid;
+      gap: 16px;
+    }
+
+    .product-main-image {
+      width: 100%;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+    }
+
+    .product-thumbnails {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .product-thumb-btn {
+      background: none;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      border-radius: var(--radius);
+    }
+
+    .product-thumb {
+      width: 100%;
+      border-radius: var(--radius);
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .product-thumb:hover,
+    .product-thumb.active {
+      border-color: var(--color-primary);
+    }
+
+    .product-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .product-breadcrumb {
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: #5c4d46;
+    }
+
+    .product-breadcrumb a {
+      color: var(--color-primary);
+      text-decoration: underline;
+    }
+
+    /* Shattered Order: Heading skips from h1 to h4 */
+    h1.product-title {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      color: var(--color-primary);
+    }
+
+    h4.details-heading {
+      font-size: 1.5rem;
+      margin-bottom: 24px;
+      color: var(--color-primary);
+    }
+
+    .product-rating {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      color: #9a4800;
+    }
+
+    .rating-count {
+      color: #5c4d46;
+      font-size: 0.9rem;
+    }
+
+    .product-price {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 24px;
+    }
+
+    .product-description {
+      margin-bottom: 32px;
+      color: #5c4d46;
+      line-height: 1.7;
+    }
+
+    .product-description p {
+      margin-bottom: 16px;
+    }
+
+    /* The Fog: Small text with low contrast */
+    .product-details {
+      margin-bottom: 32px;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #d7ccc8;
+      font-size: 0.85rem;
+      color: #5d4f49;
+    }
+
+    .detail-label {
+      font-weight: 600;
+    }
+
+    .product-variants {
+      margin-bottom: 32px;
+    }
+
+    .variant-label {
+      display: block;
+      margin-bottom: 12px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    .variant-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .variant-option {
+      background: none;
+      font: inherit;
+      padding: 16px;
+      border: 2px solid #d7ccc8;
+      border-radius: var(--radius);
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--color-primary);
+      transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .variant-option:hover {
+      border-color: var(--color-primary);
+    }
+
+    .variant-option.selected {
+      border-color: var(--color-primary);
+      background-color: #efebe9;
+    }
+
+    .quantity-controls {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+      align-items: center;
+    }
+
+    .quantity-label {
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    .quantity-select {
+      padding: 12px;
+      border: 1px solid #d7ccc8;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 1rem;
+      background-color: var(--color-white);
+    }
+
+    .quantity-select:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    .btn {
+      display: inline-block;
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      padding: 16px 40px;
+      border-radius: var(--radius);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1rem;
+    }
+
+    .btn:hover {
+      background-color: var(--color-secondary);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--color-white);
+      color: var(--color-primary);
+      border: 2px solid var(--color-primary);
+      padding: 14px 32px;
+    }
+
+    .btn-secondary:hover {
+      background-color: #f5f0eb;
+    }
+
+    .product-actions {
+      display: flex;
+      gap: 16px;
+    }
+
+    /* Nameless Spirit: Icon-only wishlist button */
+    .wishlist-btn {
+      background-color: var(--color-white);
+      border: 2px solid var(--color-primary);
+      color: var(--color-primary);
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: color 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .wishlist-btn:hover {
+      background-color: var(--color-primary);
+      color: var(--color-white);
+    }
+
+    .wishlist-btn svg {
+      width: 28px;
+      height: 28px;
+      fill: currentColor;
+    }
+
+    /* === Reviews === */
+    .reviews {
+      padding: 60px 0;
+      background-color: var(--color-white);
+    }
+
+    .reviews h2 {
+      text-align: center;
+      margin-bottom: 48px;
+      color: var(--color-primary);
+    }
+
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 32px;
+    }
+
+    .review {
+      background-color: var(--color-bg);
+      padding: 24px;
+      border-radius: var(--radius);
+    }
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .reviewer {
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    .review-rating {
+      color: #9a4800;
+    }
+
+    .review-text {
+      color: #5c4d46;
+      line-height: 1.6;
+    }
+
+    .review-date {
+      font-size: 0.85rem;
+      color: #6b5b54;
+      margin-top: 16px;
+    }
+
+    /* === Related Products === */
+    .related {
+      padding: 60px 0;
+    }
+
+    .related h2 {
+      text-align: center;
+      margin-bottom: 48px;
+      color: var(--color-primary);
+    }
+
+    .product-grid-related {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 24px;
+    }
+
+    .product-card-related {
+      display: block;
+      color: inherit;
+      text-decoration: none;
+      background-color: var(--color-white);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.25s ease;
+      cursor: pointer;
+    }
+
+    .product-card-related:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .product-image-related {
+      width: 100%;
+      height: 180px;
+      object-fit: contain;
+      background-color: var(--color-accent);
+      padding: 16px 0;
+      cursor: pointer;
+    }
+
+    .product-info-related {
+      padding: 16px;
+    }
+
+    .product-title-related {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--color-primary);
+    }
+
+    .product-price-related {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    /* Footer */
+    footer {
+      background-color: var(--color-primary);
+      color: var(--color-white);
+      padding: 48px 0 24px;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+      margin-bottom: 32px;
+    }
+
+    .footer-col h4 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: var(--color-accent);
+    }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col li {
+      margin-bottom: 8px;
+    }
+
+    .footer-col a {
+      color: var(--color-white);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .footer-col a:hover {
+      color: var(--color-accent);
+    }
+
+    .social-links {
+      display: flex;
+      gap: 16px;
+    }
+
+    .social-link {
+      color: var(--color-white);
+      text-decoration: none;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .social-link:hover {
+      background-color: var(--color-accent);
+      color: var(--color-primary);
+    }
+
+    .social-link svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.15);
+      padding-top: 24px;
+      text-align: center;
+    }
+
+    .footer-bottom p {
+      font-size: 0.75rem;
+      color: #f5f0eb;
+      margin-bottom: 8px;
+    }
+
+    /* Focus styles */
+    .btn:focus,
+    .variant-option:focus,
+    .quantity-select:focus,
+    .wishlist-btn:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    /* Visible focus: primary on white for the header, cream on brown for the footer */
+    .nav-link:focus-visible,
+    .icon-btn:focus-visible,
+    .product-thumb-btn:focus-visible,
+    .product-card-related:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    .social-link:focus-visible {
+      outline: 2px solid #FFF3E0;
+      outline-offset: 2px;
+    }
+
+    /* Control: footer list links get a visible focus ring (cream on brown ≈ 7:1) */
+    .footer-col li a:focus-visible {
+      outline: 2px solid #FFF3E0;
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 768px) {
+      .product-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .product-thumbnails {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .product-actions {
+        flex-direction: column;
+      }
+
+      .wishlist-btn {
+        width: 100%;
+        height: 50px;
+      }
+
+      .header-inner {
+        flex-wrap: wrap;
+        gap: 8px 16px;
+      }
+
+      .logo {
+        font-size: 1.35rem;
+        white-space: nowrap;
+      }
+
+      .nav {
+        order: 3;
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px 12px;
+      }
+
+      .nav-link {
+        font-size: 0.9rem;
+      }
+
+      .nav-icons {
+        gap: 4px;
+        margin-left: auto;
+      }
+
+      html {
+        overflow-x: clip;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="header-inner">
+        <a href="index.html" class="logo">Hollow & Vine</a>
+        
+        <nav class="nav">
+          <a href="index.html" class="nav-link">Home</a>
+          <a href="product.html" class="nav-link">Shop</a>
+          <a href="#" class="nav-link">About</a>
+          <a href="#" class="nav-link">Contact</a>
+        </nav>
+
+        <div class="nav-icons">
+          <button class="icon-btn" type="button" aria-label="Search">
+            <svg viewBox="0 0 24 24" role="none" focusable="false">
+              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+          </button>
+          <button class="icon-btn" type="button" aria-label="Cart">
+            <svg viewBox="0 0 24 24" role="none" focusable="false">
+              <path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Product Details -->
+  <main class="product-page">
+    <div class="container">
+      <div class="product-breadcrumb">
+        <a href="index.html">Home</a> &rsaquo; <a href="product.html">Shop</a> &rsaquo; <span id="bcName">Midnight Wood</span>
+      </div>
+
+      <div class="product-grid">
+        <!-- Images -->
+        <div class="product-images">
+          <img src="img/candle-midnight.svg" alt="Midnight Wood soy candle in amber glass" class="product-main-image" id="mainImage">
+          <div class="product-thumbnails">
+            <button type="button" class="product-thumb-btn" aria-label="Show image 1 of 3" onclick="switchImage(this.firstElementChild)"><img src="img/candle-midnight.svg" alt="" class="product-thumb active"></button>
+            <button type="button" class="product-thumb-btn" aria-label="Show image 2 of 3" onclick="switchImage(this.firstElementChild)"><img src="img/candle-midnight.svg" alt="" class="product-thumb"></button>
+            <button type="button" class="product-thumb-btn" aria-label="Show image 3 of 3" onclick="switchImage(this.firstElementChild)"><img src="img/candle-midnight.svg" alt="" class="product-thumb"></button>
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="product-info">
+          <h1 class="product-title">Midnight Wood</h1>
+          <h2 class="details-heading">Product details</h2>
+          <div class="product-rating">
+            <span>&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+            <span class="rating-count">(84 reviews)</span>
+          </div>
+          <p class="product-price">$32.00</p>
+          
+          <div class="product-description">
+            <p>Experience the warmth and depth of Midnight Wood, our signature scent that captures the essence of a quiet evening by the fire. This hand-poured soy candle features a rich blend of black coffee, aged oak, and tobacco leaf, creating an aroma that speaks of cozy evenings and quiet contemplation.</p>
+            <p>Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.</p>
+          </div>
+
+          <div class="product-details">
+            <div class="detail-item">
+              <span class="detail-label">Size</span>
+              <span>8 oz / 227 g</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Burn Time</span>
+              <span>60+ hours</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Wax Type</span>
+              <span>100% Natural Soy</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Wick</span>
+              <span>Cotton</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Made In</span>
+              <span>USA</span>
+            </div>
+          </div>
+
+          <div class="product-variants">
+            <span class="variant-label">Jar Style</span>
+            <div class="variant-options" role="group" aria-label="Variant">
+              <button type="button" class="variant-option selected" aria-pressed="true">Amber Glass</button>
+              <button type="button" class="variant-option" aria-pressed="false">Clear Glass</button>
+              <button type="button" class="variant-option" aria-pressed="false">Ceramic</button>
+            </div>
+          </div>
+
+          <div class="quantity-controls">
+            <span class="quantity-label">Quantity:</span>
+            <select class="quantity-select" aria-label="Quantity">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+
+          <div class="product-actions">
+            <button class="btn" onclick="addToCart()">
+              Add to Cart
+            </button>
+            <button class="wishlist-btn" aria-label="Add to wishlist">
+              <svg viewBox="0 0 24 24" role="none" focusable="false">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Reviews -->
+  <section class="reviews">
+    <div class="container">
+      <h2>What Our Customers Say</h2>
+      <div class="reviews-grid">
+        <div class="review">
+          <div class="review-header">
+            <span class="reviewer">Sarah M.</span>
+            <span class="review-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+          <p class="review-text">This is my favorite candle! The Midnight Wood scent is absolutely divine. It's warm, comforting, and not too strong. The burn time is excellent too.</p>
+          <span class="review-date">Reviewed on November 20, 2026</span>
+        </div>
+        <div class="review">
+          <div class="review-header">
+            <span class="reviewer">James R.</span>
+            <span class="review-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+          <p class="review-text">Hollow & Vine has the best scents. Midnight Wood is perfect for my home office - it helps me focus but keeps things cozy. Highly recommend!</p>
+          <span class="review-date">Reviewed on November 20, 2026</span>
+        </div>
+        <div class="review">
+          <div class="review-header">
+            <span class="reviewer">Emily T.</span>
+            <span class="review-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+          </div>
+          <p class="review-text">Beautiful packaging and an amazing scent. This candle smells exactly like the photos - rich and sophisticated. Fast shipping too!</p>
+          <span class="review-date">Reviewed on November 20, 2026</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Related Products -->
+  <section class="related">
+    <div class="container">
+      <h2>Complete the Collection</h2>
+      <div class="product-grid-related">
+        <a href="product.html?product=lavender-haven" class="product-card-related">
+          <img src="img/candle-lavender.svg" alt="" class="product-image-related">
+          <div class="product-info-related">
+            <h3 class="product-title-related">Lavender Haven</h3>
+            <p class="product-price-related">$28.00</p>
+          </div>
+        </a>
+        <a href="product.html?product=cedar-forest" class="product-card-related">
+          <img src="img/candle-cedar.svg" alt="" class="product-image-related">
+          <div class="product-info-related">
+            <h3 class="product-title-related">Cedar Forest</h3>
+            <p class="product-price-related">$34.00</p>
+          </div>
+        </a>
+        <a href="product.html?product=meadow" class="product-card-related">
+          <img src="img/candle-meadow.svg" alt="" class="product-image-related">
+          <div class="product-info-related">
+            <h3 class="product-title-related">Wildflower Meadow</h3>
+            <p class="product-price-related">$30.00</p>
+          </div>
+        </a>
+        <a href="product.html?product=sea" class="product-card-related">
+          <img src="img/candle-sea.svg" alt="" class="product-image-related">
+          <div class="product-info-related">
+            <h3 class="product-title-related">Ocean Breeze</h3>
+            <p class="product-price-related">$29.00</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-col">
+          <h4>Hollow & Vine</h4>
+          <p style="color: var(--color-accent); font-size: 0.9rem; line-height: 1.6;">
+            Hand-poured with love in the Pacific Northwest.<br>
+            Crafting moments of calm, one candle at a time.
+          </p>
+          <div class="social-links">
+            <!-- Nameless Spirit: Social link with empty name (icon-only, no aria-label) -->
+            <a href="#" class="social-link" aria-label="Instagram">
+              <svg viewBox="0 0 24 24" role="none" focusable="false">
+                <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+                <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/>
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+              </svg>
+            </a>
+            <a href="#" class="social-link" aria-label="Facebook">
+              <svg viewBox="0 0 24 24" role="none" focusable="false">
+                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" fill="none" stroke="currentColor" stroke-width="1.75"/>
+              </svg>
+            </a>
+            <a href="#" class="social-link" aria-label="Pinterest">
+              <svg viewBox="0 0 24 24" role="none" focusable="false">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.9-2.477v6.78c0 2.31-1.06 4.54-3.45 5.26-1.34.39-2.67-.66-2.67-2.22 0-1.86.79-3.62 2.67-3.62 1.67 0 2.67 1.26 2.67 2.67 0 1.53-.53 3.48-1.47 5.17-1.63 3.06-3.62 5.43-6.85 5.43-3.66 0-6.66-3.09-6.66-6.89 0-3.32 2.39-6.07 5.93-6.66 1.38-.22 2.39-1.06 2.39-2.59 0-1.61-1.26-2.67-2.98-2.67-1.95 0-3.22 1.41-3.22 3.22 0 .8.33 1.67.79 2.19 1.38 1.77 1.26 3.22 1.26 3.22h-2.98c-1.26 0-2.33-.66-2.33-2.67 0-3.09 2.33-6.22 6.44-6.22 3.66 0 6.44 2.61 6.44 5.83 0 1.77-.66 2.98-1.61 2.98-.66 0-1.17-.39-1.17-1.26V2.477z" fill="none" stroke="currentColor" stroke-width="1.75"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Shop</h4>
+          <ul>
+            <li><a href="#">All Products</a></li>
+            <li><a href="#">Best Sellers</a></li>
+            <li><a href="#">New Arrivals</a></li>
+            <li><a href="#">Gift Sets</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>About</h4>
+          <ul>
+            <li><a href="#">Our Story</a></li>
+            <li><a href="#">Sustainability</a></li>
+            <li><a href="#">FAQ</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">Shipping & Returns</a></li>
+            <li><a href="#">Care Guide</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Hollow & Vine. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Product catalogue keyed by slug (matches index.html and related-card links)
+    const PRODUCTS = {
+      'midnight-wood': { name: 'Midnight Wood', price: '$32.00', image: 'img/candle-midnight.svg', alt: 'Midnight Wood soy candle in amber glass', desc: ['Experience the warmth and depth of Midnight Wood, our signature scent that captures the essence of a quiet evening by the fire. This hand-poured soy candle features a rich blend of black coffee, aged oak, and tobacco leaf, creating an aroma that speaks of cozy evenings and quiet contemplation.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'lavender-haven': { name: 'Lavender Haven', price: '$28.00', image: 'img/candle-lavender.svg', alt: 'Lavender Haven soy candle in dusty lilac glass', desc: ['French lavender, vanilla bean, and white musk form a calming, restorative scent designed to slow the evening down.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'meadow': { name: 'Wildflower Meadow', price: '$30.00', image: 'img/candle-meadow.svg', alt: 'Wildflower Meadow soy candle in sage glass', desc: ['Wild lavender, honeycomb, and fresh grass make a bright, uplifting scent that brings the outdoors in.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'cedar-forest': { name: 'Cedar Forest', price: '$34.00', image: 'img/candle-cedar.svg', alt: 'Cedar Forest soy candle in forest green glass', desc: ['Virginia cedar, pine needle, and cedarwood combine for an earthy, invigorating forest walk in a jar.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'sea': { name: 'Ocean Breeze', price: '$29.00', image: 'img/candle-sea.svg', alt: 'Ocean Breeze soy candle in slate blue glass', desc: ['Sea salt, driftwood, and white tea create a crisp, refreshing scent that carries the coastline home.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] },
+      'vanilla': { name: 'Spiced Vanilla', price: '$31.00', image: 'img/candle-vanilla.svg', alt: 'Spiced Vanilla soy candle in warm amber glass', desc: ['Madagascar vanilla, cinnamon, and clove warm into a comforting, spice-cabinet scent for long evenings.', 'Hand-poured in small batches with 100% natural soy wax, premium fragrance oils, and cotton wicks. Each candle burns cleanly for 60+ hours.'] }
+    };
+
+    // Apply the ?product= param to the page (trim it; default to Midnight Wood)
+    (function applyProduct() {
+      const params = new URLSearchParams(location.search);
+      const slug = (params.get('product') || 'midnight-wood').trim();
+      const p = PRODUCTS[slug] || PRODUCTS['midnight-wood'];
+      const h1 = document.querySelector('.product-title');
+      if (h1) h1.textContent = p.name;
+      const price = document.querySelector('.product-price');
+      if (price) price.textContent = p.price;
+      const desc = document.querySelector('.product-description');
+      if (desc) desc.innerHTML = '<p>' + p.desc[0] + '</p><p>' + p.desc[1] + '</p>';
+      const main = document.getElementById('mainImage');
+      if (main) { main.src = p.image; main.alt = p.alt; }
+      document.querySelectorAll('.product-thumb').forEach(t => { t.src = p.image; t.classList.remove('active'); });
+      const firstThumb = document.querySelector('.product-thumb');
+      if (firstThumb) firstThumb.classList.add('active');
+      const bc = document.getElementById('bcName');
+      if (bc) bc.textContent = p.name;
+      document.title = 'Hollow & Vine — ' + p.name;
+    })();
+
+    // Image switching
+    function switchImage(thumb) {
+      const mainImage = document.getElementById('mainImage');
+      mainImage.src = thumb.getAttribute('src');
+      document.querySelectorAll('.product-thumb').forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+    }
+
+    // Add to cart functionality
+    function addToCart() {
+      const btn = document.querySelector('.btn');
+      const originalText = btn.textContent;
+      btn.textContent = 'Added!';
+      btn.style.backgroundColor = '#4caf50';
+      
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.backgroundColor = '';
+        window.location.href = 'checkout.html';
+      }, 900);
+    }
+
+    // Variant selection
+    document.querySelectorAll('.variant-option').forEach(option => {
+      option.addEventListener('click', function() {
+        document.querySelectorAll('.variant-option').forEach(o => { o.classList.remove('selected'); o.setAttribute('aria-pressed', 'false'); });
+        this.classList.add('selected');
+        this.setAttribute('aria-pressed', 'true');
+      });
+    });
+
+    // Cart button navigation - goes to checkout (kept nameless; no role/tabindex added)
+    const cartBtn = document.querySelector('.nav-icons .icon-btn:nth-child(2)');
+    if (cartBtn) {
+      cartBtn.addEventListener('click', function() {
+        location.href = 'checkout.html';
+      });
+    }
+  </script>
+</body>
+</html>
+
+
+
+

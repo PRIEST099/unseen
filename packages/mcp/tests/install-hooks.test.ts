@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
-import { GATE_SHIM, ON_SAVE_SHIM, installHooks } from '../src/install-hooks.js'
+import { FALLBACK_HOOK_FILE, GATE_SHIM, ON_SAVE_SHIM, installHooks } from '../src/install-hooks.js'
 import { runNode } from './helpers/cli.js'
 
 let dir: string
@@ -26,26 +26,39 @@ async function hooks(): Promise<Hook[]> {
 }
 
 describe('install-hooks', () => {
-  test('writes the three files', async () => {
+  test('writes the four files', async () => {
     const result = await installHooks(dir, join(dir, 'server.js'))
-    expect(result.files).toHaveLength(3)
-    for (const f of ['.kiro/hooks/unseen-hooks.json', `.kiro/hooks/scripts/${ON_SAVE_SHIM}`, `.kiro/hooks/scripts/${GATE_SHIM}`]) {
+    expect(result.files).toHaveLength(4)
+    for (const f of ['.kiro/hooks/unseen-hooks.json', `.kiro/hooks/${FALLBACK_HOOK_FILE}`, `.kiro/hooks/scripts/${ON_SAVE_SHIM}`, `.kiro/hooks/scripts/${GATE_SHIM}`]) {
       expect(existsSync(join(dir, f)), f).toBe(true)
     }
   })
 
-  test('hook entries: on-save (90 s), gate (150 s) and a disabled agent fallback', async () => {
+  test('unseen-hooks.json holds only the two command hooks: on-save (90 s) and gate (150 s)', async () => {
     await installHooks(dir, join(dir, 'server.js'))
     const list = await hooks()
+    expect(list).toHaveLength(2)
+    expect(list.every((h) => h.action.type === 'command' && h.enabled === undefined)).toBe(true)
     const onSave = list.find((h) => h.trigger === 'PostFileSave')
     expect(onSave?.matcher).toBe('.*\\.(html|tsx|jsx|vue|svelte|css)$')
     expect(onSave?.action).toMatchObject({ type: 'command', timeout: 90 })
     const stops = list.filter((h) => h.trigger === 'Stop')
-    expect(stops).toHaveLength(2)
-    expect(stops.find((h) => h.action.type === 'command')?.action.timeout).toBe(150)
-    const fallback = stops.find((h) => h.action.type === 'agent')
-    expect(fallback?.enabled).toBe(false)
-    expect(fallback?.action.prompt).toContain('unseen-gate.mjs')
+    expect(stops).toHaveLength(1)
+    expect(stops[0]?.action.timeout).toBe(150)
+    const main: unknown = JSON.parse(await readFile(join(dir, '.kiro', 'hooks', 'unseen-hooks.json'), 'utf8'))
+    expect(main).not.toHaveProperty('enabled')
+  })
+
+  test('the agent fallback is its own file with a top-level enabled: false', async () => {
+    await installHooks(dir, join(dir, 'server.js'))
+    const data: unknown = JSON.parse(await readFile(join(dir, '.kiro', 'hooks', FALLBACK_HOOK_FILE), 'utf8'))
+    expect(data).toMatchObject({ version: 'v1', enabled: false })
+    if (typeof data !== 'object' || data === null || !('hooks' in data) || !Array.isArray(data.hooks)) throw new Error('bad fallback file')
+    expect(data.hooks).toHaveLength(1)
+    const entry: unknown = data.hooks[0]
+    expect(entry).toMatchObject({ trigger: 'Stop', action: { type: 'agent' } })
+    expect(entry).not.toHaveProperty('enabled')
+    expect(JSON.stringify(entry)).toContain('unseen-gate.mjs')
   })
 
   test('every command path in the hook file exists after install', async () => {

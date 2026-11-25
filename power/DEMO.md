@@ -40,15 +40,19 @@ Automated checks find roughly 30-40% of WCAG issues. This demo shows the audit l
 
 Expected tool calls: `audit_html` or `audit_url` (once or twice), file edits to `checkout.html`.
 
+**What a live headless Kiro CLI run showed.** Kiro first added the quantity field and declined to fix the button, offering "I can add it if you want", and tried to end its turn. The gate blocked the turn and Kiro got a new turn. It called `audit_html`, added `aria-label="Checkout"` and reported 15 to 0. In the CLI the Stop hook did **not** run again after that continued turn, so the final `gate passed` line from step 5 may not appear, `.unseen/gate-state.json` shows no pass, and `.unseen/turn-start.json` is left behind. Running the gate shim by hand afterwards printed `gate passed (score 0, before 15)`.
+
+The page itself carries no hint about the ghost (the fixture has no comment about it). The expected result is described only here and in the test that checks the scores.
+
 ## If the IDE does not keep working after the gate exits 1
 
-The documented behaviour is that exit code 1 with the instruction on stderr is sent to the agent. If this IDE version does not start a new turn, switch to the fallback entry in `.kiro/hooks/unseen-hooks.json`:
+The documented behaviour is that exit code 1 with the instruction on stderr is sent to the agent. If this IDE version does not start a new turn, switch to the agent fallback gate, which lives in its own file:
 
-1. Set `"enabled": false` on the Stop entry named `THE UNSEEN ghost gate`, or remove it.
-2. Set `"enabled": true` on the Stop entry named `THE UNSEEN ghost gate (agent fallback)`.
+1. Delete the Stop entry from `.kiro/hooks/unseen-hooks.json`.
+2. Set `"enabled": true` in `.kiro/hooks/unseen-gate-agent-fallback.json`.
 3. Start a new chat session.
 
-The agent entry asks Kiro to run the gate shim and keep fixing. It costs credits on every turn, so switch it back after the take.
+The agent hook asks Kiro to run the gate shim and keep fixing. It costs credits on every turn, so set `"enabled": false` again after the take.
 
 ## Recovery
 
@@ -57,4 +61,5 @@ The agent entry asks Kiro to run the gate shim and keep fixing. It costs credits
 - **`unseen-mcp` is not found.** Run `npm run unseen:install-global` again and open a new terminal.
 - **A browser error.** Run `npx playwright install chromium` and set `UNSEEN_CHROMIUM_CHANNEL=chromium` on Windows.
 - **You use a dev server.** Set `UNSEEN_DEV_URL` (for example `http://localhost:5173/checkout.html`). When it is set and reachable, the gate audits it. Otherwise it audits the changed `.html` files.
+- **`.unseen/turn-start.json` is left over after a take** (the CLI may skip the last Stop hook, see above). Delete `.unseen/` before the next take.
 - **Reset between takes.** Copy `power/demo/checkout.html` over the demo copy and delete `.unseen/`.

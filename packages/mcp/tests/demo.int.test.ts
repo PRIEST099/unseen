@@ -29,6 +29,11 @@ describe('demo fixture power/demo/checkout.html', () => {
     expect(after.score).toBeLessThan(before.score)
   })
 
+  test('the page does not announce its own ghost (no HTML comments, no hint words)', () => {
+    expect(fixture).not.toContain('<!--')
+    expect(fixture).not.toMatch(/Expected|Nameless Spirit|Wraith|haunt/i)
+  })
+
   test('the scores printed in DEMO.md equal the computed ones', async () => {
     const before = (await auditHtmlAndClassify(fixture, { allowPrivate: true })).score
     const after = (await auditHtmlAndClassify(fixed, { allowPrivate: true })).score
@@ -58,6 +63,9 @@ describe('DEMO.md', () => {
     expect(demoText).toContain('Add a quantity selector next to the checkout button in checkout.html.')
     expect(demoText).toContain('exits 1')
     expect(demoText).toContain('agent fallback')
+    expect(demoText).toContain('unseen-gate-agent-fallback.json')
+    expect(demoText).toContain('.unseen/turn-start.json')
+    expect(demoText).toContain('may not appear')
     expect(demoText).toContain('Recovery')
   })
 

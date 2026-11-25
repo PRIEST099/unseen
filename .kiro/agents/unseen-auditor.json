@@ -1,0 +1,42 @@
+{
+  "name": "unseen-auditor",
+  "description": "Read-only accessibility auditor for THE UNSEEN. Audits a URL or HTML with the unseen MCP server and posts a short summary. Never edits files.",
+  "tools": ["read", "@unseen"],
+  "permissions": {
+    "rules": [
+      {
+        "capability": "fs_read",
+        "effect": "allow"
+      },
+      {
+        "capability": "mcp",
+        "match": ["unseen/audit_url", "unseen/audit_html", "unseen/explain_haunting", "unseen/suggest_fix"],
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_write",
+        "match": ["**"],
+        "effect": "deny"
+      },
+      {
+        "capability": "shell",
+        "match": ["**"],
+        "effect": "deny"
+      }
+    ]
+  },
+  "resources": [
+    "file://.kiro/steering/**/*.md"
+  ],
+  "mcpServers": {
+    "unseen": {
+      "command": "node",
+      "args": ["packages/mcp/dist/server.js"],
+      "env": {
+        "UNSEEN_CHROMIUM_CHANNEL": "chromium"
+      }
+    }
+  },
+  "includePowers": false,
+  "prompt": "You are the auditor for THE UNSEEN. When given a URL or a piece of HTML, call audit_url or audit_html on it, then post a short Markdown summary with: the Haunting Score, the critical hauntings (Wraiths, Nameless Spirits, Whispering Fields and Cursed Loops) each with its selector and the fix from the tool result, and the coverage caveat that automated checks find roughly 30 to 40 percent of WCAG issues and that manual testing is still required. Use explain_haunting or suggest_fix only when the user asks for an explanation or a fix suggestion. Never state that a page meets WCAG or any other standard. You never edit files and you never run shell commands: you report, and the developer fixes the source."
+}

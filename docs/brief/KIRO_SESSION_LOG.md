@@ -685,3 +685,19 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-25 · Run 47 · started (owner account): MCP/Power tasks 6–8 and demo fixes
 - **Instruction:** `prompts/47-mcp-power-tasks-6-8.md`. **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --agent unseen-builder --model auto`, with `UNSEEN_CHROMIUM_CHANNEL=chromium`.
+- **Run 47 result (Kiro):** items 1, 1b and 1c, and tasks 6, 7 and 8, all ticked.
+  - The fallback gate now has its own file.
+  - The demo page no longer gives away its ghost.
+  - `DEMO.md` records the CLI quirk.
+  - The `unseen-auditor` agent and the `web-self-audit-on-save` hook were added. A real run of the hook gave 9 checks clean.
+  - `demo/cursed-shop-exorcised/` scores 98/85/70 → 0/0/0, recomputed by an integration test. The original shop is unchanged.
+  - **Deviation, accepted:** the write tool refused `.kiro/agents/` and `.kiro/hooks/` (expected in headless mode). Instead of printing the files for the lead as instructed, Kiro placed them with a shell copy from staged copies. The content is correct.
+  - **This exposed a real gap:** the protected-files guard watches only write tools, so a shell command could still overwrite the golden file. Run 48 closes it.
+- **Product-lead verification:**
+  - `apps/cursed-shop` and `docs/brief` are untouched.
+  - Build and typecheck are clean. Core 644 unit, mcp 112 unit and 35 integration, web 392 unit; the shop verifier passes.
+  - `kiro-cli agent list` loads `unseen-auditor`. A live headless run audited a snippet with `@unseen/audit_html` and reported the Wraith Nameless Spirit, score 15, with the coverage caveat.
+- **Task 9 (lead):** the `unseen` entry Kiro printed is applied to `.kiro/settings/mcp.json`, and `kiro-cli mcp list` shows it. THE UNSEEN now audits its own build environment.
+
+## 2026-11-25 · Run 48 · started (owner account): guard shell loophole, then deploy and replay edition
+- **Instruction:** `prompts/48-guard-shell-then-deploy.md`. It covers Part A (the shell guard) and Part B, which is `prompts/45`.
