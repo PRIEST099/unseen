@@ -775,3 +775,11 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **The kept fix** is exactly `aria-label="Buy now"` on line 739.
 - **Evidence:** `night-shift/docs/patrol-transcripts/2026-11-25-unattended-regression-run.md`.
 - **Night Shift published (with the owner's OK):** https://github.com/PRIEST099/night-shift, public, MIT, `.kiro/` included, 10 commits. The lead checked it before publishing: no secrets and no personal data in the files, and the commit identity matches the public `unseen` repo.
+- **History rewrite (the owner's explicit decision, 2026-11-25):** the owner asked for the `Co-Authored-By: Claude` trailer to be removed from both repos.
+  - **unseen `main`:** 92 of 95 commits rewritten (`20e21ad` → `d5c5ebf`).
+  - **night-shift `main`:** 6 of 10 rewritten (`32f67e7` → `718c456`).
+  - Each force-push used `--force-with-lease`. This was a one-off exception to "never force-push main", approved by the owner after being told.
+  - The file trees are byte-identical, and authors and dates are unchanged. The old history is kept locally as the tag `backup/pre-trailer-rewrite`.
+  - Claude Code's role is still disclosed in the README, the Devpost answers and this log. The old `kiro/*` branches on GitHub still carry the original commits.
+- **GitHub Pages enabled (owner's OK).** The replay edition is live at https://priest099.github.io/unseen/; checked with the Checkout sample in Spirit Sight, score 70.
+- **Gad (`irumvag`) invited** as a collaborator on `PRIEST099/night-shift`, at the owner's request. The invite is pending his acceptance.
