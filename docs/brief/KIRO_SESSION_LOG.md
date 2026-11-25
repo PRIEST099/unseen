@@ -774,3 +774,4 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - Warden `report`
 - **The kept fix** is exactly `aria-label="Buy now"` on line 739.
 - **Evidence:** `night-shift/docs/patrol-transcripts/2026-11-25-unattended-regression-run.md`.
+- **Night Shift published (with the owner's OK):** https://github.com/PRIEST099/night-shift, public, MIT, `.kiro/` included, 10 commits. The lead checked it before publishing: no secrets and no personal data in the files, and the commit identity matches the public `unseen` repo.

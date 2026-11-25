@@ -15,7 +15,7 @@ The owner also chooses the bonus prizes. Blog and Social both need a URL to a po
 
 **Bonus prizes selected:**
 - Best Ghost of Kiroween Past (the owner confirmed they registered for Kiroween 2025; "Registered for 2025" is set to Yes)
-- Best Kiro Crew App (Night Shift, separate repo; URL to add)
+- Best Kiro Crew App: Night Shift, https://github.com/PRIEST099/night-shift (same GitHub account as the main repo, as the rule requires)
 - Bonus Blog Prize (blog URL to add)
 - Social Blitz (URL of the owner's own post to add)
 - Best Startup Project. The owner is a founder of a separate startup, and the answer states that THE UNSEEN is not its product.
