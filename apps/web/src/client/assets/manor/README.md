@@ -8,6 +8,9 @@ Original images generated for THE UNSEEN on 2026-11-25 with Figma AI image gener
 | `seance-table.webp` | Séance view: crystal ball, candles and cards |
 | `corridor.webp`, `corridor-768.webp` | 404 view: a corridor that leads nowhere |
 | `damask.webp` | The wallpaper around the content column (tiled) |
+| `lens-spirit*.webp` | Spirit Sight banner: the manor in fog at night, spirits on the lawn |
+| `lens-whisper*.webp` | Whisper walk banner: a gramophone whispering smoke in a dark parlour |
+| `lens-daylight*.webp` | Daylight banner: the library at sunrise, the morning after (the Keyboard walk reuses the corridor) |
 | `gilt-frame.webp` | The carved gilt frame (`border-image`) around paintings and audited screenshots |
 
 Every image is decorative (`alt=""` or a CSS background), and no text is ever placed over one. Text sits only on solid panels, so the app's own accessibility self-audit can measure every contrast ratio.

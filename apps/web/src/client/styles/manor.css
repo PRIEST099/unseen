@@ -35,6 +35,13 @@ body {
   font-size: var(--text-2xl);
   letter-spacing: 0.04em;
   text-shadow: 0 0 0.75rem color-mix(in srgb, var(--color-candle) 35%, transparent);
+  white-space: nowrap;
+}
+
+@media (max-width: 30rem) {
+  .wordmark {
+    font-size: var(--text-lg);
+  }
 }
 
 .app-footer {
@@ -299,6 +306,35 @@ h2 {
   .manor-scene {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ------------------------------------------------ Lens banners (audit views) */
+
+/* A slim framed painting above each lens. In normal flow, never under any text. */
+.lens-banner {
+  margin-bottom: var(--space-6);
+}
+
+.lens-banner img {
+  height: clamp(7rem, 4rem + 9vw, 12rem);
+  /* Still, on purpose: the audit views settle completely (the tests and Daylight's calm rely on
+     no endless animation), so all the motion stays in the fog and the ghosts. */
+}
+
+/* ---------------------------------------------- Daylight: the morning after */
+
+/* The ghosts are gone: the report is a parchment ledger. Its colours come from the daylight
+   token set in tokens.css (dark ink on parchment), so every component inside re-themes itself. */
+.view-daylight {
+  color: var(--color-bone);
+}
+
+.view-daylight h1 {
+  color: var(--color-bone);
+}
+
+.view-daylight .daylight-table th {
+  background-color: var(--color-velvet-raised);
 }
 
 /* -------------------------------------------- Screenshots hang in gilt frames */

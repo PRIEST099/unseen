@@ -184,7 +184,9 @@ export function HauntingDetailDialog({
       {/* The trap wraps the dialog only, so the backdrop counts as outside it. */}
       <FocusTrap
         focusTrapOptions={{
-          escapeDeactivates: false,
+          // focus-trap listens for Escape on the document from the moment the dialog opens, before its
+          // initial focus lands, so an Escape pressed straight away still closes it (onDeactivate).
+          escapeDeactivates: true,
           // Outside presses are swallowed, so focus never falls to the page body; only a press that
           // starts and ends on the backdrop closes the dialog (never a drag out of a code block).
           clickOutsideDeactivates: false,

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { DaylightReport } from '../components/DaylightReport'
+import { LensBanner } from '../components/LensBanner'
 import { SessionEnded } from '../components/SessionEnded'
 import { SpiritSightView } from '../components/SpiritSightView'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -130,7 +131,8 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
 
   const hostname = hostnameOf(result.audit)
   return (
-    <main id="main" tabIndex={-1} className="view view-wide" data-source={kind}>
+    <main id="main" tabIndex={-1} className={`view view-wide${lens === 'daylight' ? ' view-daylight' : ''}`} data-source={kind}>
+      <LensBanner lens={lens} />
       {lens === 'spirit' ? (
         <>
           <h1 id="spirit-sight-heading" tabIndex={-1}>

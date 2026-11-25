@@ -43,3 +43,21 @@
   --font-heading: 'Cinzel', Georgia, serif;
   --font-flavor: 'IM Fell English', Georgia, serif;
 }
+
+/*
+ * Daylight mode: the morning after. The same token names, re-valued as dark ink on parchment,
+ * so every component in the report re-themes itself. Each text colour keeps at least 4.5:1 on
+ * every parchment panel (and links, focus rings and severity words stay distinguishable).
+ */
+.view-daylight {
+  --color-ink: #F7F0E1;
+  --color-bone: #21180F;
+  --color-mist: #574C63;
+  --color-ember: #9E2418;
+  --color-candle: #6E4300;
+  --color-ecto: #0A6249;
+  --color-velvet: #EFE5CF;
+  --color-velvet-raised: #E6D9BC;
+  --color-velvet-deep: #F7F0E1;
+  --color-gilt-dim: rgb(138 104 40 / 0.5);
+}
