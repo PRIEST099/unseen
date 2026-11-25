@@ -682,3 +682,6 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - **The gate blocked the turn.** Kiro took another turn, called `audit_html`, added `aria-label="Checkout"`, and reported 15 → 0.
   - **CLI quirk:** the Stop hook did not run again after the forced turn. Running the gate by hand printed `gate passed (score 0, before 15)`.
   - **Verdict:** the demo-critical loop works end to end in a real Kiro session.
+
+## 2026-11-25 · Run 47 · started (owner account): MCP/Power tasks 6–8 and demo fixes
+- **Instruction:** `prompts/47-mcp-power-tasks-6-8.md`. **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --agent unseen-builder --model auto`, with `UNSEEN_CHROMIUM_CHANNEL=chromium`.
