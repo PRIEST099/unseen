@@ -589,3 +589,25 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - landing atmosphere and score wording
   - **the fog wave clears itself, so the signature reveal looks flat (demo-critical)**
   - the browser-backed test runs inside the parallel unit run
+
+## 2026-11-25 · UI build in the Kiro IDE: tasks 2.3–3.5, then the fix pass (Claude Code)
+- **Kiro IDE (continuing the nonstop run):** 2.3 Keyboard walk, 3.1 haunting detail dialog, 3.2 "Takes Form" fix preview, 3.3 ambient drone, 3.4 product states, 3.5 final self-audit on 8 routes. **The `spirit-sight-ui` task list is complete (18/18).** Each task was verified (unit and typecheck) and committed separately. The final Kiro-only baseline: **web unit 277/277, e2e 68/68**, self-audit zero hauntings on all 8 routes.
+- **Independent reviews:** after each Phase 3 task, a read-only Claude Code workflow (4 reviewers plus a skeptic) reviewed the commit. 20 confirmed findings were added to `review-notes/ui-build-fixlist.md`, which reached **28 items**. Two more came from findings the skeptic had rejected; I checked them myself.
+- **Decision (user):** do not send the fix list back to Kiro. Claude Code applies all items in one pass once Kiro finishes (recorded as an exception in `CLAUDE.md`). Every commit is labelled `fix-pass (Claude Code)`, so the line between Kiro-built and Claude-fixed code is visible in `git log`.
+- **Fix pass:**
+  - **Method:** a workflow ran 6 implementers on file-disjoint groups, then an adversarial reviewer for each group, then a repair agent where the reviewer found gaps.
+  - **Fixed by the lead afterwards:**
+    - séance stage labels moved to start semantics (follows core item 1)
+    - snippet note driven only by the core ellipsis; samples rebuilt with the new core
+    - landing atmosphere reworked as box-shadows, because axe cannot measure contrast over gradient or noise pseudo-layers
+    - the score separator is no longer `aria-hidden` (our own auditor flagged it as The Veiled)
+    - the status line reserves two lines (removes a 4 px layout shift)
+    - spec traceability (items 14 and 22); design and requirements notes (items 11 and 25)
+  - **Commits:** 446d2a4 (specs), 88e3717 (core: items 1 and 15), 68f7ac3 (web: items 2–13 and 15–28).
+- **Verification after the fix pass:**
+  - typecheck clean
+  - **core unit 644/644**, core Playwright **108/108**
+  - **web unit 392/392**, `test:int` 2/2
+  - **e2e 84/84**, including the self-audit on all 8 routes (zero hauntings, zero unmapped axe violations)
+  - In the browser at 1280×800: after "Open Spirit Sight" the canvas stays fully painted (average alpha 0.33) and the screenshot is dimmed by the haunted veil. The demo-critical fog reveal (item 6) now persists.
+- **Not done here:** the `.kiro/settings/permissions.yaml` written by the IDE (it allows `git *`) is still uncommitted; it should be narrowed before it is committed.

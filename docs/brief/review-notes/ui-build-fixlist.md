@@ -4,6 +4,8 @@ Issues found while verifying each task during the nonstop IDE run.
 
 **Decision (user, 2026-11-25):** these are **not** sent back to Kiro. Once Kiro has finished every `spirit-sight-ui` task (through 3.5), Claude Code applies all items below in **one** fix pass, on its own commits labelled `fix-pass (Claude Code)`, logged in `KIRO_SESSION_LOG.md` so the split between Kiro-built and Claude-fixed code stays transparent. Until then, items are only collected here; nothing is edited while the IDE run is going.
 
+**Status (2026-11-25): all 28 items resolved** in the fix pass: commits 446d2a4 (items 14 and 22), 88e3717 (items 1 and 15, core) and 68f7ac3 (all other items, web). Item 25's step bar is recorded as a deviation in requirements.md 31.1, not built. Verified: web unit 392/392, e2e 84/84 including the self-audit, core 644/644 and 108/108.
+
 | # | Task | Issue | Fix |
 |---|---|---|---|
 | 1 | 1.1 | `onProgress` reports each stage when it **finishes** ("loading" fires after the page has loaded, "tree" after the AX tree is collected). Decision N and the spec say stages are emitted when each one **starts**. The séance would show nothing during the slowest step, then jump ahead. | Emit `loading` before `loadPage`, `tree` before `collectAxTree`, `walking` before the Tab walk and `classifying` before `classify`. Update `progress.int.spec.ts` to assert the start order. |
