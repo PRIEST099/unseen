@@ -365,7 +365,7 @@ Spirit Sight UI is the complete web application (`apps/web`) that makes accessib
 5. THE Dialog SHALL have a visible close button with accessible label "Close dialog"
 6. THE Dialog SHALL announce its title to screen readers via `aria-labelledby`
 
-### Requirement 24: Deploy as Docker Container
+### Requirement 13: Deploy as Docker Container
 
 **User Story:** As a platform operator, I want a deployable Docker image, so that I can run the app on Fly.io, Render, or Railway.
 

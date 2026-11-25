@@ -3396,6 +3396,16 @@ export type ErrorResponse = {
 }
 ```
 
+### Ambient Drone (Requirement 33)
+
+Optional atmosphere, added in task 3.3. Parameters live in `apps/web/src/client/utils/ambient-drone.ts`; `drone-engine.ts` builds the Web Audio graph and `useAmbientDrone` (mounted once in `App`) starts and stops it.
+
+- Two detuned sine oscillators at 55 Hz and 55.4 Hz, through a 400 Hz lowpass and a soft feedback delay; peak gain 0.04 (hard cap 0.2) so Web Speech stays intelligible.
+- 2 s fade-in, a 60 ms fade-out, and the oscillators stop 80 ms after a stop request (well inside the 100 ms "stops immediately" budget).
+- **Started only by the header Sound toggle** (33.2). The Whisper walk's Play allows speech through its own gesture and never starts the drone.
+- Never plays under `prefers-reduced-motion` (19.6). The preference is in memory only, not `localStorage` (33.3).
+- With no Web Audio support the toggle still works and the app stays silent.
+
 ---
 
 ## Component Testing Strategy

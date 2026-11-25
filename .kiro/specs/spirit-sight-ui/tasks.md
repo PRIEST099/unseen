@@ -30,7 +30,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm install` completes without peer-dependency warnings
   
   - [x] 1.0a Add `buildSpeechTrack` to core classifier
-    - _Requirements: Requirement 13 (Implement Whisper Walk with Web Speech) — the Whisper Walk needs AX-tree speech in reading order_
+    - _Requirements: Requirement 14 (Implement Whisper Walk with Web Speech) — the Whisper Walk needs AX-tree speech in reading order_
     - _Design: Section "Data Contract: Core Types to UI Needs" row "Speech", decision I from prompt 38_
     - **Acceptance Criteria:**
       - `packages/core/src/classifier/speech.ts` exports a pure function `buildSpeechTrack(raw: RawAudit): SpeechLine[]`
@@ -127,7 +127,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run test -w apps/web` passes; posting a demo URL and polling returns a done result within 20 seconds
   
   - [x] 1.5 Implement routing, app shell, and Landing view
-    - _Requirements: Requirement 6 (Display Landing Page), Requirement 22 (Ensure App Self-Accessibility)_
+    - _Requirements: Requirement 6 (Display Landing Page), Requirement 23 (Ensure App Self-Accessibility)_
     - _Design: Section "Routing and URL Structure", "Landing View", "Route Focus and Keyboard Navigation", decision F from prompt 38_
     - **Acceptance Criteria:**
       - `apps/web/src/client/main.tsx` renders: `<React.StrictMode><BrowserRouter><ReducedMotionProvider><SoundProvider><App /></SoundProvider></ReducedMotionProvider></BrowserRouter></React.StrictMode>`
@@ -177,7 +177,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/sample/cursed-shop-index` without error; clicking "Open Spirit Sight" reveals overlays; tabbing through overlays works; clicking an overlay opens a dialog stub
   
   - [x] 1.7 Implement Daylight mode with WCAG report and export
-    - _Requirements: Requirement 16 (Render Daylight Mode Report), Requirement 17 (Export Audit Results)_
+    - _Requirements: Requirement 17 (Render Daylight Mode Report), Requirement 18 (Export Audit Results)_
     - _Design: Section "Daylight Mode", "Summary", "Coverage Note", "Findings by WCAG Criterion", "Needs Manual Check", decision on clean-site copy from prompt 38_
     - **Acceptance Criteria:**
       - The user navigates to `/audit/:id/daylight` or `/sample/:id/daylight` (via a "Daylight mode" button in the Spirit Sight view)
@@ -195,7 +195,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; `npm run dev -w apps/web` starts and loads `/sample/cursed-shop-index/daylight` without error; clicking "Export as Markdown" downloads a file; the file contains the Haunting Score and criterion groups
   
   - [x] 1.8 Self-audit test on Landing, Spirit Sight, and Daylight views
-    - _Requirements: Requirement 22 (Ensure App Self-Accessibility)_
+    - _Requirements: Requirement 23 (Ensure App Self-Accessibility)_
     - _Design: Section "Accessibility Self-Audit", decision F from prompt 38_
     - **Acceptance Criteria:**
       - `apps/web/e2e/self-audit.spec.ts` contains: Test "Landing view has zero hauntings": Runs `auditAndClassify('http://localhost:3000/', { allowPrivate: true })`, Asserts that the page loads without error (presence marker: h1 text "THE UNSEEN"), Asserts `result.hauntings.length === 0`, Asserts `result.axeCrossCheck.unmapped.length === 0`, If either assertion fails, log the full list of hauntings and unmapped violations; Test "Spirit Sight view (sample) has zero hauntings": Runs `auditAndClassify('http://localhost:3000/sample/cursed-shop-index', { allowPrivate: true })`, Asserts that the page loads without error (presence marker: h1 text "Spirit Sight: the-unseen.app"), Asserts `result.hauntings.length === 0`, Asserts `result.axeCrossCheck.unmapped.length === 0`; Test "Daylight view (sample) has zero hauntings": Runs `auditAndClassify('http://localhost:3000/sample/cursed-shop-index/daylight', { allowPrivate: true })`, Asserts that the page loads without error (presence marker: h1 text "Daylight report: the-unseen.app"), Asserts `result.hauntings.length === 0`, Asserts `result.axeCrossCheck.unmapped.length === 0`; Test "404 view has zero hauntings": Runs `auditAndClassify('http://localhost:3000/nonexistent', { allowPrivate: true })`, Asserts that the page loads without error (presence marker: h1 text "Page not found"), Asserts `result.hauntings.length === 0`, Asserts `result.axeCrossCheck.unmapped.length === 0`
@@ -221,7 +221,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; posting a demo URL and navigating to `/seance/:id` shows real stage updates and auto-navigates to Spirit Sight when done
   
   - [x] 2.2 Implement Whisper Walk with Web Speech and synchronized highlighting
-    - _Requirements: Requirement 13 (Implement Whisper Walk with Web Speech)_
+    - _Requirements: Requirement 14 (Implement Whisper Walk with Web Speech)_
     - _Design: Section "WhisperWalk"_
     - **Acceptance Criteria:**
       - The user navigates to `/audit/:id/whisper` or `/sample/:id/whisper` (via a "Whisper walk" button in the Spirit Sight view)
@@ -239,7 +239,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; loading `/sample/cursed-shop-index/whisper` and clicking Play speaks the first utterance and highlights the corresponding element
   
   - [x] 2.3 Implement Keyboard Walk with ghost animation and Lost Soul reveals
-    - _Requirements: Requirement 14 (Animate Keyboard Walk)_
+    - _Requirements: Requirement 15 (Animate Keyboard Walk)_
     - _Design: Section "KeyboardWalk"_
     - **Acceptance Criteria:**
       - The user navigates to `/audit/:id/keyboard` or `/sample/:id/keyboard` (via a "Keyboard walk" button in the Spirit Sight view)
@@ -259,7 +259,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
   - Phase 3 adds the haunting detail dialog, the "takes form" celebration animation, the optional ambient drone, all product states, and the final self-audit proof.
   
   - [x] 3.1 Implement Haunting Detail Dialog
-    - _Requirements: Requirement 15 (Display Haunting Detail Dialog)_
+    - _Requirements: Requirement 16 (Display Haunting Detail Dialog), Requirement 24 (Modal Dialog Accessibility)_
     - _Design: Section "Haunting Detail Dialog"_
     - **Acceptance Criteria:**
       - When an overlay button is clicked, open a modal dialog with `role="dialog"` and `aria-modal="true"`
@@ -278,7 +278,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; clicking an overlay button opens the dialog; pressing Escape closes it and returns focus
   
   - [x] 3.2 Implement "Takes Form" celebration animation
-    - _Requirements: Requirement 18 (Animate "Takes Form" on Fix)_
+    - _Requirements: Requirement 32 ("Takes Form" on fix)_
     - _Design: Section "Product States > Fixed Haunting"_
     - **Acceptance Criteria:**
       - When a haunting is fixed (simulated by clicking a "Fix" button in the haunting detail dialog, which removes the haunting from the list and decrements the score), trigger a "Takes form" animation on the overlay element
@@ -289,8 +289,8 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; the "takes form" animation is implemented and can be triggered by editing a sample
   
   - [x] 3.3 Implement optional ambient drone (Web Audio)
-    - _Requirements: Requirement 19 (Play Ambient Drone)_
-    - _Design: Section "Product States > Ambient Drone"_
+    - _Requirements: Requirement 33 (Ambient Drone): 33.1–33.3; also 19.6, 20.1, 20.5, 20.7_
+    - _Design: Section "Product States > Ambient Drone (Requirement 33)"_
     - **Acceptance Criteria:**
       - When sound is enabled by user gesture (the sound toggle button in the app header) AND `prefers-reduced-motion` is NOT set, start an ambient drone using Web Audio API (a low-frequency oscillator with reverb)
       - The drone volume is low enough to not interfere with Web Speech (≤20% of the master volume)
@@ -301,7 +301,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; the ambient drone plays when sound is enabled and Spirit Sight is open
   
   - [x] 3.4 Implement all product states
-    - _Requirements: Requirement 20 (Handle All Product States)_
+    - _Requirements: Requirement 26 (Error messages), Requirement 31 (Navigation and product states)_
     - _Design: Section "Product States"_
     - **Acceptance Criteria:**
       - A `NotFoundView` component is rendered for unmatched routes, displaying h1 "Page not found" and a link back to `/`
@@ -313,7 +313,7 @@ The Spirit Sight UI is a React + Fastify web application that presents accessibi
     - **Checkpoint:** `npm run typecheck -w apps/web` passes; all product states are implemented and testable
   
   - [x] 3.5 Final self-audit on all routes
-    - _Requirements: Requirement 22 (Ensure App Self-Accessibility)_
+    - _Requirements: Requirement 23 (Ensure App Self-Accessibility)_
     - _Design: Section "Accessibility Self-Audit", decision F from prompt 38_
     - **Acceptance Criteria:**
       - Extend `apps/web/e2e/self-audit.spec.ts` to cover all routes: Landing view: `/`, Spirit Sight view: `/sample/cursed-shop-index`, Whisper Walk view: `/sample/cursed-shop-index/whisper`, Keyboard Walk view: `/sample/cursed-shop-index/keyboard`, Daylight view: `/sample/cursed-shop-index/daylight`, 404 view: `/nonexistent`
