@@ -277,7 +277,12 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
         </div>
       </div>
       {dialog !== null ? (
-        <HauntingDetailDialog haunting={dialog.haunting} elementLabel={elementLabel(dialog.haunting, axLookup)} onClose={closeDialog} />
+        <HauntingDetailDialog
+          haunting={dialog.haunting}
+          elementLabel={elementLabel(dialog.haunting, axLookup)}
+          auditedUrl={audit.raw.auditedUrl}
+          onClose={closeDialog}
+        />
       ) : null}
     </>
   )
