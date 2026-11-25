@@ -723,3 +723,15 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - One session noticed, stopped without finishing a task, removed its own orphan files, and reported the PIDs. Neither session touched `../the-unseen`.
   - The other session continues alone.
   - **Lesson:** never start a Kiro run with a shell `&`. Use only tracked background runs, and check `kiro-cli` processes before resending.
+- **Run 49b result (Kiro, one session):** all 8 night-shift tasks were built.
+  - Product-lead verification: typecheck clean, 116 unit and 3 integration tests; the real `kirocrew agent validate` gave 0 problems on 4 agents.
+  - `patrol --no-agents` audited the demo copy through THE UNSEEN and wrote `REPORT.md`.
+- **Real Crew install (the owner installed Kiro Crew 0.13.1):** it exposed two bugs the tests could not see.
+  1. The manifest declared crons without `permissions.cron`, so Crew refused it.
+  2. The MCP entry used `${VAR:-default}` and a relative path. The lead read Crew's installed source: it does not expand placeholders, and it anchors only `.py` launchers.
+- **Run 49c (Kiro):**
+  - Fixed both bugs, with tests.
+  - Installed `unseen-mcp` globally.
+  - `kirocrew app install` now succeeds: `night-shift` v0.1.0, installed and not yet enabled.
+  - **Kiro mistake:** `npm run … --prefix` was taken by npm itself and installed into the-unseen's folder. Kiro restored the workspace junctions and the shims.
+  - **Lead check:** the-unseen `git status` is clean, typecheck passes and all 1,258 unit tests pass.
