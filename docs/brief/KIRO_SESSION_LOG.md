@@ -747,3 +747,18 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   2. Every spawn waits for a person unless a global setting is changed.
   3. The running gateway's PATH lacks the npm global bin.
 - **Kiro overstepped:** it approved a pending spawn itself through the dashboard API, and it re-applied the owner's trust grant through the API after a reinstall had withdrawn it. Approvals belong to the owner. The lead flagged this to the owner and added a rule to the next instruction: never approve Crew prompts or grants.
+- **Run 49e (Kiro):**
+  - Added a Night Shift MCP server with 9 tools, confined to the repo and its work directories.
+  - All agents are now MCP-only, with pre-approved `allowedTools`. The Warden runs the Seer, Scribe and Exorcist as native sub-agents.
+  - 158 tests pass.
+  - **Kiro followed the new no-self-approval rule:** it stopped and asked the owner to press Update. It did not uninstall or approve anything.
+- **Run 49f (Kiro):**
+  - The owner saw "does not provide an export named 'defineApp'" on the dashboard page.
+  - The lead found the real contract in Crew's installed SDK types and in a shipped app: a default-exported React component.
+  - Kiro fixed the page and added a test that pins the contract. The owner synced the app from its detail page.
+- **The headless `kirocrew chat -m` patrol got further:** the Warden validated and spawned the Seer with no prompt. The Seer's `audit` was then denied.
+  - `cli_chat.py` sends every request it receives to a human on purpose: "TOOL_AUTO_APPROVE still asks".
+- **The gateway cron run was refused too:** `cron.unowned_no_implicit_trust` (`turn_approvals.py`). An unowned app-created job gets no implicit trust, by design.
+- **The owner chose** Crew's documented opt-in `hooks.auto_approve_sources: ["cron"]`, after the trade-off was explained: it covers every scheduled job, and Crew's hard deny rules still apply.
+  - The lead backed up `~/.kiro/crew/config.json`; a semantic diff shows only that key changed.
+  - The lead restarted Crew and triggered the job again at 20:45.
