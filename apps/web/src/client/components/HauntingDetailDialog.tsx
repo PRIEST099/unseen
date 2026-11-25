@@ -19,6 +19,8 @@ type HauntingDetailDialogProps = {
   elementLabel: string
   auditedUrl: string
   onClose: () => void
+  /** Simulates a source-code fix in this view only (task 3.2). Absent: no preview button. */
+  onPreviewFix?: (haunting: Haunting) => void
 }
 
 const COPIED_MESSAGE = 'Copied the Kiro prompt to the clipboard.'
@@ -125,7 +127,13 @@ function CopyPromptButton({ prompt }: { prompt: string }): ReactElement {
  * offending HTML, suggested fix, related issues and a Kiro prompt. Focus is trapped while open.
  * The caller returns focus to the trigger once `onClose` has unmounted this dialog.
  */
-export function HauntingDetailDialog({ haunting, elementLabel, auditedUrl, onClose }: HauntingDetailDialogProps): ReactElement {
+export function HauntingDetailDialog({
+  haunting,
+  elementLabel,
+  auditedUrl,
+  onClose,
+  onPreviewFix,
+}: HauntingDetailDialogProps): ReactElement {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (event.key !== 'Escape') return
     event.stopPropagation()
@@ -179,6 +187,17 @@ export function HauntingDetailDialog({ haunting, elementLabel, auditedUrl, onClo
           </section>
           <FixSection haunting={haunting} />
           <RelatedSection related={relatedIssues(haunting)} />
+          {onPreviewFix !== undefined ? (
+            <div className="dialog-preview">
+              <p>
+                Preview only: this takes the haunting out of this view to show what a source-code fix would do. The audited page is not
+                changed and the audit is not re-run.
+              </p>
+              <button type="button" className="button" onClick={() => onPreviewFix(haunting)}>
+                Preview fix
+              </button>
+            </div>
+          ) : null}
           <div className="dialog-actions">
             <CopyPromptButton prompt={prompt} />
             <button type="button" className="button button-primary" aria-label="Close dialog" onClick={onClose}>

@@ -179,16 +179,24 @@ function Treatment(props: VisualProps): ReactElement | null {
   }
 }
 
-type HauntingOverlayProps = VisualProps & { active: boolean; fadingOut: boolean }
+type HauntingOverlayProps = VisualProps & {
+  active: boolean
+  fadingOut: boolean
+  /** The "takes form" exit of a previewed fix: the treatment resolves into a crisp ecto outline, then fades. */
+  takesForm?: boolean
+}
 
 /** One haunting's visual treatment inside the overlay SVG (requirement 9). Decorative only. */
 export function HauntingOverlay(props: HauntingOverlayProps): ReactElement {
-  const { box, active, fadingOut } = props
-  const phase = fadingOut ? 'overlay-leave' : 'overlay-enter'
+  const { box, active, fadingOut, takesForm = false } = props
+  const phase = takesForm ? 'takes-form' : fadingOut ? 'overlay-leave' : 'overlay-enter'
   return (
     <g className={`haunting-visual ${phase}`} data-haunting-type={props.haunting.type}>
       <Treatment {...props} />
-      {active ? (
+      {takesForm ? (
+        <rect x={box.x} y={box.y} width={box.width} height={box.height} className="v-takes-form-outline" />
+      ) : null}
+      {active && !takesForm ? (
         <rect x={box.x} y={box.y} width={box.width} height={box.height} className="v-active-ring" />
       ) : null}
     </g>

@@ -12,7 +12,16 @@ import type { AuditSource } from '../utils/audit-source'
 import { fogOpacityForStyle } from '../utils/fog-density'
 import { createFogPainter } from '../utils/fog-canvas'
 import type { FogPainter } from '../utils/fog-canvas'
+import {
+  exorcisedMessage,
+  nextFocusId,
+  previewResetMessage,
+  previewScore,
+  takesFormDurationMs,
+  withoutPreviewed,
+} from '../utils/fix-preview'
 import { OVERLAY_FADE_OUT_MS, revealedCount, waveCenter, waveProgress } from '../utils/fog-wave'
+import { hauntingDisplayName } from '../utils/haunting-display'
 import { buildAxLookup, buildOverlayLabel, elementLabel } from '../utils/overlay-label'
 import { hitRect, placeOverlays, stackingLevels } from '../utils/overlay-geometry'
 import { pickSpokenHaunting, speakWhisper } from '../utils/whisper-speech'
@@ -28,6 +37,9 @@ type SpiritSightViewProps = {
 }
 
 type DialogState = { haunting: Haunting }
+
+/** Where focus goes after a previewed fix or a reset: an overlay button by haunting id, or the sidebar heading. */
+type FocusTarget = { kind: 'overlay'; id: string } | { kind: 'sidebar' }
 
 const NO_IDS: ReadonlySet<string> = new Set()
 const REDUCED_MOTION_FILTER = 'saturate(0.7) brightness(0.9)'
@@ -63,11 +75,16 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
   const [imageFailed, setImageFailed] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<DialogState | null>(null)
+  // Fix preview (task 3.2): hauntings taken out of this view only. The audit is never changed or re-run.
+  const [previewed, setPreviewed] = useState<ReadonlySet<string>>(NO_IDS)
+  const [departing, setDeparting] = useState<ReadonlySet<string>>(NO_IDS)
 
   const frameRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const dialogTrigger = useRef<HTMLElement | null>(null)
+  const focusTarget = useRef<FocusTarget | null>(null)
+  const takesFormTimers = useRef<number[]>([])
 
   const scale = useScale(natural, frameRef)
   const pngWidth = natural?.width ?? audit.raw.viewportWidth
@@ -80,10 +97,18 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
   const levels = useMemo(() => stackingLevels(placed.map((item) => item.box)), [placed])
   const escapable = useMemo(() => escapableNodeIds(audit), [audit])
   const hauntingCount = audit.hauntings.length
+  const previewing = previewed.size > 0
+  // What the sidebar, the status line and the reveal wave see: the audit minus the previewed hauntings.
+  const shown = useMemo((): ClassifiedAudit => {
+    if (previewed.size === 0) return audit
+    const remaining = withoutPreviewed(audit.hauntings, previewed)
+    return { ...audit, hauntings: remaining, score: previewScore(remaining) }
+  }, [audit, previewed])
+  const activePlaced = useMemo(() => placed.filter((item) => !previewed.has(item.haunting.id)), [placed, previewed])
 
   // The reveal effect reads these through a ref so a resize or re-render never restarts the wave.
-  const latest = useRef({ scale, placed, audit, soundEnabled, reducedMotion, revealed })
-  latest.current = { scale, placed, audit, soundEnabled, reducedMotion, revealed }
+  const latest = useRef({ scale, placed: activePlaced, audit: shown, soundEnabled, reducedMotion, revealed, previewedIds: previewed })
+  latest.current = { scale, placed: activePlaced, audit: shown, soundEnabled, reducedMotion, revealed, previewedIds: previewed }
 
   const readNaturalSize = useCallback((): void => {
     const image = imgRef.current
@@ -176,7 +201,74 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
   }, [])
   const closeDialog = useCallback((): void => setDialog(null), [])
 
-  const rendered = placed.map((item, index) => ({ item, index })).filter(({ item }) => revealed.has(item.haunting.id))
+  useEffect(
+    () => () => {
+      takesFormTimers.current.forEach((timer) => window.clearTimeout(timer))
+      takesFormTimers.current = []
+    },
+    [],
+  )
+
+  /** Simulates a source-code fix in this view only: no request, no change to the page, no re-audit. */
+  const previewFix = useCallback(
+    (haunting: Haunting): void => {
+      const { revealed: shownIds, reducedMotion: reduced, previewedIds } = latest.current
+      const nextPreviewed = new Set(previewedIds)
+      nextPreviewed.add(haunting.id)
+      const remaining = withoutPreviewed(audit.hauntings, nextPreviewed)
+      const remainingShown = new Set(remaining.map((item) => item.id).filter((id) => shownIds.has(id)))
+      const nextId = nextFocusId(
+        placed.map((item) => item.haunting.id),
+        haunting.id,
+        remainingShown,
+      )
+      dialogTrigger.current = null
+      focusTarget.current = nextId === null ? { kind: 'sidebar' } : { kind: 'overlay', id: nextId }
+      setPreviewed(nextPreviewed)
+      setDeparting((previous) => new Set(previous).add(haunting.id))
+      setStatus(exorcisedMessage(hauntingDisplayName(haunting.type), previewScore(remaining)))
+      setDialog(null)
+      const timer = window.setTimeout(() => {
+        setDeparting((previous) => {
+          const next = new Set(previous)
+          next.delete(haunting.id)
+          return next
+        })
+      }, takesFormDurationMs(reduced))
+      takesFormTimers.current.push(timer)
+    },
+    [audit, placed],
+  )
+
+  const resetPreview = useCallback((): void => {
+    takesFormTimers.current.forEach((timer) => window.clearTimeout(timer))
+    takesFormTimers.current = []
+    focusTarget.current = { kind: 'sidebar' }
+    setPreviewed(NO_IDS)
+    setDeparting(NO_IDS)
+    setStatus(previewResetMessage(audit.score))
+  }, [audit])
+
+  useEffect(() => {
+    const target = focusTarget.current
+    if (target === null || dialog !== null) return
+    focusTarget.current = null
+    if (target.kind === 'overlay') {
+      const button = Array.from(document.querySelectorAll<HTMLElement>('.haunting-overlay-button')).find(
+        (element) => element.dataset.hauntingId === target.id,
+      )
+      if (button !== undefined) {
+        button.focus()
+        return
+      }
+    }
+    document.getElementById('haunting-list')?.focus()
+  }, [previewed, dialog])
+
+  const rendered = placed
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => revealed.has(item.haunting.id) && (!previewed.has(item.haunting.id) || departing.has(item.haunting.id)))
+  const interactive = rendered.filter(({ item }) => !previewed.has(item.haunting.id))
   const imageFilter = open && reducedMotion ? REDUCED_MOTION_FILTER : undefined
   const imageSize = scale === null ? undefined : { width: scale.scaledWidth, height: scale.scaledHeight }
 
@@ -196,8 +288,26 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
           Audit another site
         </Link>
       </div>
+      {previewing ? (
+        <div className="preview-banner">
+          <p>
+            Preview only. {previewed.size} {previewed.size === 1 ? 'haunting is' : 'hauntings are'} taken out of this view to show what a
+            source-code fix would do. The audited page is unchanged and the audit has not been re-run. Preview score {shown.score}, audited
+            score {audit.score}.
+          </p>
+          <button type="button" className="button" onClick={resetPreview}>
+            Reset preview
+          </button>
+        </div>
+      ) : null}
       <div className="spirit-layout">
-        <HauntingSidebar audit={audit} labels={labels} onOpen={openDialog} onActiveChange={setActiveId}>
+        <HauntingSidebar
+          audit={shown}
+          labels={labels}
+          onOpen={openDialog}
+          onActiveChange={setActiveId}
+          preview={previewing ? { auditedScore: audit.score } : undefined}
+        >
           <div className="sidebar-nav">
             <LensNav basePath={basePath} current="spirit" />
           </div>
@@ -234,6 +344,7 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
                         escapable={item.haunting.nodeIds.some((id) => escapable.has(String(id)))}
                         active={activeId === item.haunting.id}
                         fadingOut={closing}
+                        takesForm={previewed.has(item.haunting.id)}
                       />
                     ))}
                   </svg>
@@ -245,9 +356,9 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
                   height={Math.round(scale.scaledHeight)}
                   style={{ opacity: open ? 1 : 0 }}
                 />
-                {rendered.length > 0 ? (
+                {interactive.length > 0 ? (
                   <div className="overlay-buttons">
-                    {rendered.map(({ item, index }) => {
+                    {interactive.map(({ item, index }) => {
                       const rect = hitRect(item.box, scale.scaleFactor, { width: scale.scaledWidth, height: scale.scaledHeight })
                       const label = labels.get(item.haunting.id) ?? ''
                       const banner = item.haunting.type === 'SilentTongue'
@@ -257,6 +368,7 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
                           type="button"
                           className={`haunting-overlay-button ${closing ? 'overlay-leave' : 'overlay-enter'}${banner ? ' is-banner' : ''}`}
                           aria-label={label}
+                          data-haunting-id={item.haunting.id}
                           style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height, zIndex: levels[index] }}
                           onClick={(event) => openDialog(item.haunting, event.currentTarget)}
                           onFocus={() => setActiveId(item.haunting.id)}
@@ -282,6 +394,7 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
           elementLabel={elementLabel(dialog.haunting, axLookup)}
           auditedUrl={audit.raw.auditedUrl}
           onClose={closeDialog}
+          onPreviewFix={previewFix}
         />
       ) : null}
     </>

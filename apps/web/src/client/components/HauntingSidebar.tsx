@@ -12,6 +12,8 @@ type HauntingSidebarProps = {
   labels: ReadonlyMap<string, string>
   onOpen: (haunting: Haunting, trigger: HTMLElement) => void
   onActiveChange: (id: string | null) => void
+  /** Set while a fix preview is active: `audit` then holds the previewed hauntings and score. */
+  preview?: { auditedScore: number }
   children?: ReactNode
 }
 
@@ -89,7 +91,7 @@ function Group({ group, expanded, labels, onToggle, onOpen, onActiveChange }: Gr
 }
 
 /** Score, ten haunting groups with counts and severity colours, and instance buttons (requirement 11). */
-export function HauntingSidebar({ audit, labels, onOpen, onActiveChange, children }: HauntingSidebarProps): ReactElement {
+export function HauntingSidebar({ audit, labels, onOpen, onActiveChange, preview, children }: HauntingSidebarProps): ReactElement {
   const groups = useMemo(() => groupHauntings(audit.hauntings), [audit.hauntings])
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const tone = scoreTone(audit)
@@ -109,16 +111,20 @@ export function HauntingSidebar({ audit, labels, onOpen, onActiveChange, childre
         Hauntings
       </h2>
       <p className="score">
-        Haunting Score <span className={`score-value ${tone}`}>{audit.score}</span>/100
+        {preview === undefined ? 'Haunting Score' : 'Preview score'} <span className={`score-value ${tone}`}>{audit.score}</span>/100
       </p>
+      {preview !== undefined ? <p className="dialog-muted">Audited score: {preview.auditedScore}/100</p> : null}
       <div className={`score-bar ${tone}`} aria-hidden="true">
         <span style={{ width: `${Math.min(Math.max(audit.score, 0), 100)}%` }} />
       </div>
-      {clean ? (
+      {clean && preview === undefined ? (
         <>
           <p className="clean-note">{CLEAN_SITE_MESSAGE}</p>
           <p className="coverage-note">{audit.automatedCoverageNote}</p>
         </>
+      ) : null}
+      {clean && preview !== undefined ? (
+        <p className="clean-note">No hauntings are left in this preview. The audit has not been re-run, so this says nothing about the page itself.</p>
       ) : null}
       <ul className="group-list">
         {groups.map((group) => (

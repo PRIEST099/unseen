@@ -599,9 +599,81 @@ a.button {
   text-align: right;
 }
 
+/*
+ * "Takes form" (a previewed fix): the treatment resolves into a crisp ecto outline, bounces
+ * 600ms on the design-system curve and fades out. Under reduced motion it is a 100ms opacity fade.
+ */
+@keyframes takes-form {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes takes-form-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.takes-form {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: takes-form 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.v-takes-form-outline {
+  fill: none;
+  stroke: var(--color-ecto);
+  stroke-width: 3;
+}
+
+/* Fix preview notice */
+.preview-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  border: 2px solid var(--color-ecto);
+  border-radius: 0.25rem;
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+}
+
+.preview-banner p {
+  flex: 1 1 24rem;
+  margin: 0;
+}
+
+.dialog-preview {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-ecto);
+  border-radius: 0.25rem;
+  color: var(--color-bone);
+}
+
+.dialog-preview p {
+  margin: 0 0 var(--space-3);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .overlay-enter,
   .overlay-leave {
     animation: none !important;
+  }
+
+  /* More specific than the global "no animation" rule, so the 100ms fade still runs. */
+  .takes-form.takes-form {
+    animation: takes-form-fade 100ms linear both !important;
   }
 }
