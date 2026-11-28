@@ -1,4 +1,4 @@
-Review and adopt audit-engine tasks 5–16 in `packages/core`. **You are the builder of record for this project.** Tasks 5–16 were written by Claude Code (the product lead) while no Kiro credits were available. That goes against the project rule that Kiro writes all code. Your job is to review that code against the spec and steering, fix anything wrong, and add what's missing, so the final engine is code you have checked and own.
+Review and adopt audit-engine tasks 5–16 in `packages/core`. **You are the builder of record for this project.** Tasks 5–16 were written by Claude Code while no Kiro credits were available. That goes against the project rule that Kiro writes all code. Your job is to review that code against the spec and steering, fix anything wrong, and add what's missing, so the final engine is code you have checked and own.
 
 Sources of truth, in order:
 1. `.kiro/steering/hauntings.md`

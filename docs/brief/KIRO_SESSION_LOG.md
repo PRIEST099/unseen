@@ -7,7 +7,6 @@ This log records how THE UNSEEN is built, for the Kiroween write-up.
 - **Kiro** (Kiro CLI 3.5.0, headless `kiro-cli chat --no-interactive`, plus the Kiro IDE) writes the steering docs, specs, code, tests, hooks and the Power.
 - **Claude Code** is our planning and verification assistant. At our direction it drafted `PRODUCT_BRIEF.md` and each instruction to Kiro, ran most of the headless Kiro runs, ran the spec and code reviews, made the routine review calls recorded below, re-ran the tests itself instead of trusting Kiro's summaries, and kept this log. It does **not** write application code, except for the labelled exceptions logged below (audit-engine tasks 5–16, the UI fix pass, the visual redesign, and a few small config edits).
 
-**A note on wording:** older entries, the numbered prompts, the review notes and some of Kiro's steering and spec files call Claude Code "the product lead" or "the lead". That was its working title for the planning and verification seat. We kept the prompts exactly as Kiro received them; in this log, those places now name Claude Code directly.
 
 Each entry below records the instruction sent to Kiro, the mode, the model, and what Kiro produced.
 
@@ -847,3 +846,12 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
     - replay e2e: 18 passed.
   - In the browser at 1280, 1366 and 1440 px, and on a not-found page, the ghosts are spread across both sides, clear of the header and footer. "Hide ghosts" removes them.
 - **Status:** uncommitted. The live replay edition on GitHub Pages updates only after a push.
+
+## 2026-11-28 · Wording clean-up and the Devpost draft (the owner's request)
+- **Request:** the owner asked to remove every place that called Claude Code "the product lead", to avoid any reading that Claude Code led the product, and to do it without a Kiro run where possible.
+- **Edits by Claude Code, on the owner's instruction:**
+  - Removed the "note on wording" paragraphs from `README.md`, this log and `docs/brief/prompts/README.md`, and the matching clause in `PRODUCT_BRIEF.md` and the Devpost drafts.
+  - `docs/brief/prompts/19-kiro-review-runs-10-11.md`, line 1: "Claude Code (the product lead)" is now "Claude Code". This is the only wording change to a sent prompt.
+  - `.kiro/steering/structure.md:32` (a Kiro-written file, edited directly at the owner's request instead of a Kiro run): the `CLAUDE.md` comment now reads "planning and review assistant".
+  - Older prompts and Kiro's own files still use "the product lead" as a role name in places; none of them names Claude Code as that role.
+- **Devpost draft** (saved, not submitted): new opening paragraph, the ghosts feature, "50+" runs, the authorship text above, the working demo URL, the Night Shift repo URL, and the Best Kiro Crew App and Best Student Project (Costume Contest) opt-ins. The team has two members, both students; `devpost-additional-info.md` no longer says "solo team".

@@ -29,7 +29,7 @@ the-unseen/
 │   ├── specs/         # Kiro specs — the single source of truth for requirements,
 │   │                  # design and tasks. Specs live ONLY here, in .kiro/specs/<feature>/.
 │   └── hooks/         # Kiro hooks (planned)
-├── CLAUDE.md          # Agent guidance for Claude Code (the product lead)
+├── CLAUDE.md          # Agent guidance for Claude Code (planning and review assistant)
 ├── README.md          # Project readme
 ├── LICENSE            # MIT
 ├── package.json       # Workspace root (workspaces: ["packages/*", "apps/*"])

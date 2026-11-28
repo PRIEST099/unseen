@@ -1,6 +1,6 @@
 # THE UNSEEN: Product Brief
 
-> **Provenance:** Claude Code drafted this brief at our direction, as our planning assistant (the prompts call that role "the product lead"). It is the *input* to Kiro: Kiro turns it into steering docs, specs, tasks and code. Claude Code does not write application code in this repo, except the labelled exceptions in the log. Every instruction sent to Kiro is logged in `docs/brief/KIRO_SESSION_LOG.md`.
+> **Provenance:** Claude Code drafted this brief at our direction, as our planning assistant. It is the *input* to Kiro: Kiro turns it into steering docs, specs, tasks and code. Claude Code does not write application code in this repo, except the labelled exceptions in the log. Every instruction sent to Kiro is logged in `docs/brief/KIRO_SESSION_LOG.md`.
 
 ---
 

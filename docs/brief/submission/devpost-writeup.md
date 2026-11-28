@@ -1,17 +1,17 @@
 # Devpost write-up (draft)
 
-Fill the `[ ]` slots before submitting. The owner edits and submits; the social post is written by the owner personally.
+An earlier draft. The final Devpost story is `devpost-description.md`.
 
 ## Tagline
 See the web through a screen reader's ears, then make Kiro exorcise it.
 
 ## Try it in 3 steps (for judges)
-1. Open [LIVE URL] and click the **Cursed Shop — Checkout** sample. You don't need a URL of your own.
+1. Open https://priest099.github.io/unseen/ and click the **Cursed Shop — Checkout** sample. You don't need a URL of your own.
 2. In **Spirit Sight**, open a **Nameless Spirit**: an icon-only button that a screen reader announces only as "button". You get the WCAG criterion, who it hurts, the broken HTML and the fix.
 3. Switch to the **Keyboard walk** and press Play. The ghost gets trapped in the newsletter's Cursed Loop.
 
 ## Inspiration
-Accessibility checkers have existed for years, and most of the web still fails them [VERIFY: WebAIM Million, latest edition]. The reason isn't a missing tool. Developers never *experience* the failure: a contrast ratio of 3.1 is a number, but a shop whose buttons all say "button" is a nightmare. We wanted to make that nightmare visible and audible, and then stop it at the source: in the agent that writes the UI.
+Accessibility checkers have existed for years, and most of the web still fails them: in 2026, 95.9% of the top million home pages had detectable WCAG failures (WebAIM Million). The reason isn't a missing tool. Developers never *experience* the failure: a contrast ratio of 3.1 is a number, but a shop whose buttons all say "button" is a nightmare. We wanted to make that nightmare visible and audible, and then stop it at the source: in the agent that writes the UI.
 
 ## What it does
 - **Audits any URL** in a real, sandboxed Chromium: the accessibility tree, axe-core and a real Tab walk. Ten WCAG 2.2 failure types become ten hauntings (Nameless Spirit, The Fog, Cursed Loop…), each with the criterion, who it hurts, the offending HTML and a source-level fix.
@@ -33,15 +33,16 @@ Accessibility checkers have existed for years, and most of the web still fails t
 - **Hooks as guardrails:**
   - A `PreToolUse` hook blocks any write to the golden test expectations, so the agent must fix the code, not the test.
   - Further hooks run a typecheck on save, verify the shop on save, check spec → types drift, and gate on tests at Stop.
-- **A golden haunted shop:** "Hollow & Vine" has exactly 30 expected hauntings, checked by a verifier.
+- **A golden haunted shop:** "Hollow & Vine" has 30 golden counts (10 haunting types on 3 pages, 97 hauntings in all), checked by a verifier.
 - **Property-based tests (fast-check)** cover contrast maths, classifier precedence, SSRF address ranges and score monotonicity.
-- **Tests:** [core 644 unit + 108 Playwright; web 392 unit + 84 e2e; update before submitting].
+- **Tests:** core 649 unit + 109 browser, MCP 184 unit + 35 integration, web 580 unit + 118 end-to-end + 18 replay.
 
 **Honest notes.**
-- Claude Code acted as product lead: it wrote instructions and verified, and Kiro wrote the product.
-- Two exceptions are labelled in git and logged:
-  - Early engine tasks were hand-written while a teammate was out of Kiro credits, then reviewed and adopted by Kiro.
-  - A final UI fix pass and visual redesign were done by Claude Code.
+- We set the direction and made the key decisions: what to build, what to cut, the exceptions below, the visual direction and Night Shift's auto-approval. Kiro wrote the product, from steering, specs and hooks it also wrote. Claude Code was our planning and verification assistant: at our direction it drafted the product brief and each instruction to Kiro, ran the spec and code reviews, and re-ran every test itself instead of trusting Kiro's summary.
+- Code Kiro did not write is labelled in git and logged:
+  - Early engine tasks were written by Claude Code, at a teammate's request, while that teammate was out of Kiro credits, then reviewed and adopted by Kiro.
+  - A final UI fix pass and visual redesign were done by Claude Code at our request.
+  - A few small config edits by Claude Code.
 - The full log, failures included, is in `docs/brief/KIRO_SESSION_LOG.md`.
 
 ## Challenges we ran into

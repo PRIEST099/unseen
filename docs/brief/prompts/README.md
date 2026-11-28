@@ -2,7 +2,6 @@
 
 Claude Code drafted these instructions at our direction and ran each one through Kiro CLI headless, in order, checking each result before sending the next. Kiro writes the code, except the labelled exceptions in rows 10 and 11 and those logged in `../KIRO_SESSION_LOG.md`, where every run is recorded.
 
-**A note on wording:** the prompt files call Claude Code "the product lead", its working title for this planning and verification seat. They are kept exactly as Kiro received them.
 
 Command pattern (prompt piped on stdin):
 ```

@@ -66,7 +66,6 @@ The replay edition plays back real recorded audits, so pasting your own URL is t
 ### How we built it with Kiro
 We set the direction and made the key decisions: what to build, what to cut, the exceptions listed below, the visual direction and Night Shift's auto-approval. **Kiro wrote the product**, from steering, specs and hooks it also wrote. Claude Code was our planning and verification assistant: at our direction it drafted the product brief and each instruction to Kiro, ran the spec and code reviews in [`docs/brief/review-notes/`](docs/brief/review-notes/), and re-ran every test itself instead of trusting Kiro's own summary.
 
-*A note on wording:* the numbered prompts, review notes and some of Kiro's steering call Claude Code "the product lead". That was its working title for this planning and verification seat. We kept the prompts exactly as Kiro received them.
 
 Every run is logged in [`docs/brief/KIRO_SESSION_LOG.md`](docs/brief/KIRO_SESSION_LOG.md), including failures, credit stops and the places where Kiro over-claimed and was caught.
 
