@@ -8,26 +8,34 @@ import { Lantern } from './Lantern'
 import { PeekingGhost } from './PeekingGhost'
 
 /**
- * Where the ghosts live: the landing page, the séance, and every "not found" state (those ask for
- * them with `AllowGhosts`). Never the audit result views (Spirit Sight, Keyboard walk, Whisper
- * walk), and never Daylight, where "the ghosts are gone" by design.
+ * Margin ghosts live on every route except the loaded Daylight lens, "the morning after", where the
+ * ghosts are gone by design (one sleepy ghost remains in its painting). The Daylight view publishes
+ * the flag through `GhostsContext`, so a not-found page under a `.../daylight` path still has them.
  */
-export function marginGhostsRoute(pathname: string): boolean {
-  return pathname === '/' || pathname.startsWith('/seance/')
+export function marginGhostsAllowed(daylight: boolean): boolean {
+  return !daylight
+}
+
+/** The audit views settle: no endless animation, so their margin ghosts stand still between ducks. */
+export function marginGhostsCalm(pathname: string): boolean {
+  return pathname.startsWith('/audit/') || pathname.startsWith('/sample/')
 }
 
 /**
  * Ghosts peeking in from behind the page: from the side edges of the window, from behind the content
- * panel, and up from the bottom edge. The layer sits under the header, the panel and the footer (see
- * ghosts.css), so a ghost can never cover text, controls or a focus outline. Pure decoration: every
- * element is `aria-hidden`, never focusable and `pointer-events: none`. They duck out of the way of
- * the lantern (the pointer) and of keyboard focus, and come back somewhere else.
+ * panel, and up from the bottom edge. They appear wherever the wall beside the page is wide enough
+ * to show a face (narrow windows and the wide audit views have fewer, or none: the ghost in the
+ * painting covers those). The layer sits under the header, the panel and the footer (see ghosts.css),
+ * so a ghost can never cover text, controls or a focus outline. Pure decoration: every element is
+ * `aria-hidden`, never focusable and `pointer-events: none`. They duck out of the way of the lantern
+ * (the pointer) and of keyboard focus, and come back somewhere else. On an audit view they do not bob.
  */
 export function MarginGhosts(): ReactElement | null {
   const { pathname } = useLocation()
-  const { ghostsHidden, extraAllowed, introActive, publishMarginLayout } = useGhosts()
+  const { ghostsHidden, daylight, introActive, publishMarginLayout } = useGhosts()
   const reducedMotion = useReducedMotion()
-  const enabled = !ghostsHidden && (marginGhostsRoute(pathname) || extraAllowed)
+  const enabled = !ghostsHidden && marginGhostsAllowed(daylight)
+  const calm = marginGhostsCalm(pathname)
   const { ghosts, placement } = useMarginGhosts({ enabled, dynamic: !reducedMotion, routeKey: pathname, paused: introActive })
   // The intro's ghosts land where these stand: it reads the spots from here when the lights come on.
   useLayoutEffect(() => {
@@ -47,6 +55,7 @@ export function MarginGhosts(): ReactElement | null {
           placement={placement}
           hidden={ghost.hidden}
           animated={!reducedMotion}
+          bob={!reducedMotion && !calm}
           instant={ghost.instant}
           index={index}
         />

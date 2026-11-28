@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { ReactElement } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
+import { useHoldGhostsStill } from '../contexts/GhostsContext'
 import { useReducedMotion } from '../contexts/ReducedMotionContext'
 import { useSound } from '../contexts/SoundContext'
 import { useScale } from '../hooks/useScale'
@@ -321,6 +322,8 @@ export function SpiritSightView({ source, audit, basePath }: SpiritSightViewProp
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => revealed.has(item.haunting.id) && (!previewed.has(item.haunting.id) || departing.has(item.haunting.id)))
   const interactive = rendered.filter(({ item }) => !previewed.has(item.haunting.id))
+  // The whole time the overlay is open (from the click on the toggle, before any reveal) the painting ghost holds still.
+  useHoldGhostsStill(open || rendered.length > 0)
   const imageSize = scale === null ? undefined : { width: scale.scaledWidth, height: scale.scaledHeight }
 
   return (

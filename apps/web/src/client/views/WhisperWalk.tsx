@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, ReactElement } from 'react'
 import { LensNav } from '../components/LensNav'
 import { ScreenshotStage } from '../components/ScreenshotStage'
+import { useHoldGhostsStill } from '../contexts/GhostsContext'
 import { useReducedMotion } from '../contexts/ReducedMotionContext'
 import { useWhisperPlayback } from '../hooks/useWhisperPlayback'
 import type { AuditSource } from '../utils/audit-source'
@@ -104,6 +105,8 @@ export function WhisperWalk({ source, audit, hostname, basePath }: WhisperWalkPr
   const voice = voices.find((candidate) => candidate.voiceURI === voiceUri) ?? null
   const captionsOnly = captionsPreference || !speechAvailable
   const playback = useWhisperPlayback({ track, speed, captionsOnly, voice })
+  // A moving painting ghost could be mistaken for the walk's Tab ghost: it holds still while this plays.
+  useHoldGhostsStill(playback.playing)
 
   const highlightRef = useRef<SVGGElement>(null)
   const engaged = useRef(false)

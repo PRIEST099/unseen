@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { ReactElement } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
+import { CorridorPainting } from '../components/CorridorPainting'
 import { DaylightReport } from '../components/DaylightReport'
 import { LensBanner } from '../components/LensBanner'
-import { AllowGhosts } from '../contexts/GhostsContext'
+import { useDaylightFlag } from '../contexts/GhostsContext'
 import { SessionEnded } from '../components/SessionEnded'
 import { SpiritSightView } from '../components/SpiritSightView'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -70,17 +71,20 @@ type StateMessageProps = {
   message: string
   /** Replaces the plain "Back to home" link, e.g. with the "Audit again" actions of an expired job. */
   actions?: ReactElement
-  /** A "not found" state: the margin ghosts may show here. */
-  notFound?: boolean
 }
 
-function StateMessage({ heading, message, actions, notFound = false }: StateMessageProps): ReactElement {
+/** The same layout as the "Page not found" state: the decorative corridor painting beside the message. */
+function StateMessage({ heading, message, actions }: StateMessageProps): ReactElement {
   return (
     <main id="main" tabIndex={-1} className="view">
-      {notFound ? <AllowGhosts /> : null}
-      <h1>{heading}</h1>
-      <p>{message}</p>
-      {actions ?? <Link to="/">Back to home</Link>}
+      <div className="manor-scene">
+        <CorridorPainting />
+        <div>
+          <h1>{heading}</h1>
+          <p>{message}</p>
+          {actions ?? <Link to="/">Back to home</Link>}
+        </div>
+      </div>
     </main>
   )
 }
@@ -103,6 +107,8 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
   useFocusMain()
   const arrivedFromSeance = isFromSeance(location.state)
   const loaded = result !== 'loading' && result.status === 'ok'
+  // The morning after: no margin ghosts, one sleepy ghost in the painting (read from the lens, never a path).
+  useDaylightFlag(loaded && lens === 'daylight')
   useEffect(() => {
     // Arriving from the séance: the new view's h1 takes focus (requirement 7.9).
     if (arrivedFromSeance && loaded && lens === 'spirit') document.getElementById('spirit-sight-heading')?.focus()
@@ -128,7 +134,6 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
       <StateMessage
         heading={notFoundHeading}
         message={message}
-        notFound
         actions={kind === 'job' ? <SessionEnded jobId={id} /> : undefined}
       />
     )

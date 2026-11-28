@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client'
 import type { Root } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { AllowGhosts, GhostsProvider, HIDE_GHOSTS_KEY, useGhosts } from '../contexts/GhostsContext'
+import { GhostsProvider, HIDE_GHOSTS_KEY, useDaylightFlag, useGhosts } from '../contexts/GhostsContext'
 import type { MarginLayout } from '../contexts/GhostsContext'
 import { ReducedMotionProvider } from '../contexts/ReducedMotionContext'
 import {
@@ -26,7 +26,7 @@ import {
   visibleBox,
 } from '../utils/ghost-spots'
 import type { Anchor, Edge, Spot } from '../utils/ghost-spots'
-import { MarginGhosts, marginGhostsRoute } from './MarginGhosts'
+import { MarginGhosts, marginGhostsAllowed } from './MarginGhosts'
 
 Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true)
 
@@ -127,9 +127,14 @@ function LayoutProbe(): null {
   return null
 }
 
-type SceneProps = { path: string; notFound?: boolean; intro?: boolean; footer?: boolean }
+type SceneProps = { path: string; daylight?: boolean; intro?: boolean; footer?: boolean }
 
-function Scene({ path, notFound = false, intro = false, footer = false }: SceneProps): ReactElement {
+function DaylightFlag(): null {
+  useDaylightFlag(true)
+  return null
+}
+
+function Scene({ path, daylight = false, intro = false, footer = false }: SceneProps): ReactElement {
   return (
     <MemoryRouter initialEntries={[path]}>
       <GhostsProvider>
@@ -141,7 +146,7 @@ function Scene({ path, notFound = false, intro = false, footer = false }: SceneP
             </button>
           </main>
           {footer ? <footer className="app-footer">Footer</footer> : null}
-          {notFound ? <AllowGhosts /> : null}
+          {daylight ? <DaylightFlag /> : null}
           <SetIntro active={intro} />
           <LayoutProbe />
           <MarginGhosts />
@@ -292,34 +297,39 @@ describe('MarginGhosts: the footer', () => {
 })
 
 describe('MarginGhosts: where', () => {
-  it.each(['/', '/seance/job-1'])('shows on %s', (path) => {
-    mount(path)
-    expect(ghostEls().length).toBeGreaterThan(0)
-  })
+  it.each(['/', '/seance/job-1', '/sample/cursed-shop-index', '/sample/cursed-shop-index/keyboard', '/sample/cursed-shop-index/whisper', '/audit/job-1', '/nonexistent'])(
+    'shows on %s',
+    (path) => {
+      mount(path)
+      expect(ghostEls().length).toBeGreaterThan(0)
+    },
+  )
 
-  it.each([
-    '/sample/cursed-shop-index',
-    '/sample/cursed-shop-index/keyboard',
-    '/sample/cursed-shop-index/whisper',
-    '/sample/cursed-shop-index/daylight',
-    '/audit/job-1',
-    '/audit/job-1/daylight',
-    '/nonexistent',
-  ])('shows nothing on %s', (path) => {
-    mount(path)
+  it.each(['/sample/cursed-shop-index/daylight', '/audit/job-1/daylight'])('shows nothing on the loaded Daylight lens (%s)', (path) => {
+    mount(path, { daylight: true })
     expect(ghostEls()).toHaveLength(0)
     expect(container.querySelector('.lantern')).toBeNull()
   })
 
-  it('shows on a "not found" state that asks for them, wherever the path is', () => {
-    mount('/nonexistent', { notFound: true })
+  it('still shows on a not-found page under a .../daylight path: the Daylight lens is told by the view, not the path', () => {
+    mount('/sample/no-such-sample/daylight')
     expect(ghostEls().length).toBeGreaterThan(0)
   })
 
-  it('knows which routes are ghost routes', () => {
-    expect(marginGhostsRoute('/sample/x/daylight')).toBe(false)
-    expect(marginGhostsRoute('/')).toBe(true)
-    expect(marginGhostsRoute('/seance/abc')).toBe(true)
+  it('knows which views get margin ghosts: every one except the loaded Daylight lens', () => {
+    expect(marginGhostsAllowed(false)).toBe(true)
+    expect(marginGhostsAllowed(true)).toBe(false)
+  })
+
+  it('on an audit view the margin ghosts do not bob (they still slide)', () => {
+    mount('/sample/cursed-shop-index')
+    expect(container.querySelectorAll('.margin-ghost-bob[data-animated="true"]')).toHaveLength(0)
+    expect(container.querySelectorAll('.margin-ghost-bob').length).toBeGreaterThan(0)
+  })
+
+  it('elsewhere the margin ghosts bob', () => {
+    mount('/')
+    expect(container.querySelectorAll('.margin-ghost-bob[data-animated="true"]').length).toBeGreaterThan(0)
   })
 
   it('is decoration only: aria-hidden, nothing focusable, no text', () => {

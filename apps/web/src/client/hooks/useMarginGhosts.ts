@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useGhosts } from '../contexts/GhostsContext'
 import {
   NEAR_PX,
   REEMERGE_MS,
@@ -123,8 +124,8 @@ export function useMarginGhosts({ enabled, dynamic, routeKey, paused }: Options)
   const placementRef = useRef(placement)
   const enabledRef = useRef(enabled)
   const pausedRef = useRef(paused)
-  const lantern = useRef<Point | null>(null)
   const timers = useRef(new Map<number, number>())
+  const { readLantern, subscribePointer } = useGhosts()
   ghostsRef.current = ghosts
   enabledRef.current = enabled
   pausedRef.current = paused
@@ -182,7 +183,7 @@ export function useMarginGhosts({ enabled, dynamic, routeKey, paused }: Options)
     const spot = pickSpot(placementRef.current, {
       taken: list.filter((ghost) => ghost.id !== id).map((ghost) => ghost.spot),
       previous: current.spot,
-      lantern: lantern.current,
+      lantern: readLantern(),
       random: Math.random,
     })
     // No spot is free (or shows a face) now: try again later rather than stay hidden for good.
@@ -191,7 +192,7 @@ export function useMarginGhosts({ enabled, dynamic, routeKey, paused }: Options)
       return
     }
     setGhosts((previous) => previous.map((ghost) => (ghost.id === id ? { ...ghost, spot, hidden: false, instant: false } : ghost)))
-  }, [arm])
+  }, [arm, readLantern])
 
   /** Hides every ghost for which `distance` is within range, and restarts its return timer. Not during the intro. */
   const startle = useCallback(
@@ -232,20 +233,8 @@ export function useMarginGhosts({ enabled, dynamic, routeKey, paused }: Options)
 
   useEffect(() => {
     if (!dynamic || !enabled) return undefined
-    let frame = 0
-    let latest: Point | null = null
-    const onPointer = (event: PointerEvent): void => {
-      if (event.pointerType === 'touch') return
-      latest = { x: event.clientX, y: event.clientY }
-      lantern.current = latest
-      if (frame !== 0) return
-      // Many pointer moves arrive per frame: look at the newest one, once.
-      frame = window.requestAnimationFrame(() => {
-        frame = 0
-        const point = latest
-        if (point !== null) startle((centre) => distanceToPoint(centre, point))
-      })
-    }
+    // The pointer is tracked once, by the provider (one frame-coalesced call per move); touch is never reported here.
+    const stopPointer = subscribePointer((point) => startle((centre) => distanceToPoint(centre, point)))
     const onFocus = (event: FocusEvent): void => {
       if (!(event.target instanceof Element) || !isLanternFocus(event.target)) return
       const rect = event.target.getBoundingClientRect()
@@ -259,16 +248,14 @@ export function useMarginGhosts({ enabled, dynamic, routeKey, paused }: Options)
         relocateAll(ghostsRef.current, placementRef.current, timers.current, setGhosts)
       }
     }
-    window.addEventListener('pointermove', onPointer)
     document.addEventListener('focusin', onFocus)
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
-      window.cancelAnimationFrame(frame)
-      window.removeEventListener('pointermove', onPointer)
+      stopPointer()
       document.removeEventListener('focusin', onFocus)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [dynamic, enabled, startle])
+  }, [dynamic, enabled, startle, subscribePointer])
 
   return { ghosts, placement }
 }

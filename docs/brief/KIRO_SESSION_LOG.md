@@ -855,3 +855,35 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `.kiro/steering/structure.md:32` (a Kiro-written file, edited directly at the owner's request instead of a Kiro run): the `CLAUDE.md` comment now reads "planning and review assistant".
   - Older prompts and Kiro's own files still use "the product lead" as a role name in places; none of them names Claude Code as that role.
 - **Devpost draft** (saved, not submitted): new opening paragraph, the ghosts feature, "50+" runs, the authorship text above, the working demo URL, the Night Shift repo URL, and the Best Kiro Crew App and Best Student Project (Costume Contest) opt-ins. The team has two members, both students; `devpost-additional-info.md` no longer says "solo team".
+
+## 2026-11-28 · Runs 51–51c · ghosts on every page and a longer intro (the owner's request)
+- **Request:** "the ghosts might appear on any page, not only the home page", and "the loading screen could be a little longer to show the ghosts roam around a bit".
+- **Pre-flight:** before sending run 51, three independent reviewers checked the draft instructions against the code. They found that the audit views must settle (six tests wait for zero running animations), that two self-audit routes had no painting, that `/daylight` is not a route, that a 4.8 s intro would land in the self-audit's capture window, and that the hand-off to a painting ghost had no mechanism. The instructions were rewritten before Kiro saw them.
+- **Run 51** (`51-ghosts-on-every-page.md`, `unseen-builder`, auto):
+  - A ghost in every gilt-framed painting (`PaintingGhost`, `painting-spots.ts`). It peeks from behind the inner edge of the frame, ducks from the pointer and from a touch, wanders, and is still under reduced motion. On the audit lenses it never bobs, so those views still settle. Daylight has one smaller, sleepy, fainter ghost.
+  - The state pages ("Audit not found", "Sample not found", "Audit unavailable") get the corridor painting.
+  - Margin ghosts are allowed on every route except the Daylight lens.
+  - The intro lasts 3.2–4.8 s. Four ghosts roam on looping paths, a skip hint is shown, and the intro ghosts hand off to the margin or painting ghosts with no jump. Automated browsers skip the intro unless `sessionStorage["unseen.intro-force"]` is set; the intro specs set it.
+- **Claude Code's review of 51:** a three-lens workflow with an adversarial verifier per finding confirmed 16 findings and refuted 2, all small. Among them: a ducked ghost could slide back in during a walk; Spirit Sight held the ghost only after the first reveal; touch startled the ghost on the calm lenses; the arriving intro ghost showed over the gilt frame for about 250 ms; the séance painting layout could be stale; and five tests proved less than they claimed.
+- **Run 51b** (`51b-ghosts-every-page-fixes.md`): Kiro made every fix. Claude Code stopped the run during its final checks at the owner's request, because one test kept failing.
+- **Diagnosis by Claude Code:** the failing test was the ghost-layer probe check (`ghosts.spec.ts`, "painted behind the header and the panel"). A diagnostic copy, repeated about 80 times and then deleted, showed that zero probe pixels ever reached the panel. The largest colour difference was 2 out of 255: invisible re-raster noise from the painting, which now holds a ghost layer. The byte-for-byte comparison was too strict.
+- **Run 51c** (`51c-probe-test-tolerance.md`): Kiro rewrote the check to compare colours (`e2e/pixels.ts`). There must be no new probe pixels in the header or the panel, a largest channel difference of 8 or less, and probe pixels on the wall. 20 of 20 repeats pass.
+- **Claude Code's verification after 51c:**
+  - typecheck clean;
+  - unit tests: core 649, mcp 184, web 619;
+  - web e2e: 130 passed, twice in a row;
+  - `painting-ghosts.spec.ts` ×5: 40 passed;
+  - `ghosts.spec.ts` ×3: 114 passed;
+  - replay e2e: 19 passed.
+  - In the browser: the roaming intro, and painting ghosts on the landing, Spirit Sight, Keyboard walk, Whisper walk, Daylight and "Sample not found", at 1440 px and 375 px.
+- **Demo video (not app code):** the Kiro section now shows real screenshots of the Kiro IDE with this project open (Kiro's panel of specs, hooks, steering and MCP servers; `hauntings.md`; the spirit-sight-ui task list; Kiro's own Autopilot session summary; the Agent Hooks list) beside the `.kiro/` tree. The line "Kiro also helped build THE UNSEEN" is now "Kiro built THE UNSEEN". The captures crop out the status bar and any account details.
+- **Run 51d** (`51d-painting-ghost-side-pose.md`): in the gallery screenshots, painting ghosts on a left or right edge lay on their side, with their eyes stacked vertically. Kiro made them use the margin ghosts' upright, leaning pose (planner, rendering, and the intro hand-off pose), and added a unit test and an e2e eye-alignment check.
+- **Claude Code's verification after 51d:**
+  - typecheck clean;
+  - unit tests: core 649, mcp 184, web 620;
+  - web e2e: 132 passed, twice in a row;
+  - `painting-ghosts.spec.ts` ×5: 50 passed;
+  - `ghosts.spec.ts` ×3: 114 passed;
+  - replay e2e: 19 passed.
+  - In a clean replay build, the landing at 1800×1200 and at 430×932 shows the side ghosts upright.
+- **Status:** uncommitted until the owner approves the push.

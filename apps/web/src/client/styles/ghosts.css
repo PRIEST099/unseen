@@ -100,6 +100,82 @@ body {
   }
 }
 
+/* ------------------------------------------------------- Painting ghosts */
+
+/*
+ * One ghost per gilt-framed painting. The layer fills the picture's inner (padding) box, above the
+ * painting's own gradient (`.hero-painting::after`) and below anything placed over the painting. The ghost's
+ * `svg` is cropped to the part that shows, so its box is always inside the picture. The ghost slides
+ * inside that svg. Only `transform` and `opacity` animate, and only the bob is endless (never on an
+ * audit lens: those views settle).
+ */
+.painting-ghost-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* While the intro plays its own ghost stands in; this one appears in the same commit the intro ends. */
+.painting-ghost-layer[data-intro='true'] {
+  visibility: hidden;
+}
+
+.painting-ghost {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.painting-ghost[data-daylight='true'] {
+  opacity: 0.75;
+}
+
+/* Ducking is quick; the ghost is `visibility: hidden` once that has finished (the component sets `data-gone`). */
+.painting-ghost[data-gone='true'] {
+  visibility: hidden;
+}
+
+.painting-ghost-slide {
+  transition: transform 700ms ease-out;
+}
+
+.painting-ghost[data-out='true'] .painting-ghost-slide {
+  transition: transform 250ms ease-in;
+}
+
+.painting-ghost-bob[data-bob='true'][data-along='y'] {
+  animation: painting-ghost-bob-y 4000ms ease-in-out infinite;
+}
+
+.painting-ghost-bob[data-bob='true'][data-along='x'] {
+  animation: painting-ghost-bob-x 4000ms ease-in-out infinite;
+}
+
+/* Their own names (the `margin-ghost-bob` lesson). 3 art units are 1.4 to 3.8 px: the picture keeps 4 px clear. */
+@keyframes painting-ghost-bob-y {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(0, -3px);
+  }
+}
+
+@keyframes painting-ghost-bob-x {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(3px, 0);
+  }
+}
+
 /* The intro. */
 .lights-on {
   position: fixed;
@@ -129,24 +205,38 @@ body {
   opacity: 0;
 }
 
-.lights-on-status {
+.lights-on-center {
   position: absolute;
   top: 50%;
   left: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  margin: 0;
+  gap: var(--space-2);
   padding: var(--space-3) var(--space-6);
   /* A solid panel of its own, so the text's contrast is measurable wherever the dark layer is. */
   background-color: var(--color-void);
   transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+
+.lights-on-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
   color: var(--color-bone);
   font-family: var(--font-flavor);
   font-size: var(--text-xl);
   font-style: italic;
-  white-space: nowrap;
+}
+
+/* The hint is for sighted users only (the status line is the one announcement). */
+.lights-on-hint {
+  margin: 0;
+  color: var(--color-bone);
+  font-size: var(--text-sm);
 }
 
 .lights-on-flame {
@@ -180,21 +270,152 @@ body {
   pointer-events: none;
 }
 
-.lights-on[data-phase='lights'] .lights-on-ghost {
+/* One clip layer per ghost: filled in (as a viewport-sized `inset`) only for the ghost that lands in a painting. */
+.lights-on-clip {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lights-on[data-phase='skipped'] .lights-on-ghosts {
+  visibility: hidden;
+}
+
+/* The dart: from where the ghost was to where it lands (the offset is cancelled), inside the fade. */
+.lights-on[data-phase='lights'] .lights-on-roam[data-launched='true'],
+.lights-on[data-phase='lights'] .lights-on-size {
   transition: transform 500ms cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
-.lights-on[data-phase='dark'] .lights-on-drift {
-  animation: ghost-drift 4000ms ease-in-out infinite alternate;
+.lights-on-size {
+  transform-origin: 0 0;
 }
 
-@keyframes ghost-drift {
-  from {
-    transform: translate3d(-28px, -8px, 0);
+.lights-on[data-phase='lights'] .lights-on-size[data-exit='true'] {
+  opacity: 0;
+  transition:
+    transform 500ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    opacity 400ms ease-in;
+}
+
+/*
+ * The roaming, in the dark phase only. Each path is a loop of `transform` keyframes in viewport units;
+ * the element's font-size is the ghost's size, so 1em centres it. A ghost is behind the words (they come later in the
+ * stacking order). Names are unique to the intro.
+ */
+.lights-on[data-phase='dark'] .lights-on-roam[data-path='circle'] {
+  animation: intro-roam-circle 4000ms linear infinite;
+}
+
+.lights-on[data-phase='dark'] .lights-on-roam[data-path='chase-a'] {
+  animation: intro-roam-chase 3600ms ease-in-out infinite;
+}
+
+.lights-on[data-phase='dark'] .lights-on-roam[data-path='chase-b'] {
+  animation: intro-roam-chase 3600ms ease-in-out -450ms infinite;
+}
+
+.lights-on[data-phase='dark'] .lights-on-roam[data-path='sneak'] {
+  animation: intro-roam-sneak 4800ms ease-in-out infinite;
+}
+
+/* Round and round the candle: twelve points of a circle, 28vmin out. */
+@keyframes intro-roam-circle {
+  0%,
+  100% {
+    transform: translate3d(calc(50vw + 28vmin - 0.5em), calc(50vh - 0.5em), 0);
   }
 
-  to {
-    transform: translate3d(28px, 8px, 0);
+  8.33% {
+    transform: translate3d(calc(50vw + 24.2vmin - 0.5em), calc(50vh + 14vmin - 0.5em), 0);
+  }
+
+  16.67% {
+    transform: translate3d(calc(50vw + 14vmin - 0.5em), calc(50vh + 24.2vmin - 0.5em), 0);
+  }
+
+  25% {
+    transform: translate3d(calc(50vw - 0.5em), calc(50vh + 28vmin - 0.5em), 0);
+  }
+
+  33.33% {
+    transform: translate3d(calc(50vw - 14vmin - 0.5em), calc(50vh + 24.2vmin - 0.5em), 0);
+  }
+
+  41.67% {
+    transform: translate3d(calc(50vw - 24.2vmin - 0.5em), calc(50vh + 14vmin - 0.5em), 0);
+  }
+
+  50% {
+    transform: translate3d(calc(50vw - 28vmin - 0.5em), calc(50vh - 0.5em), 0);
+  }
+
+  58.33% {
+    transform: translate3d(calc(50vw - 24.2vmin - 0.5em), calc(50vh - 14vmin - 0.5em), 0);
+  }
+
+  66.67% {
+    transform: translate3d(calc(50vw - 14vmin - 0.5em), calc(50vh - 24.2vmin - 0.5em), 0);
+  }
+
+  75% {
+    transform: translate3d(calc(50vw - 0.5em), calc(50vh - 28vmin - 0.5em), 0);
+  }
+
+  83.33% {
+    transform: translate3d(calc(50vw + 14vmin - 0.5em), calc(50vh - 24.2vmin - 0.5em), 0);
+  }
+
+  91.67% {
+    transform: translate3d(calc(50vw + 24.2vmin - 0.5em), calc(50vh - 14vmin - 0.5em), 0);
+  }
+}
+
+/* Two ghosts run this one, the second a little behind the first: across, down, across and back, so one chases the other. */
+@keyframes intro-roam-chase {
+  0%,
+  100% {
+    transform: translate3d(calc(8vw - 0.5em), calc(26vh - 0.5em), 0);
+  }
+
+  25% {
+    transform: translate3d(calc(50vw - 0.5em), calc(70vh - 0.5em), 0);
+  }
+
+  50% {
+    transform: translate3d(calc(92vw - 0.5em), calc(26vh - 0.5em), 0);
+  }
+
+  75% {
+    transform: translate3d(calc(50vw - 0.5em), calc(18vh - 0.5em), 0);
+  }
+}
+
+/* Creeps in low from the left, hides behind the words, peeks over them, then shies away back out. */
+@keyframes intro-roam-sneak {
+  0% {
+    transform: translate3d(calc(-30vw - 0.5em), calc(90vh - 0.5em), 0);
+  }
+
+  30% {
+    transform: translate3d(calc(30vw - 0.5em), calc(78vh - 0.5em), 0);
+  }
+
+  48% {
+    transform: translate3d(calc(50vw - 8vmin - 0.5em), calc(52vh - 0.5em), 0);
+  }
+
+  60%,
+  72% {
+    transform: translate3d(calc(50vw - 8vmin - 0.5em), calc(50vh - 56px - 0.03em - 0.5em), 0);
+  }
+
+  80% {
+    transform: translate3d(calc(50vw - 8vmin - 0.5em), calc(52vh - 0.5em), 0);
+  }
+
+  100% {
+    transform: translate3d(calc(-30vw - 0.5em), calc(70vh - 0.5em), 0);
   }
 }
 
@@ -216,17 +437,37 @@ body {
   }
 
   .margin-ghost-bob,
-  .margin-ghost-bob[data-animated='true'] {
+  .margin-ghost-bob[data-animated='true'],
+  .painting-ghost-bob,
+  .painting-ghost-bob[data-bob='true'][data-along='y'],
+  .painting-ghost-bob[data-bob='true'][data-along='x'] {
     animation: none;
   }
 
-  .lights-on[data-phase='dark'] .lights-on-drift,
+  .painting-ghost-slide,
+  .painting-ghost[data-out='true'] .painting-ghost-slide {
+    transition: none;
+  }
+
+  .lights-on[data-phase='dark'] .lights-on-roam,
   .lights-on-flame {
     animation: none;
   }
 
-  .lights-on[data-phase='lights'] .lights-on-ghost,
+  .lights-on[data-phase='lights'] .lights-on-roam[data-launched='true'],
+  .lights-on[data-phase='lights'] .lights-on-size,
+  .lights-on[data-phase='lights'] .lights-on-size[data-exit='true'],
   .lights-on[data-phase='lights'] .lights-on-dark {
     transition: none;
+  }
+}
+
+/* Print: no ghosts of any kind, and no intro. */
+@media print {
+  .margin-ghosts,
+  .painting-ghost-layer,
+  .lantern,
+  .lights-on {
+    display: none;
   }
 }

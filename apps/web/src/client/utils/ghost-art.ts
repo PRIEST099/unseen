@@ -7,7 +7,7 @@
  */
 
 export type GhostEdge = 'top' | 'right' | 'bottom' | 'left'
-export type GhostMood = 'looking' | 'startled'
+export type GhostMood = 'looking' | 'startled' | 'sleepy'
 
 export const ART_BOX = 120
 export const EYE_Y = 46
@@ -19,6 +19,8 @@ export const EYE_SPREAD = 20
 export const EYES: Record<GhostMood, { rx: number; ry: number }> = {
   looking: { rx: 9, ry: 16 },
   startled: { rx: 11, ry: 17.5 },
+  /** Half-closed: the same width and about half the height, so a sleepy face fits wherever a looking one does. */
+  sleepy: { rx: 9, ry: 8 },
 }
 /** The top of the dome (the highest point of the body path). */
 const DOME_TOP = { x: 60, y: 5 }

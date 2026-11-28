@@ -2,7 +2,11 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { INTRO_SEEN_KEY, test as seenTest } from './fixtures'
-import { analyzeWithPausedClock, pauseClock } from './intro-clock'
+import { analyzeWithPausedClock, forceIntro, pauseClock } from './intro-clock'
+import { compareShots } from './pixels'
+
+const INTRO_MIN_MS = 3_200
+const INTRO_FADE_MS = 600
 
 /**
  * The ghosts in the margins: the lights-on intro, the peeking ghosts, the lantern and the "Hide ghosts"
@@ -52,12 +56,17 @@ async function visibleRect(page: Page, index = 0): Promise<Rect> {
   }, index)
 }
 
-const centre = (rect: Rect): { x: number; y: number } => ({ x: (rect.left + rect.right) / 2, y: (rect.top + rect.bottom) / 2 })
+const centre = (rect: Rect): { x: number; y: number } => ({
+  x: (rect.left + rect.right) / 2,
+  y: (rect.top + rect.bottom) / 2,
+})
 
 async function spotsOf(page: Page): Promise<string[]> {
-  return page.locator(GHOSTS).evaluateAll((all) =>
-    all.map((element) => `${element.getAttribute('data-edge')}/${element.getAttribute('data-anchor')}/${element.getAttribute('data-pos')}`),
-  )
+  return page
+    .locator(GHOSTS)
+    .evaluateAll((all) =>
+      all.map((element) => `${element.getAttribute('data-edge')}/${element.getAttribute('data-anchor')}/${element.getAttribute('data-pos')}`),
+    )
 }
 
 /**
@@ -76,7 +85,13 @@ async function eyeRects(page: Page): Promise<Rect[][]> {
 }
 
 /** What hides a ghost: the window edges, the header, the panel with its 6 px ring, and the footer. */
-type Wall = { width: number; height: number; headerBottom: number; panel: Rect; footerTop: number }
+type Wall = {
+  width: number
+  height: number
+  headerBottom: number
+  panel: Rect
+  footerTop: number
+}
 
 async function wallOf(page: Page): Promise<Wall> {
   return page.evaluate(() => {
@@ -86,7 +101,15 @@ async function wallOf(page: Page): Promise<Wall> {
       width: document.documentElement.clientWidth,
       height: document.documentElement.clientHeight,
       headerBottom: rect('header.app-header')?.bottom ?? 0,
-      panel: main === undefined ? { left: 0, right: 0, top: 0, bottom: 0 } : { left: main.left, right: main.right, top: main.top, bottom: main.bottom },
+      panel:
+        main === undefined
+          ? { left: 0, right: 0, top: 0, bottom: 0 }
+          : {
+              left: main.left,
+              right: main.right,
+              top: main.top,
+              bottom: main.bottom,
+            },
       footerTop: rect('footer.app-footer')?.top ?? Number.POSITIVE_INFINITY,
     }
   })
@@ -136,26 +159,72 @@ async function introLifetime(page: Page): Promise<number> {
 /** The fonts never finish loading: the intro can only end through its own time limit. */
 async function fontsNeverLoad(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    Object.defineProperty(document, 'fonts', { value: { ready: new Promise(() => undefined) }, configurable: true })
+    Object.defineProperty(document, 'fonts', {
+      value: { ready: new Promise(() => undefined) },
+      configurable: true,
+    })
   })
 }
 
+/** The bounding box of each subpath of a `clip-path: path(...)` drawn with absolute M, L, H, V and Z commands. */
+function subpathBoxes(clip: string): Rect[] {
+  const body = /['"]([^'"]*)['"]/.exec(clip)?.[1] ?? ''
+  const tokens = body.match(/[MLHVZmlhvz]|-?[\d.]+(?:e-?\d+)?/g) ?? []
+  const boxes: Rect[] = []
+  let command = ''
+  let x = 0
+  let y = 0
+  let current: Rect | null = null
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index] ?? ''
+    if (/^[A-Za-z]$/.test(token)) {
+      command = token.toUpperCase()
+      if (command === 'M' && current !== null) boxes.push(current)
+      if (command === 'M') current = null
+      continue
+    }
+    const value = Number(token)
+    if (command === 'M' || command === 'L') {
+      x = value
+      y = Number(tokens[index + 1])
+      index += 1
+    } else if (command === 'H') x = value
+    else if (command === 'V') y = value
+    const box: Rect = current ?? { left: x, top: y, right: x, bottom: y }
+    current = {
+      left: Math.min(box.left, x),
+      top: Math.min(box.top, y),
+      right: Math.max(box.right, x),
+      bottom: Math.max(box.bottom, y),
+    }
+  }
+  if (current !== null) boxes.push(current)
+  return boxes
+}
+
 test.describe('the lights-on intro', () => {
-  test('starts dark with a status line, keeps the real page in the tree, and is gone within 2.5 s of its mount', async ({ page }) => {
+  // The intro is skipped in automated browsers unless this flag is set: these specs test it in full.
+  test.beforeEach(async ({ page }) => forceIntro(page))
+
+  test('starts dark with a status line and a skip hint, keeps the real page in the tree, and is gone within 4.8 s of its mount', async ({ page }) => {
     await watchIntro(page)
     await page.goto('/')
     const status = page.getByRole('status').filter({ hasText: STATUS_TEXT })
     await expect(status).toBeVisible()
+    const hint = page.locator(`${INTRO} .lights-on-hint`)
+    await expect(hint).toBeVisible()
+    await expect(hint).toHaveText('Press any key or tap to skip')
+    await expect(hint).toHaveAttribute('aria-hidden', 'true')
     // The real page renders underneath the whole time and stays in the accessibility tree.
     await expect(page.getByRole('heading', { level: 1, name: 'THE UNSEEN' })).toHaveCount(1)
     await expect(page.locator(`${INTRO} .lights-on-dark`)).toHaveAttribute('aria-hidden', 'true')
     await expect(page.locator(`${INTRO} .lights-on-ghost`)).not.toHaveCount(0)
 
-    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 3_000 })
+    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
     const lifetime = await introLifetime(page)
-    // At least the 900 ms minimum and the 600 ms fade; gone by 2.5 s after mount.
-    expect(lifetime).toBeGreaterThanOrEqual(1_500)
-    expect(lifetime).toBeLessThanOrEqual(2_500)
+    // At least the 3.2 s minimum and the 600 ms fade; gone by 4.8 s after mount.
+    expect(lifetime).toBeGreaterThanOrEqual(INTRO_MIN_MS + INTRO_FADE_MS - 100)
+    expect(lifetime).toBeLessThanOrEqual(4_800)
     // The status text goes with the dark layer, and the page is usable.
     await expect(status).toHaveCount(0)
     await expect(page.getByLabel('Enter a URL to audit')).toBeEnabled()
@@ -163,18 +232,17 @@ test.describe('the lights-on intro', () => {
     await expect(page.locator(GHOSTS)).toHaveCount(3)
   })
 
-  test('is gone within 2.5 s of its mount even when the fonts never finish loading', async ({ page }) => {
+  test('is gone within 4.8 s of its mount even when the fonts never finish loading', async ({ page }) => {
     await fontsNeverLoad(page)
     await watchIntro(page)
     await page.goto('/')
     await expect(page.getByRole('status').filter({ hasText: STATUS_TEXT })).toBeVisible()
-    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 3_000 })
+    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
     const lifetime = await introLifetime(page)
-    // Only the time limit can end it here. The lights come on at 1.8 s after mount less the load time
-    // (at most 700 ms of it), then a 600 ms fade: at least 1.7 s. An intro that did not wait for the fonts
-    // would be gone after 900 + 600 = 1.5 s.
-    expect(lifetime).toBeGreaterThanOrEqual(1_650)
-    expect(lifetime).toBeLessThanOrEqual(2_500)
+    // Only the time limit can end it here: the lights come on at 3.9 s, then a 600 ms fade (the 4.6 s cap
+    // cuts that at 4.6 s). An intro that did not wait for the fonts would be gone after 3.2 + 0.6 = 3.8 s.
+    expect(lifetime).toBeGreaterThanOrEqual(4_200)
+    expect(lifetime).toBeLessThanOrEqual(4_800)
   })
 
   test('the margin ghosts wait invisible while the intro plays, and show when it ends: one ghost, not two', async ({ page }) => {
@@ -182,24 +250,32 @@ test.describe('the lights-on intro', () => {
     await expect(page.locator(INTRO)).toHaveCount(1)
     await expect(page.locator('.margin-ghosts')).toHaveAttribute('data-intro', 'true')
     expect(await page.locator('.margin-ghosts').evaluate((element) => getComputedStyle(element).visibility)).toBe('hidden')
-    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 3_000 })
+    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
     await expect(page.locator('.margin-ghosts')).toHaveAttribute('data-intro', 'false')
     expect(await page.locator('.margin-ghosts').evaluate((element) => getComputedStyle(element).visibility)).toBe('visible')
   })
 
   test('the intro ghosts land where the margin ghosts stand: on the real margins, not a default', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator(`${INTRO}[data-phase="lights"]`)).toHaveCount(1, { timeout: 3_000 })
+    await expect(page.locator(`${INTRO}[data-phase="lights"]`)).toHaveCount(1, {
+      timeout: 6_000,
+    })
     // The target of each dart is set the moment the lights come on (the dart itself takes 500 ms).
     const landed = await page.locator('.lights-on-ghost').evaluateAll((all) =>
       all.map((element) => {
         const match = /translate3d\((-?[\d.]+)px, (-?[\d.]+)px/.exec((element as HTMLElement).style.transform)
-        return { x: Math.round(Number(match?.[1])), y: Math.round(Number(match?.[2])) }
+        return {
+          x: Math.round(Number(match?.[1])),
+          y: Math.round(Number(match?.[2])),
+        }
       }),
     )
-    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 3_000 })
+    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
     const margin = await page.locator(GHOSTS).evaluateAll((all) =>
-      all.map((element) => ({ x: Math.round(parseFloat((element as HTMLElement).style.left)), y: Math.round(parseFloat((element as HTMLElement).style.top)) })),
+      all.map((element) => ({
+        x: Math.round(parseFloat((element as HTMLElement).style.left)),
+        y: Math.round(parseFloat((element as HTMLElement).style.top)),
+      })),
     )
     expect(margin).toHaveLength(3)
     // Each margin ghost stands exactly where one of the intro's ghosts was sent.
@@ -231,7 +307,7 @@ test.describe('the lights-on intro', () => {
 
   test('plays once per browser session, not on a later load or navigation', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 3_000 })
+    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
     expect(await page.evaluate((key) => window.sessionStorage.getItem(key), INTRO_SEEN_KEY)).not.toBeNull()
     await page.reload()
     await expect(page.getByRole('heading', { level: 1, name: 'THE UNSEEN' })).toBeVisible()
@@ -257,7 +333,119 @@ test.describe('the lights-on intro', () => {
     expect(results.incomplete.map((rule) => rule.id)).toEqual([])
     // It was the paused clock that held it: once time runs again, the time limit ends it.
     await page.clock.resume()
-    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 4_000 })
+    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
+  })
+
+  test('every intro ghost roams: its centre ranges over at least 25% of the viewport in the dark phase, on its own path', async ({ page }) => {
+    // The page clock is paused, so the intro stays dark; the CSS animations are stepped by hand
+    // (page clock time does not move CSS or Web Animations).
+    await pauseClock(page)
+    await page.goto('/')
+    await expect(page.locator(`${INTRO}[data-phase="dark"]`)).toHaveCount(1)
+    const result = await page.evaluate(() => {
+      const viewport = { width: window.innerWidth, height: window.innerHeight }
+      return [...document.querySelectorAll('.lights-on-roam')].map((roam) => {
+        const animations = roam.getAnimations({ subtree: true })
+        for (const animation of animations) animation.pause()
+        const xs: number[] = []
+        const ys: number[] = []
+        for (let time = 0; time <= 3_200; time += 400) {
+          for (const animation of animations) animation.currentTime = time
+          const box = roam.getBoundingClientRect()
+          xs.push(box.left + box.width / 2)
+          ys.push(box.top + box.height / 2)
+        }
+        return {
+          path: roam.getAttribute('data-path'),
+          animations: animations.length,
+          rangeX: (Math.max(...xs) - Math.min(...xs)) / viewport.width,
+          rangeY: (Math.max(...ys) - Math.min(...ys)) / viewport.height,
+        }
+      })
+    })
+    expect(result.map((entry) => entry.path)).toEqual(['circle', 'chase-a', 'chase-b', 'sneak'])
+    for (const entry of result) {
+      expect(entry.animations, entry.path ?? '').toBeGreaterThan(0)
+      expect(Math.max(entry.rangeX, entry.rangeY), `${entry.path} ranges over ${JSON.stringify(entry)}`).toBeGreaterThanOrEqual(0.25)
+    }
+  })
+
+  test('no ghost jumps when the lights come on: its centre moves less than 40 px between the last dark frame and the first lit one', async ({ page }) => {
+    await page.addInitScript(() => {
+      const frames: {
+        phase: string | null
+        centres: { x: number; y: number }[]
+      }[] = []
+      Reflect.set(window, '__introFrames', frames)
+      const tick = (): void => {
+        const layer = document.querySelector('.lights-on')
+        if (layer !== null) {
+          const centres = [...layer.querySelectorAll('.lights-on-roam svg.ghost')].map((svg) => {
+            const box = svg.getBoundingClientRect()
+            return { x: box.left + box.width / 2, y: box.top + box.height / 2 }
+          })
+          frames.push({ phase: layer.getAttribute('data-phase'), centres })
+        }
+        window.requestAnimationFrame(tick)
+      }
+      window.requestAnimationFrame(tick)
+    })
+    await page.goto('/')
+    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
+    const worst = await page.evaluate(() => {
+      const frames: {
+        phase: string | null
+        centres: { x: number; y: number }[]
+      }[] = Reflect.get(window, '__introFrames')
+      const lit = frames.findIndex((frame) => frame.phase !== 'dark')
+      const before = frames[lit - 1]
+      const after = frames[lit]
+      if (lit < 1 || before === undefined || after === undefined) return { lit, moves: [] as number[] }
+      return {
+        lit,
+        moves: after.centres.map((centre, index) => Math.hypot(centre.x - (before.centres[index]?.x ?? 0), centre.y - (before.centres[index]?.y ?? 0))),
+      }
+    })
+    expect(worst.lit).toBeGreaterThan(1)
+    expect(worst.moves.length).toBeGreaterThan(0)
+    for (const move of worst.moves) expect(move).toBeLessThan(40)
+  })
+
+  test('with no room in the margins (1100 px wide) one intro ghost darts to the ghost in the painting, which waits hidden until the intro ends', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1100, height: 800 })
+    await page.goto('/')
+    await expect(page.locator(`${INTRO}[data-phase="dark"]`)).toHaveCount(1)
+    await expect(page.locator('.painting-ghost-layer')).toHaveAttribute('data-intro', 'true')
+    expect(await page.locator('.painting-ghost-layer').evaluate((element) => getComputedStyle(element).visibility)).toBe('hidden')
+    await expect(page.locator(`${INTRO}[data-phase="lights"]`)).toHaveCount(1, {
+      timeout: 6_000,
+    })
+    const landed = await page.locator('.lights-on-ghost').evaluateAll((all) => all.map((element) => (element as HTMLElement).style.transform))
+    await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
+    await expect(page.locator('.painting-ghost-layer')).toHaveAttribute('data-intro', 'false')
+    const ghost = page.locator('svg.painting-ghost')
+    await expect(ghost).toHaveAttribute('data-out', 'false')
+    await expect(page.locator(GHOSTS)).toHaveCount(0)
+    // The painting ghost's box in the picture's own frame, in viewport px: where the intro ghost's full box was sent.
+    const origin = await page.evaluate(() => {
+      const svg = document.querySelector('svg.painting-ghost')
+      const layer = document.querySelector('.painting-ghost-layer')
+      if (svg === null || layer === null) throw new Error('no painting ghost')
+      const box = svg.getBoundingClientRect()
+      return {
+        left: box.left,
+        top: box.top,
+        right: box.right,
+        bottom: box.bottom,
+      }
+    })
+    const targets = landed
+      .map((value) => /translate3d\((-?[\d.]+)px, (-?[\d.]+)px/.exec(value))
+      .map((match) => ({ x: Number(match?.[1]), y: Number(match?.[2]) }))
+    const inPainting = targets.filter((at) => at.x > origin.left - 200 && at.x < origin.right + 200 && at.y > origin.top - 200 && at.y < origin.bottom + 200)
+    expect(inPainting).toHaveLength(1)
   })
 
   test('never plays when the ghosts are hidden', async ({ page }) => {
@@ -271,9 +459,10 @@ test.describe('the lights-on intro', () => {
 
 test.describe('the intro on a touch screen', () => {
   test.use({ hasTouch: true })
+  test.beforeEach(async ({ page }) => forceIntro(page))
 
   test('a tap that skips the intro does not press the control under it', async ({ page }) => {
-    // Paused before the page loads, so the intro is still dark when the tap lands (no 900 ms or 1.8 s timer races it).
+    // Paused before the page loads, so the intro is still dark when the tap lands (no intro timer races it).
     await pauseClock(page)
     await page.goto('/')
     await expect(page.locator(`${INTRO}[data-phase="dark"]`)).toHaveCount(1)
@@ -296,6 +485,8 @@ test.describe('the intro on a touch screen', () => {
 
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' })
+  // Forced: an automated browser skips the intro anyway, so only the reduced-motion rule may keep it away here.
+  test.beforeEach(async ({ page }) => forceIntro(page))
 
   test('no intro; the ghosts stay still in their spots; no lantern; "Hide ghosts" still removes them', async ({ page }) => {
     await page.goto('/')
@@ -332,17 +523,20 @@ test.describe('reduced motion', () => {
 })
 
 seenTest.describe('the ghosts in the margins', () => {
-  seenTest('three ghosts peek in from the page margins; each one\'s eyes are on the wall, never under the header or the panel', async ({ page }) => {
+  seenTest("three ghosts peek in from the page margins; each one's eyes are on the wall, never under the header or the panel", async ({ page }) => {
     await page.goto('/')
     await expect(page.locator(GHOSTS)).toHaveCount(3)
     const main = await rectOf(page, 'main#main')
     const header = await rectOf(page, 'header.app-header')
     for (let index = 0; index < 3; index += 1) {
       // The raw ghost box, unclipped: some of it must stand beside the panel's 6 px ring, below the header.
-      const box = await page.locator(GHOSTS).nth(index).evaluate((element) => {
-        const { left, right, top, bottom } = element.getBoundingClientRect()
-        return { left, right, top, bottom }
-      })
+      const box = await page
+        .locator(GHOSTS)
+        .nth(index)
+        .evaluate((element) => {
+          const { left, right, top, bottom } = element.getBoundingClientRect()
+          return { left, right, top, bottom }
+        })
       const width = await page.evaluate(() => document.documentElement.clientWidth)
       const besideLeft = Math.min(box.right, main.left - 6) - Math.max(box.left, 0)
       const besideRight = Math.min(box.right, width) - Math.max(box.left, main.right + 6)
@@ -393,7 +587,12 @@ seenTest.describe('the ghosts in the margins', () => {
     // The footer paints over the ghost layer: a bright block put in that layer does not change a pixel of it.
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.mouse.move(960, 400)
-    const clip = { x: 0, y: Math.ceil(footer.top) + 2, width: 1920, height: Math.floor(Math.min(900, footer.bottom) - footer.top) - 4 }
+    const clip = {
+      x: 0,
+      y: Math.ceil(footer.top) + 2,
+      width: 1920,
+      height: Math.floor(Math.min(900, footer.bottom) - footer.top) - 4,
+    }
     const without = await page.screenshot({ clip, animations: 'disabled' })
     await page.evaluate(() => {
       const probe = document.createElement('div')
@@ -410,7 +609,10 @@ seenTest.describe('the ghosts in the margins', () => {
     await expect(page.locator(GHOSTS)).toHaveCount(3)
     for (let index = 0; index < 3; index += 1) {
       const shown = await visibleRect(page, index)
-      const size = await page.locator(GHOSTS).nth(index).evaluate((element) => element.getBoundingClientRect().width)
+      const size = await page
+        .locator(GHOSTS)
+        .nth(index)
+        .evaluate((element) => element.getBoundingClientRect().width)
       expect(size).toBe(150)
       expect((shown.right - shown.left) / size).toBeGreaterThanOrEqual(0.7)
       expect(shown.bottom - shown.top).toBeGreaterThanOrEqual(size * 0.7)
@@ -418,12 +620,19 @@ seenTest.describe('the ghosts in the margins', () => {
   })
 
   seenTest('the ghosts are 150 px where the margin is wide, smaller (never under 80 px) where only that shows the face', async ({ page }) => {
-    for (const [width, low, high] of [[1920, 150, 150], [1440, 150, 150], [1280, 80, 120]] as const) {
+    for (const [width, low, high] of [
+      [1920, 150, 150],
+      [1440, 150, 150],
+      [1280, 80, 120],
+    ] as const) {
       await page.setViewportSize({ width, height: 800 })
       await page.goto('/')
       await expect(page.locator(GHOSTS)).toHaveCount(3)
       // The ghost's box (the art inside is turned a little, so it is measured on the box, not the drawing).
-      const size = await page.locator(GHOSTS).first().evaluate((element) => Math.round(element.getBoundingClientRect().width))
+      const size = await page
+        .locator(GHOSTS)
+        .first()
+        .evaluate((element) => Math.round(element.getBoundingClientRect().width))
       expect(size, `${width} px`).toBeGreaterThanOrEqual(low)
       expect(size, `${width} px`).toBeLessThanOrEqual(high)
       expect(await page.locator(`${GHOSTS} svg`).first().getAttribute('width')).toBe(String(size))
@@ -478,15 +687,31 @@ seenTest.describe('the ghosts in the margins', () => {
     const regions = {
       header: clip(header),
       panel: clip({ ...main, top: Math.max(main.top, header.bottom) }),
-      wall: { x: 0, y: header.bottom + 8, width: Math.max(8, main.left - 12), height: viewport.height - header.bottom - 16 },
+      wall: {
+        x: 0,
+        y: header.bottom + 8,
+        width: Math.max(8, main.left - 12),
+        height: viewport.height - header.bottom - 16,
+      },
     }
     const shoot = async (): Promise<Record<keyof typeof regions, Buffer>> => ({
-      header: await page.screenshot({ clip: regions.header, animations: 'disabled' }),
-      panel: await page.screenshot({ clip: regions.panel, animations: 'disabled' }),
-      wall: await page.screenshot({ clip: regions.wall, animations: 'disabled' }),
+      header: await page.screenshot({
+        clip: regions.header,
+        animations: 'disabled',
+      }),
+      panel: await page.screenshot({
+        clip: regions.panel,
+        animations: 'disabled',
+      }),
+      wall: await page.screenshot({
+        clip: regions.wall,
+        animations: 'disabled',
+      }),
     })
-    // Hide the real ghosts so that only the probe differs between the two shots.
-    await page.addStyleTag({ content: '.margin-ghost { visibility: hidden !important; }' })
+    // Hide the real ghosts (the margin ones, and the one in the painting, which can move between the shots) so that only the probe differs.
+    await page.addStyleTag({
+      content: '.margin-ghost, .painting-ghost-layer { visibility: hidden !important; }',
+    })
     const without = await shoot()
     // A bright block in the ghost layer, large enough to cross the header, the panel and the wall.
     await page.evaluate(
@@ -499,10 +724,17 @@ seenTest.describe('the ghosts in the margins', () => {
       { left: -20, width: viewport.width + 40, height: viewport.height },
     )
     const withProbe = await shoot()
-    // The header and the panel hide the probe completely; the wall shows it.
-    expect(withProbe.header.equals(without.header)).toBe(true)
-    expect(withProbe.panel.equals(without.panel)).toBe(true)
-    expect(withProbe.wall.equals(without.wall)).toBe(false)
+    // The header and the panel hide the probe completely; the wall shows it. Colours are compared, not
+    // bytes: the painting's layer is re-rastered between shots, which moves a channel by 1-2 of 255
+    // without any visible change. A real bleed would show probe-coloured pixels or a bigger shift.
+    for (const name of ['header', 'panel'] as const) {
+      const result = await compareShots(page, without[name], withProbe[name])
+      expect(result.sameSize, name).toBe(true)
+      expect(result.newProbePixels, `${name}: probe pixels`).toBe(0)
+      expect(result.maxChannelDiff, `${name}: largest channel difference`).toBeLessThanOrEqual(8)
+    }
+    const wall = await compareShots(page, without.wall, withProbe.wall)
+    expect(wall.probePixels, 'wall: probe pixels').toBeGreaterThan(0)
   })
 
   seenTest('a ghost that changes edge is a new node that starts out of sight: it never slides across the page or spins', async ({ page }) => {
@@ -518,7 +750,11 @@ seenTest.describe('the ghosts in the margins', () => {
           const slide = element.querySelector('.margin-ghost-slide')
           const key = `${element.getAttribute('data-edge')}/${element.getAttribute('data-anchor')}`
           anchors.add(element.getAttribute('data-anchor') ?? '')
-          const record = seen.get(element) ?? { keys: new Set<string>(), firstOpacity: slide === null ? '' : getComputedStyle(slide).opacity, fresh }
+          const record = seen.get(element) ?? {
+            keys: new Set<string>(),
+            firstOpacity: slide === null ? '' : getComputedStyle(slide).opacity,
+            fresh,
+          }
           record.keys.add(key)
           seen.set(element, record)
         }
@@ -531,9 +767,15 @@ seenTest.describe('the ghosts in the margins', () => {
       sample(false)
       requestAnimationFrame(loop)
       for (let round = 0; round < 8; round += 1) {
-        Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+        Object.defineProperty(document, 'visibilityState', {
+          value: 'hidden',
+          configurable: true,
+        })
         document.dispatchEvent(new Event('visibilitychange'))
-        Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+        Object.defineProperty(document, 'visibilityState', {
+          value: 'visible',
+          configurable: true,
+        })
         await new Promise((resolve) => setTimeout(resolve, 350))
       }
       running = false
@@ -560,7 +802,10 @@ seenTest.describe('the ghosts in the margins', () => {
     await expect(page.locator(GHOSTS)).toHaveCount(3)
     const before = await spotsOf(page)
     await page.evaluate(() => {
-      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'hidden',
+        configurable: true,
+      })
       document.dispatchEvent(new Event('visibilitychange'))
     })
     const moved = await spotsOf(page)
@@ -568,7 +813,10 @@ seenTest.describe('the ghosts in the margins', () => {
     // Every ghost moved, not just one of them.
     moved.forEach((spot, index) => expect(spot, `ghost ${index}`).not.toBe(before[index]))
     await page.evaluate(() => {
-      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'visible',
+        configurable: true,
+      })
       document.dispatchEvent(new Event('visibilitychange'))
     })
     expect(await spotsOf(page)).toEqual(moved)
@@ -620,7 +868,9 @@ seenTest.describe('the ghosts in the margins', () => {
       .toBe(true)
     // Move the lantern away: a few seconds later it is back, and not where it was.
     await page.mouse.move(640, 600)
-    await expect(first).toHaveAttribute('data-hidden', 'false', { timeout: 8_000 })
+    await expect(first).toHaveAttribute('data-hidden', 'false', {
+      timeout: 8_000,
+    })
     const [after] = await spotsOf(page)
     expect(after).not.toBe(spot)
   })
@@ -631,9 +881,7 @@ seenTest.describe('the ghosts in the margins', () => {
     await page.mouse.move(640, 400)
     const main = await rectOf(page, 'main#main')
     const hole = `M${Math.round(main.left - 7)}${Math.round(main.top - 7)}H${Math.round(main.right + 7)}`
-    await expect
-      .poll(async () => (await page.locator('.lantern').evaluate((element) => element.style.clipPath)).replace(/[\s,]/g, ''))
-      .toContain(hole)
+    await expect.poll(async () => (await page.locator('.lantern').evaluate((element) => element.style.clipPath)).replace(/[\s,]/g, '')).toContain(hole)
     const clip = await page.locator('.lantern').evaluate((element) => getComputedStyle(element).clipPath)
     expect(clip).toContain('evenodd')
     // The light itself can only brighten: it is a warm colour fading to transparent, in the layer behind the page.
@@ -646,9 +894,9 @@ seenTest.describe('the ghosts in the margins', () => {
     await page.goto('/')
     await expect(page.locator('.lantern')).toHaveCount(1)
     await page.mouse.move(640, 400)
-    const clipOf = async (): Promise<string> =>
-      (await page.locator('.lantern').evaluate((element) => element.style.clipPath)).replace(/[\s,]/g, '')
-    const holeOf = (rect: Rect): string => `M${Math.round(rect.left - 7)}${Math.round(rect.top - 7)}H${Math.round(rect.right + 7)}V${Math.round(rect.bottom + 7)}`
+    const clipOf = async (): Promise<string> => (await page.locator('.lantern').evaluate((element) => element.style.clipPath)).replace(/[\s,]/g, '')
+    const holeOf = (rect: Rect): string =>
+      `M${Math.round(rect.left - 7)}${Math.round(rect.top - 7)}H${Math.round(rect.right + 7)}V${Math.round(rect.bottom + 7)}`
 
     // A route change (Landing to a not-found state) swaps the panel: the glow fades out and the clip is made again.
     await page.evaluate(() => {
@@ -691,17 +939,19 @@ seenTest.describe('the ghosts in the margins', () => {
     await expect(page.locator(GHOSTS)).toHaveCount(3)
   })
 
-  seenTest('there are no ghosts on the result views or in Daylight, and some on every not-found page', async ({ page }) => {
-    for (const path of [
-      '/sample/cursed-shop-index',
-      '/sample/cursed-shop-index/whisper',
-      '/sample/cursed-shop-index/keyboard',
-      '/sample/cursed-shop-index/daylight',
-    ]) {
+  seenTest('where the wall is wide the audit lenses have margin ghosts, Daylight never does, and every not-found page has some', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    for (const path of ['/sample/cursed-shop-index', '/sample/cursed-shop-index/keyboard', '/sample/cursed-shop-index/whisper']) {
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-      await expect(page.locator(GHOSTS), path).toHaveCount(0)
+      await expect(page.locator(GHOSTS).first(), path).toBeAttached()
+      expect(await page.locator(GHOSTS).count(), path).toBeGreaterThanOrEqual(1)
     }
+    await page.goto('/sample/cursed-shop-index/daylight')
+    await expect(page.getByRole('heading', { level: 1, name: /^Daylight report/ })).toBeVisible()
+    await expect(page.locator('svg.painting-ghost')).toHaveCount(1)
+    await expect(page.locator(GHOSTS)).toHaveCount(0)
+    await page.setViewportSize({ width: 1280, height: 720 })
     for (const path of ['/nonexistent', '/sample/no-such-sample', '/audit/expired-job']) {
       await page.goto(path)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
@@ -789,3 +1039,122 @@ seenTest.describe('the ghosts in the margins', () => {
     await expect(page.locator(`${GHOSTS}[data-hidden="true"]`)).toHaveCount(0)
   })
 })
+
+// The intro's dart into a painting, on a lens with no margin spots at 1440 x 900.
+test.describe('the lights-on intro: the dart into a painting', () => {
+  test.beforeEach(async ({ page }) => forceIntro(page))
+
+  test('the ghost that darts into the painting is never drawn over the gilt frame band, in any frame of the dart', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await expectDartClipped(page)
+  })
+})
+
+/** Samples the intro ghost bound for the painting every frame of the dart: none of it is ever drawn over the frame band. */
+async function expectDartClipped(page: Page): Promise<void> {
+  // A lens with no margin spots at this size: one intro ghost goes to the painting.
+  await page.addInitScript(() => {
+    type Box = { left: number; top: number; right: number; bottom: number }
+    const samples: {
+      index: number
+      clip: string
+      ghost: Box
+      outer: Box
+      inner: Box
+    }[] = []
+    Reflect.set(window, '__dartSamples', samples)
+    const tick = (): void => {
+      const layer = document.querySelector('.lights-on')
+      const painting = document.querySelector('.painting-ghost-layer')?.parentElement
+      if (layer !== null && painting != null && layer.getAttribute('data-phase') === 'lights') {
+        const box = painting.getBoundingClientRect()
+        const style = getComputedStyle(painting)
+        const outer = {
+          left: box.left,
+          top: box.top,
+          right: box.right,
+          bottom: box.bottom,
+        }
+        const inner = {
+          left: box.left + parseFloat(style.borderLeftWidth),
+          top: box.top + parseFloat(style.borderTopWidth),
+          right: box.right - parseFloat(style.borderRightWidth),
+          bottom: box.bottom - parseFloat(style.borderBottomWidth),
+        }
+        for (const [ghostIndex, clipLayer] of [...layer.querySelectorAll('.lights-on-clip')].entries()) {
+          const svg = clipLayer.querySelector('svg.ghost')
+          if (svg === null) continue
+          const r = svg.getBoundingClientRect()
+          samples.push({
+            index: ghostIndex,
+            clip: getComputedStyle(clipLayer).clipPath,
+            ghost: {
+              left: r.left,
+              top: r.top,
+              right: r.right,
+              bottom: r.bottom,
+            },
+            outer,
+            inner,
+          })
+        }
+      }
+      window.requestAnimationFrame(tick)
+    }
+    window.requestAnimationFrame(tick)
+  })
+  await page.goto('/sample/cursed-shop-index')
+  await expect(page.locator(INTRO)).toHaveCount(0, { timeout: 6_000 })
+  type Box = { left: number; top: number; right: number; bottom: number }
+  const all: {
+    index: number
+    clip: string
+    ghost: Box
+    outer: Box
+    inner: Box
+  }[] = await page.evaluate(() => Reflect.get(window, '__dartSamples'))
+  // The arriving ghost: the one bound for the painting, which carries a clip from the moment the lights come on.
+  const arriving = new Set(all.filter((sample) => sample.clip !== 'none').map((sample) => sample.index))
+  expect(arriving.size).toBe(1)
+  const samples = all.filter((sample) => arriving.has(sample.index))
+  const meet = (a: Box, b: Box): Box | null => {
+    const box = {
+      left: Math.max(a.left, b.left),
+      top: Math.max(a.top, b.top),
+      right: Math.min(a.right, b.right),
+      bottom: Math.min(a.bottom, b.bottom),
+    }
+    return box.right - box.left > 0.5 && box.bottom - box.top > 0.5 ? box : null
+  }
+  const within = (a: Box, b: Box, slack = 1): boolean =>
+    a.left >= b.left - slack && a.top >= b.top - slack && a.right <= b.right + slack && a.bottom <= b.bottom + slack
+  const numbers = (text: string): number[] => (text.match(/-?[\d.]+/g) ?? []).map(Number)
+  const problems: string[] = []
+  for (const [index, sample] of samples.entries()) {
+    // What of the ghost could be drawn, clip-path aside, over the painting's frame and picture.
+    const onPainting = meet(sample.ghost, sample.outer)
+    if (onPainting === null || within(onPainting, sample.inner)) continue
+    if (sample.clip.startsWith('inset(')) {
+      // The clip is the picture's inner box: nothing outside it shows. (CSS shorthand: 1 to 4 values.)
+      const values = numbers(sample.clip)
+      const top = values[0] ?? 0
+      const right = values[1] ?? top
+      const bottom = values[2] ?? top
+      const left = values[3] ?? right
+      const shown = { left, top, right: 1440 - right, bottom: 900 - bottom }
+      if (!within(shown, sample.inner)) problems.push(`frame ${index}: inset clip ${sample.clip} is wider than the picture`)
+      continue
+    }
+    if (sample.clip.startsWith('path(') && sample.clip.includes('evenodd')) {
+      // The viewport, minus the painting's border box, plus the picture: the band is cut out.
+      const [, outer, inner] = subpathBoxes(sample.clip)
+      if (outer === undefined || inner === undefined || !within(sample.outer, outer) || !within(inner, sample.inner)) {
+        problems.push(`frame ${index}: band clip ${sample.clip} does not cut out the frame`)
+      }
+      continue
+    }
+    problems.push(`frame ${index}: ghost ${JSON.stringify(sample.ghost)} drawn over the frame with clip ${sample.clip}`)
+  }
+  expect(samples.length).toBeGreaterThan(5)
+  expect(problems).toEqual([])
+}

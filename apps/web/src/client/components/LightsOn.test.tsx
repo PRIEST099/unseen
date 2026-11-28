@@ -4,16 +4,16 @@ import { createRoot } from 'react-dom/client'
 import type { Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GhostsProvider, HIDE_GHOSTS_KEY, useGhosts } from '../contexts/GhostsContext'
-import type { MarginLayout } from '../contexts/GhostsContext'
+import type { MarginLayout, PaintingLayout } from '../contexts/GhostsContext'
 import { ReducedMotionProvider } from '../contexts/ReducedMotionContext'
 import { peekPosition, resetPlannedSpots } from '../utils/ghost-spots'
 import type { Placement, Spot } from '../utils/ghost-spots'
 import {
   INTRO_FADE_MS,
+  INTRO_FORCE_KEY,
   INTRO_LIGHTS_LATEST_MS,
   INTRO_MAX_MS,
   INTRO_MIN_MS,
-  INTRO_NAV_ALLOWANCE_MS,
   INTRO_SESSION_KEY,
   LightsOn,
   SKIP_CLICK_GRACE_MS,
@@ -41,6 +41,26 @@ function MarginStandIn(): null {
   return null
 }
 
+/** Stands in for the painting ghost: lets a test report where it stands. */
+let publishPainting: (layout: PaintingLayout | null) => void = () => undefined
+function PaintingStandIn(): null {
+  const { publishPaintingLayout } = useGhosts()
+  useLayoutEffect(() => {
+    publishPainting = (layout) => publishPaintingLayout(layout === null ? null : () => layout)
+  }, [publishPaintingLayout])
+  return null
+}
+
+const PAINTING_LAYOUT: PaintingLayout = {
+  origin: { x: 700, y: 300 },
+  visible: { left: 700, top: 300, right: 780, bottom: 400 },
+  clip: { left: 600, top: 250, right: 1000, bottom: 500 },
+  frame: { left: 580, top: 230, right: 1020, bottom: 520 },
+  edge: 'bottom',
+  size: 100,
+  mood: 'looking',
+}
+
 /** Where each intro ghost was sent (its translate), in px. */
 function landedAt(): { x: number; y: number }[] {
   return [...container.querySelectorAll<HTMLElement>('.lights-on-ghost')].map((element) => {
@@ -58,6 +78,7 @@ function Page(): ReactElement {
         </button>
         <IntroProbe />
         <MarginStandIn />
+        <PaintingStandIn />
         <LightsOn />
       </ReducedMotionProvider>
     </GhostsProvider>
@@ -132,31 +153,20 @@ afterEach(() => {
 })
 
 describe('introSchedule', () => {
-  it('gives the whole budget to a page that mounted at once', () => {
-    expect(introSchedule(0)).toEqual({ lightsLatestMs: INTRO_LIGHTS_LATEST_MS, endLatestMs: INTRO_LIGHTS_LATEST_MS + INTRO_FADE_MS })
+  it('is fixed: the lights come on by 3.9 s and the fade ends by 4.5 s, whatever the page did before it mounted', () => {
+    expect(introSchedule()).toEqual({ lightsLatestMs: INTRO_LIGHTS_LATEST_MS, endLatestMs: INTRO_LIGHTS_LATEST_MS + INTRO_FADE_MS })
+    expect(INTRO_MIN_MS).toBe(3200)
+    expect(INTRO_LIGHTS_LATEST_MS).toBe(3900)
+    expect(INTRO_FADE_MS).toBe(600)
   })
 
-  it('takes the time the page spent loading off the budget, up to the allowance', () => {
-    expect(introSchedule(300).lightsLatestMs).toBe(INTRO_LIGHTS_LATEST_MS - 300)
-    expect(introSchedule(INTRO_NAV_ALLOWANCE_MS).lightsLatestMs).toBe(INTRO_LIGHTS_LATEST_MS - INTRO_NAV_ALLOWANCE_MS)
-    expect(introSchedule(60_000).lightsLatestMs).toBe(INTRO_LIGHTS_LATEST_MS - INTRO_NAV_ALLOWANCE_MS)
-    expect(introSchedule(-50).lightsLatestMs).toBe(INTRO_LIGHTS_LATEST_MS)
-  })
-
-  it('always starts the fade by 1.9 s, ends by 2.5 s after mount, and never before the minimum', () => {
-    for (let spent = -100; spent <= 5000; spent += 25) {
-      const { lightsLatestMs, endLatestMs } = introSchedule(spent)
-      expect(lightsLatestMs).toBeLessThanOrEqual(1900)
-      expect(endLatestMs).toBeLessThanOrEqual(INTRO_MAX_MS)
-      expect(lightsLatestMs).toBeGreaterThanOrEqual(INTRO_MIN_MS)
-      expect(endLatestMs - lightsLatestMs).toBe(INTRO_FADE_MS)
-    }
-  })
-
-  it('ends by 2.4 s after the page began to load, for any mount time within the allowance', () => {
-    for (let spent = 0; spent <= INTRO_NAV_ALLOWANCE_MS; spent += 25) {
-      expect(spent + introSchedule(spent).endLatestMs).toBeLessThanOrEqual(2400)
-    }
+  it('keeps the whole intro under 5 s (WCAG 2.2.2) and the minimum dark before the latest lights', () => {
+    const { lightsLatestMs, endLatestMs } = introSchedule()
+    expect(INTRO_MIN_MS).toBeLessThanOrEqual(lightsLatestMs)
+    expect(endLatestMs).toBeLessThanOrEqual(INTRO_MAX_MS)
+    expect(INTRO_MAX_MS).toBe(4600)
+    expect(INTRO_MAX_MS + 200).toBeLessThanOrEqual(4800)
+    expect(INTRO_MAX_MS + 200).toBeLessThan(5000)
   })
 })
 
@@ -168,8 +178,13 @@ describe('LightsOn', () => {
     // Only the status text is exposed: the dark layer and the ghosts are aria-hidden.
     expect(dark().getAttribute('aria-hidden')).toBe('true')
     expect(container.querySelector('.lights-on-ghosts')?.getAttribute('aria-hidden')).toBe('true')
-    expect(container.querySelectorAll('.lights-on-ghost')).toHaveLength(3)
-    expect(container.querySelectorAll('.lights-on-ghost svg[aria-hidden="true"][focusable="false"]')).toHaveLength(3)
+    expect(container.querySelectorAll('.lights-on-ghost')).toHaveLength(4)
+    expect(container.querySelectorAll('.lights-on-ghost svg[aria-hidden="true"][focusable="false"]')).toHaveLength(4)
+    // The skip hint is for sighted users: hidden from assistive technology, so the one announcement stays the status line.
+    const hint = container.querySelector('.lights-on-hint')
+    expect(hint?.textContent).toBe('Press any key or tap to skip')
+    expect(hint?.getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelectorAll('[role="status"]')).toHaveLength(1)
     // Nothing in the intro can take focus, and the page underneath is not hidden.
     expect(intro()?.querySelector('[tabindex], button, a, input')).toBeNull()
     expect(document.getElementById('under')?.closest('[aria-hidden="true"]')).toBeNull()
@@ -190,7 +205,7 @@ describe('LightsOn', () => {
     expect(textAdded).toBe(true)
   })
 
-  it('waits at least 900 ms, then lights up and removes the status text', async () => {
+  it('waits at least 3.2 s, then lights up and removes the status text', async () => {
     mount()
     await advance(0)
     await advance(INTRO_MIN_MS - 1)
@@ -203,27 +218,60 @@ describe('LightsOn', () => {
     expect(intro()).toBeNull()
   })
 
-  it('is gone by 2.5 s after mount even when the fonts never finish loading', async () => {
+  it('is gone by 4.6 s after mount even when the fonts never finish loading', async () => {
     Object.defineProperty(document, 'fonts', { value: { ready: new Promise(() => undefined) }, configurable: true })
     mount()
     await advance(INTRO_LIGHTS_LATEST_MS - 1)
     expect(intro()?.getAttribute('data-phase')).toBe('dark')
     await advance(1)
-    // The fade starts by 1.9 s at the latest.
+    // The fade starts by 3.9 s at the latest.
     expect(intro()?.getAttribute('data-phase')).toBe('lights')
     await advance(INTRO_MAX_MS - INTRO_LIGHTS_LATEST_MS)
     expect(intro()).toBeNull()
     expect(status()).toBeNull()
   })
 
-  it('counts the time the page spent loading: the fade starts earlier on a page that mounted late', async () => {
-    vi.spyOn(performance, 'now').mockReturnValue(400)
+  it('never lights up before 3.2 s, even when the fonts were ready at once', async () => {
+    mount()
+    await advance(INTRO_MIN_MS - 100)
+    expect(intro()?.getAttribute('data-phase')).toBe('dark')
+    await advance(100)
+    expect(intro()?.getAttribute('data-phase')).toBe('lights')
+  })
+
+  it('the page spending time loading before the intro mounted changes nothing: the dark is a fixed minimum', async () => {
+    vi.spyOn(performance, 'now').mockReturnValue(2500)
     Object.defineProperty(document, 'fonts', { value: { ready: new Promise(() => undefined) }, configurable: true })
     mount()
-    await advance(INTRO_LIGHTS_LATEST_MS - 400 - 1)
+    await advance(INTRO_LIGHTS_LATEST_MS - 1)
     expect(intro()?.getAttribute('data-phase')).toBe('dark')
     await advance(1)
     expect(intro()?.getAttribute('data-phase')).toBe('lights')
+  })
+
+  it('four ghosts roam at 1024 px, three at 375 px, each on its own path, and a hint says how to skip', async () => {
+    mount()
+    expect([...container.querySelectorAll('.lights-on-roam')].map((el) => el.getAttribute('data-path'))).toEqual(['circle', 'chase-a', 'chase-b', 'sneak'])
+    act(() => root.unmount())
+    window.sessionStorage.clear()
+    Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true })
+    root = createRoot(container)
+    mount()
+    expect([...container.querySelectorAll('.lights-on-roam')].map((el) => el.getAttribute('data-path'))).toEqual(['chase-a', 'chase-b', 'sneak'])
+    Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true })
+  })
+
+  it('does not play in an automated browser (navigator.webdriver) unless the force flag is set', () => {
+    Object.defineProperty(navigator, 'webdriver', { value: true, configurable: true })
+    mount()
+    expect(intro()).toBeNull()
+    expect(window.sessionStorage.getItem(INTRO_SESSION_KEY)).toBeNull()
+    act(() => root.unmount())
+    window.sessionStorage.setItem(INTRO_FORCE_KEY, '1')
+    root = createRoot(container)
+    mount()
+    expect(intro()).not.toBeNull()
+    Reflect.deleteProperty(navigator, 'webdriver')
   })
 
   it('waits for the fonts when they finish after the minimum time', async () => {
@@ -424,6 +472,40 @@ describe('LightsOn: the hand-off', () => {
     expect(intro()?.getAttribute('data-phase')).toBe('lights')
     const landed = landedAt()
     for (const spot of spots) expect(landed).toContainEqual(peekPosition(spot, placement))
+  })
+
+  it('with no margin ghosts but a painting ghost, exactly one intro ghost darts to the painting spot and the rest leave', async () => {
+    mount()
+    await advance(0)
+    act(() => publish(null))
+    act(() => publishPainting(PAINTING_LAYOUT))
+    await advance(INTRO_MIN_MS)
+    expect(intro()?.getAttribute('data-phase')).toBe('lights')
+    const landed = landedAt()
+    const there = (at: { x: number; y: number }): boolean => at.x === 700 && at.y === 300
+    expect(landed.filter(there)).toHaveLength(1)
+    for (const at of landed.filter((other) => !there(other))) expect(at.x < 0 || at.x >= window.innerWidth).toBe(true)
+  })
+
+  it('does not take the painting spot when margin ghosts are waiting', async () => {
+    mount()
+    await advance(0)
+    const placement: Placement = {
+      innerWidth: 1440,
+      viewWidth: 1440,
+      height: 900,
+      size: 150,
+      minY: 104,
+      panelLeft: 144,
+      panelRight: 1296,
+      panelMinY: 112,
+      panelMaxY: 788,
+      footerTop: 820,
+    }
+    act(() => publish({ placement, spots: [{ edge: 'left', anchor: 'window', pos: 200 }] }))
+    act(() => publishPainting(PAINTING_LAYOUT))
+    await advance(INTRO_MIN_MS)
+    expect(landedAt().filter((at) => at.x === 700 && at.y === 300)).toHaveLength(0)
   })
 
   it('with no margin ghosts to hand over to (no room for a face), every intro ghost darts out of sight', async () => {

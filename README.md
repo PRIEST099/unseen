@@ -27,7 +27,7 @@ Accessibility checkers already exist. What they lack is a way to make developers
 - **Whisper walk:** hear the page as a screen reader would announce it, with captions.
 - **Daylight:** the morning-after report, a plain parchment ledger of every finding, exportable.
 - **"Takes Form":** preview a fix and see the score rise. Nothing on the audited site is changed.
-- **The ghosts in the margins:** on your first visit the lights come on and the ghosts scatter behind the page. Your pointer (or your keyboard focus) is a lantern that sends them away. They are decoration only, still under reduced motion, and the **Hide ghosts** button removes them.
+- **Ghosts on every page:** on your first visit the screen stays dark for a few seconds while ghosts roam around a candle. Then the lights come on and they scatter: behind the page, and into every gilt-framed painting, phones included. Your pointer (or your keyboard focus) is a lantern that sends them away, and they peek back somewhere else. They are decoration only (hidden from screen readers, never focusable), still under reduced motion, calm on the audit views, and the **Hide ghosts** button removes them.
 
 ### The ten hauntings
 | Haunting | What is wrong | WCAG |
@@ -105,7 +105,7 @@ Test counts at submission:
 |---|---|
 | `packages/core` | 649 unit, 109 Playwright |
 | `packages/mcp` | 184 unit, 35 integration |
-| `apps/web` | 580 unit, 118 end-to-end (8-route self-audit included), 18 replay |
+| `apps/web` | 620 unit, 132 end-to-end (8-route self-audit included), 19 replay |
 
 Typecheck is clean.
 

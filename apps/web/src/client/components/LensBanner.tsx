@@ -8,6 +8,7 @@ import spiritSmall from '../assets/manor/lens-spirit-800.webp'
 import whisper from '../assets/manor/lens-whisper.webp'
 import whisperSmall from '../assets/manor/lens-whisper-800.webp'
 import type { Lens } from './LensNav'
+import { PaintingGhost } from './PaintingGhost'
 
 type Banner = { src: string; small: string; smallWidth: number; width: number; height: number; position: string }
 
@@ -37,6 +38,8 @@ export function LensBanner({ lens }: { lens: Lens }): ReactElement {
         alt=""
         style={{ objectPosition: banner.position }}
       />
+      {/* Calm: the audit views settle, so this ghost never bobs. Daylight keeps only a sleepy one. */}
+      <PaintingGhost calm daylight={lens === 'daylight'} />
     </div>
   )
 }

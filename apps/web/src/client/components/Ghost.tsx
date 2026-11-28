@@ -25,27 +25,17 @@ const BODY =
   'C20 90 10 74 10 54 C10 26 30 5 60 5 Z'
 
 /**
- * A chubby mint ghost in the style of the thumbnail: bell body, three-lobed hem, two big black oval
- * eyes, two small rounded hands. Pure decoration: hidden from assistive technology, never focusable,
- * never takes the pointer.
+ * The drawing itself, in the 120 x 120 art box and unturned: gradients, body, eyes and hands. `Ghost`
+ * wraps it in an `svg` of its own; the painting ghosts put it in a cropped `svg` of theirs (see
+ * `PaintingGhost`), so there is one drawing of the ghost.
  */
-export function Ghost({ size, edge, mood = 'looking', upright = false }: GhostProps): ReactElement {
+export function GhostArt({ mood = 'looking' }: { mood?: GhostMood }): ReactElement {
   const id = useId()
   const bodyId = `${id}-body`
   const shadeId = `${id}-shade`
   const eyes = EYES[mood]
-  const turn = artTurn(edge, upright)
   return (
-    <svg
-      className="ghost"
-      data-mood={mood}
-      width={size}
-      height={size}
-      viewBox="0 0 120 120"
-      aria-hidden="true"
-      focusable="false"
-      style={{ transform: `rotate(${turn}deg)` }}
-    >
+    <>
       <defs>
         {/* Mint, lighter at the top left. */}
         <linearGradient id={bodyId} x1="0.15" y1="0" x2="0.65" y2="1">
@@ -67,6 +57,29 @@ export function Ghost({ size, edge, mood = 'looking', upright = false }: GhostPr
         <ellipse cx="106" cy="82" rx="9" ry="7.5" />
         <path d="M9 77 v-2 M14 75 v-2 M19 77 v-2 M101 77 v-2 M106 75 v-2 M111 77 v-2" fill="none" />
       </g>
+    </>
+  )
+}
+
+/**
+ * A chubby mint ghost in the style of the thumbnail: bell body, three-lobed hem, two big black oval
+ * eyes, two small rounded hands. Pure decoration: hidden from assistive technology, never focusable,
+ * never takes the pointer.
+ */
+export function Ghost({ size, edge, mood = 'looking', upright = false }: GhostProps): ReactElement {
+  const turn = artTurn(edge, upright)
+  return (
+    <svg
+      className="ghost"
+      data-mood={mood}
+      width={size}
+      height={size}
+      viewBox="0 0 120 120"
+      aria-hidden="true"
+      focusable="false"
+      style={{ transform: `rotate(${turn}deg)` }}
+    >
+      <GhostArt mood={mood} />
     </svg>
   )
 }

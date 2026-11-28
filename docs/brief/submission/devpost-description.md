@@ -60,7 +60,7 @@ In a real Kiro CLI session, Kiro was asked to add a quantity field to a checkout
 - The app passes its own audit, and the test suite proves it.
 - Kiro catching and fixing its own inaccessible button through the ghost gate, in a real session.
 - Night Shift catching, fixing and checking a planted regression in an unattended run, with no human approving anything along the way.
-- **Test counts:** core 649 unit + 109 browser, MCP 184 unit + 35 integration, web 580 unit + 118 end-to-end + 18 replay.
+- **Test counts:** core 649 unit + 109 browser, MCP 184 unit + 35 integration, web 620 unit + 132 end-to-end + 19 replay.
 
 ## What we learned
 - Specs plus independent review beat vibe coding for anything with correctness rules. Vibe mode was fast for the haunted demo shop, but it needed three fix runs and a golden file.

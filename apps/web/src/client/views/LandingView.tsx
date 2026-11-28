@@ -3,8 +3,12 @@ import type { FormEvent, ReactElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 import heroManor from '../assets/manor/hero-manor.webp'
 import heroManorSmall from '../assets/manor/hero-manor-768.webp'
+import { PaintingGhost } from '../components/PaintingGhost'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useFocusMain } from '../hooks/useFocusMain'
+
+/** Drawn over the bottom of the hero painting: the ghost in the painting keeps clear of both. */
+const HERO_OVERLAPS: readonly string[] = ['.hero-plaque', '.landing-candle']
 import { INVALID_URL_MESSAGE, parseAuditUrl, submitAudit } from '../utils/audit-api'
 import { rememberJobUrl } from '../utils/job-urls'
 import { SCORE_EXPLANATION, scoreBandLabel, scoreOutOf } from '../utils/score-band'
@@ -188,6 +192,8 @@ export function LandingView(): ReactElement {
             alt=""
             fetchPriority="high"
           />
+          {/* The plaque and the candle are drawn over the bottom of the painting: the ghost keeps clear of them. */}
+          <PaintingGhost avoid={HERO_OVERLAPS} />
         </div>
         <div className="hero-plaque">
           <Candle />

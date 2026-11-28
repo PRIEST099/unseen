@@ -10,6 +10,8 @@ type PeekingGhostProps = {
   hidden: boolean
   /** Bobs slowly and slides. Off under reduced motion. */
   animated: boolean
+  /** Bobs in place, forever. Off on the audit views, which settle (the slides are finite and stay). Default: `animated`. */
+  bob?: boolean
   /** Starts in its peeking spot. Otherwise it starts hidden and slides in on the next frames. */
   instant: boolean
   /** Offsets the bob so the ghosts do not move in step. */
@@ -23,7 +25,7 @@ type PeekingGhostProps = {
  * The parent keys this component on the ghost's spot, so a ghost that moves is a NEW node: it mounts
  * already hidden (no transition from the old spot), then slides in once it has been painted.
  */
-export function PeekingGhost({ spot, placement, hidden, animated, instant, index }: PeekingGhostProps): ReactElement {
+export function PeekingGhost({ spot, placement, hidden, animated, bob = animated, instant, index }: PeekingGhostProps): ReactElement {
   const [entered, setEntered] = useState<boolean>(instant || !animated)
   useEffect(() => {
     if (entered) return undefined
@@ -56,7 +58,7 @@ export function PeekingGhost({ spot, placement, hidden, animated, instant, index
         data-startled={hidden}
         style={{ transform: `translate3d(${shift.x}px, ${shift.y}px, 0)` }}
       >
-        <div className="margin-ghost-bob" data-animated={animated} style={{ animationDelay: `${-index * 1.3}s` }}>
+        <div className="margin-ghost-bob" data-animated={bob} style={{ animationDelay: `${-index * 1.3}s` }}>
           <Ghost size={placement.size} edge={artEdge(spot)} upright={artUpright(spot, placement)} mood={hidden ? 'startled' : 'looking'} />
         </div>
       </div>

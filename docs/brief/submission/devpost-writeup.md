@@ -35,7 +35,7 @@ Accessibility checkers have existed for years, and most of the web still fails t
   - Further hooks run a typecheck on save, verify the shop on save, check spec → types drift, and gate on tests at Stop.
 - **A golden haunted shop:** "Hollow & Vine" has 30 golden counts (10 haunting types on 3 pages, 97 hauntings in all), checked by a verifier.
 - **Property-based tests (fast-check)** cover contrast maths, classifier precedence, SSRF address ranges and score monotonicity.
-- **Tests:** core 649 unit + 109 browser, MCP 184 unit + 35 integration, web 580 unit + 118 end-to-end + 18 replay.
+- **Tests:** core 649 unit + 109 browser, MCP 184 unit + 35 integration, web 620 unit + 132 end-to-end + 19 replay.
 
 **Honest notes.**
 - We set the direction and made the key decisions: what to build, what to cut, the exceptions below, the visual direction and Night Shift's auto-approval. Kiro wrote the product, from steering, specs and hooks it also wrote. Claude Code was our planning and verification assistant: at our direction it drafted the product brief and each instruction to Kiro, ran the spec and code reviews, and re-ran every test itself instead of trusting Kiro's summary.

@@ -5,6 +5,7 @@ import type { ChangeEvent, ReactElement } from 'react'
 import { LostSoulGlass, OverlayDefs } from '../components/HauntingOverlay'
 import { LensNav } from '../components/LensNav'
 import { ScreenshotStage } from '../components/ScreenshotStage'
+import { useHoldGhostsStill } from '../contexts/GhostsContext'
 import { useReducedMotion } from '../contexts/ReducedMotionContext'
 import { useKeyboardWalkPlayback } from '../hooks/useKeyboardWalkPlayback'
 import type { AuditSource } from '../utils/audit-source'
@@ -91,6 +92,8 @@ export function KeyboardWalk({ source, audit, hostname, basePath }: KeyboardWalk
   const souls = useMemo(() => soulsOf(audit), [audit])
   const plan = useMemo(() => planSoulReveals(model.frames, boxes, audit.hauntings, model.trap !== null), [model, boxes, audit])
   const playback = useKeyboardWalkPlayback(model.frames.length, speed)
+  // A moving painting ghost could be mistaken for the walk's Tab ghost: it holds still while this plays.
+  useHoldGhostsStill(playback.playing)
 
   const focusRef = useRef<SVGGElement>(null)
   const engaged = useRef(false)

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 
-/** The page clock never runs past this while axe runs: well under the intro's 900 ms minimum. */
+/** The page clock never runs past this while axe runs: well under the intro's 3.2 s minimum. */
 const AXE_CLOCK_BUDGET_MS = 600
 const CLOCK_STEP_MS = 1
 const REAL_WAIT_MS = 10
@@ -9,8 +9,16 @@ const REAL_WAIT_MS = 10
 type AxeResults = Awaited<ReturnType<AxeBuilder['analyze']>>
 
 /**
+ * The intro is skipped in an automated browser (`navigator.webdriver`) unless `sessionStorage["unseen.intro-force"]`
+ * is "1". Every spec that tests the intro sets it in an init script (the flag is per tab, and a reload keeps it).
+ */
+export async function forceIntro(page: Page): Promise<void> {
+  await page.addInitScript(() => window.sessionStorage.setItem('unseen.intro-force', '1'))
+}
+
+/**
  * Pauses the page clock before the page loads. `clock.install()` alone keeps time running, so the
- * intro's 900 ms and 1.8 s timers would still fire; paused, no timer fires until the test moves the
+ * intro's timers would still fire; paused, no timer fires until the test moves the
  * clock (`runFor`, `resume`).
  */
 export async function pauseClock(page: Page): Promise<void> {

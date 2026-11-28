@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import type { ReactElement } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import seanceTable from '../assets/manor/seance-table.webp'
+import { PaintingGhost } from '../components/PaintingGhost'
 import { SessionEnded } from '../components/SessionEnded'
 import { useAnnouncer } from '../contexts/AnnouncerContext'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -100,6 +101,7 @@ export function SeanceView(): ReactElement {
         <div className="painting seance-painting">
           {/* Decorative: the séance table. Every word of the séance is in the panel beside it. */}
           <img src={seanceTable} width={1200} height={800} alt="" />
+          <PaintingGhost />
         </div>
         <div>
           <h1>The séance</h1>
