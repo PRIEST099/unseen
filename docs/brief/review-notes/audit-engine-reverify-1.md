@@ -1,4 +1,4 @@
-# Product-lead re-verification of run 19 (findings 1–24)
+# Claude Code re-verification of run 19 (findings 1–24)
 
 Date: 2026-11-24. Method: 4 adversarial verifiers re-ran each finding's original reproduction against Kiro's run-19 code in real Chromium, and mutation-tested Kiro's regression tests (reverting the fix in a temp copy to confirm the test fails).
 

@@ -1,6 +1,6 @@
 # New-idea research (2026-11-25)
 
-The user asked for a new Kiroween 2026 idea with no competitors and a real chance to win, because THE UNSEEN's niche (haunted accessibility) is crowded.
+We asked for a check on whether a different Kiroween 2026 idea would beat THE UNSEEN, because its niche (haunted accessibility) is crowded. **None of the ideas below was adopted: we chose to keep THE UNSEEN.**
 
 Method:
 - **First workflow, 12 agents:**

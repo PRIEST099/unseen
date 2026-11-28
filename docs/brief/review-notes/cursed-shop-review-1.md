@@ -1,6 +1,6 @@
 ﻿# Cursed Shop review 1 (independent, Claude Code reviewers)
 
-> Evidence paths below of the form `<scratch>/...` were on the product lead's machine and are not committed. The reusable probe scripts are in [`probes/`](probes/README.md).
+> Evidence paths below of the form `<scratch>/...` were on the local build machine and are not committed. The reusable probe scripts are in [`probes/`](probes/README.md).
 
 Three read-only reviewers (visual, hauntings, keyboard) tested Kiro's vibe-coded shop in real Chromium on 2026-11-20.
 

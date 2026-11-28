@@ -1,4 +1,4 @@
-# Product-lead consistency check: haunting-classifier spec after run 20
+# Claude Code consistency check: haunting-classifier spec after run 20
 
 Date: 2026-11-24. Method: 2 finders (design.md, and tasks.md plus REVIEW_RESOLUTION.md) and a skeptical verifier. Each item quotes the stale text and gives the corrected text. Precedence of truth: hauntings.md, then the prompt 20 decisions, then requirements.md. **80 confirmed contradictions.**
 

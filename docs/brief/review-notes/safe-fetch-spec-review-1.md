@@ -1,4 +1,4 @@
-# Product-lead review: safe-fetch spec (before implementation)
+# Claude Code review: safe-fetch spec (before implementation)
 
 Date: 2026-11-24. Method: 2 reviewers (attacker view / SSRF completeness, and engineering feasibility with Playwright and Chromium), each followed by a skeptical verifier. Several findings were checked against Playwright 1.65.1 source and Node 24. **30 confirmed findings**; 3 rejected.
 

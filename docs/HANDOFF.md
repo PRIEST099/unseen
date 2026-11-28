@@ -1,12 +1,12 @@
 # Handoff: continuing THE UNSEEN with your own Kiro
 
-This guide is for a teammate's Claude Code session that continues the build using the teammate's own Kiro account and credits.
+This guide is for a teammate who continues the build with their own Kiro account and credits, using Claude Code as a planning and verification assistant.
 
 ## 1. What this project is
 **THE UNSEEN** is a haunted web-accessibility auditor for Kiroween 2026. The deadline is **Fri 4 Dec 2026, 2:00 PM PT**. You paste a URL and see the site the way a screen-reader or keyboard user experiences it. Each WCAG 2.2 failure becomes a "haunting": Nameless Spirit, The Fog, Cursed Loop and so on.
 
 Read, in this order:
-1. `CLAUDE.md`: the division of labour. **Claude directs and verifies; Kiro writes all code.**
+1. `CLAUDE.md`: the division of labour. **The team directs; Claude Code drafts the instructions to Kiro and verifies the results; Kiro writes the code, except the labelled exceptions in the table below.**
 2. `docs/brief/PRODUCT_BRIEF.md`: the vision, demo script and prize strategy.
 3. `docs/brief/prompts/README.md`: the run queue, with model, rough credit cost and review gate for each run.
 4. `docs/brief/KIRO_SESSION_LOG.md`: what every past run did, including failures.

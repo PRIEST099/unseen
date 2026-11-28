@@ -1,4 +1,4 @@
-# Product-lead check: classifier on fresh, unseen pages (anti-overfitting)
+# Claude Code check: classifier on fresh, unseen pages (anti-overfitting)
 
 Date: 2026-11-24. Method: 3 probes in real Chromium:
 - per-type fresh pages with near-miss controls

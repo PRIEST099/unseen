@@ -1,4 +1,4 @@
-# Product-lead review: spirit-sight-ui spec (before the build)
+# Claude Code review: spirit-sight-ui spec (before the build)
 
 Date: 2026-11-24. Method: 3 reviewers (UX and demo, the app's own accessibility, engineering feasibility), each followed by a skeptical verifier. **52 confirmed findings**; 11 rejected.
 

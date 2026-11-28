@@ -1,6 +1,6 @@
 ﻿# Cursed Shop re-verification (after Kiro fix pass 1)
 
-> Evidence paths below of the form `<scratch>/...` were on the product lead's machine and are not committed. The reusable probe scripts are in [`probes/`](probes/README.md).
+> Evidence paths below of the form `<scratch>/...` were on the local build machine and are not committed. The reusable probe scripts are in [`probes/`](probes/README.md).
 
 **Haunting verifier:** demo_ready=False
 

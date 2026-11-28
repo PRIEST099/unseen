@@ -1,6 +1,6 @@
-# Product-lead probes
+# Verification probes
 
-These are independent verification scripts that Claude Code (product lead) used to check Kiro's Cursed Shop. They are **not** product code. Use them to verify Kiro's work; do not trust Kiro's own summary.
+These are independent verification scripts, written and run by Claude Code at our direction, to check Kiro's Cursed Shop. They are **not** product code. Use them to verify Kiro's work; do not trust Kiro's own summary.
 
 Run from the repo root after `npm install`. Outputs (JSON, screenshots) go to `$PROBE_OUT`, or `<os tmp>/unseen-probes` by default. Chromium launches with `UNSEEN_CHROMIUM_CHANNEL`, defaulting to `chromium`; set it to an empty string to use the bundled headless shell.
 

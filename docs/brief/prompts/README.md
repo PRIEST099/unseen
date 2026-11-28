@@ -1,6 +1,8 @@
 # Kiro run queue
 
-Claude Code (product lead) sends these to Kiro CLI headless, in order, and reviews each result before sending the next. Kiro writes all the code; Claude Code writes only these instructions and the review notes. Every run is logged in `../KIRO_SESSION_LOG.md`.
+Claude Code drafted these instructions at our direction and ran each one through Kiro CLI headless, in order, checking each result before sending the next. Kiro writes the code, except the labelled exceptions in rows 10 and 11 and those logged in `../KIRO_SESSION_LOG.md`, where every run is recorded.
+
+**A note on wording:** the prompt files call Claude Code "the product lead", its working title for this planning and verification seat. They are kept exactly as Kiro received them.
 
 Command pattern (prompt piped on stdin):
 ```
@@ -21,15 +23,15 @@ kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_w
 | 11 | Audit engine 9–16 | **Written by Claude Code, no Kiro credits** (#3); 62 unit + 20 integration tests |
 
 ## Queue (once credits arrive)
-| # | Prompt | Mode / model | Rough credits | Product-lead check before the next run |
+| # | Prompt | Mode / model | Rough credits | Review check before the next run |
 |---|---|---|---|---|
 | 09 | `09-cursed-shop-finish.md` | vibe, auto | 15–30 | Run `review-notes/probes/` (Tab walk, axe, CDP); counts must match the golden file (stale until this run) |
-| 10 | `10-impl-audit-engine-5-8.md` | auto | 25–45 | Step 0 steering/config sync landed; run the tests myself; read `browser.ts` |
+| 10 | `10-impl-audit-engine-5-8.md` | auto | 25–45 | Step 0 steering/config sync landed; run the tests independently; read `browser.ts` |
 | 11 | `11-impl-audit-engine-9-16.md` | auto | 40–80 | Full test suite; the `RawAudit` of each shop page looks right |
 | 12 | `12-spec-haunting-classifier.md` | spec, claude-sonnet-4.5 | 20–30 | The spec is consistent with `hauntings.md`; the precedence is sensible |
 | 12b | "Implement all tasks of `.kiro/specs/haunting-classifier/tasks.md`" | auto | 40–80 | Golden test passes; PBTs ≥ 100 runs |
 | 13 | `13-spec-safe-fetch.md` | spec, claude-sonnet-4.5 | 15–25 | Every review defect is covered |
-| 13b | "Implement all tasks of `.kiro/specs/safe-fetch/tasks.md`" | claude-sonnet-4.5 | 30–60 | Re-run my SSRF probes, including `[::1]`, mapped IPv6, an AAAA-only host and a redirect to loopback |
+| 13b | "Implement all tasks of `.kiro/specs/safe-fetch/tasks.md`" | claude-sonnet-4.5 | 30–60 | Re-run the SSRF probes, including `[::1]`, mapped IPv6, an AAAA-only host and a redirect to loopback |
 | 14 | `14-spec-spirit-sight-ui.md` | spec, auto | 20–35 | The UX matches brief §5; AA requirements are present |
 | 14b | Implement spirit-sight-ui (split into 2–3 runs by task range) | auto | 120–250 | Demo slice on a sample; the self-audit is clean; keyboard-only pass; screen-reader spot check |
 | 15 | `15-spec-unseen-mcp-and-power.md` | spec, auto | 15–25 | Power format and hooks |

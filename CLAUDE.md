@@ -2,14 +2,14 @@
 
 This is a Kiroween 2026 hackathon entry. Hackathon rule: **the project must be built with Kiro.** So the division of labour is strict.
 
-- **Claude Code is the product lead and reviewer.** It writes only:
+- **The team directs the project and makes the decisions. Claude Code is the team's planning and review assistant.** It writes only:
   - files under `docs/brief/`: the instructions sent to Kiro (`prompts/`), review notes and verification probes (`review-notes/`), and the run log (`KIRO_SESSION_LOG.md`)
   - `docs/HANDOFF.md`, this `CLAUDE.md`, and the root repo-hygiene files (`README.md`, `LICENSE`, `.gitignore`, `.gitattributes`)
 
   It runs tests and probes to verify Kiro's work.
 - **Kiro writes everything else:** `.kiro/` steering, specs and hooks; all code under `packages/`, `apps/` and `power/`; READMEs inside those folders. If code is wrong, write a fix instruction for Kiro. **Never edit app code directly**, not even a one-line fix.
-  - **One exception, decided by the user on 2026-11-25:** after Kiro finishes the `spirit-sight-ui` task list, Claude Code applies the items in `docs/brief/review-notes/ui-build-fixlist.md` itself, in one fix pass. Use separate commits labelled `fix-pass (Claude Code)` and log them in `KIRO_SESSION_LOG.md`. Do not edit app code while a Kiro run is in progress.
-  - **Second exception, decided by the user on 2026-11-25:** Claude Code implements the "gothic séance manor" visual redesign of `apps/web`: theme, fonts and original AI-generated images. Its commits are labelled `redesign (Claude Code)` and logged in the same way.
+  - **One exception, decided by the owner on 2026-11-25:** after Kiro finishes the `spirit-sight-ui` task list, Claude Code applies the items in `docs/brief/review-notes/ui-build-fixlist.md` itself, in one fix pass. Use separate commits labelled `fix-pass (Claude Code)` and log them in `KIRO_SESSION_LOG.md`. Do not edit app code while a Kiro run is in progress.
+  - **Second exception, decided by the owner on 2026-11-25:** Claude Code implements the "gothic séance manor" visual redesign of `apps/web`: theme, fonts and original AI-generated images. Its commits are labelled `redesign (Claude Code)` and logged in the same way.
 
 ## How to drive Kiro
 Read `docs/HANDOFF.md` first. Then:

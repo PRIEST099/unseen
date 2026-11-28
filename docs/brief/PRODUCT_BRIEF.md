@@ -1,6 +1,6 @@
 # THE UNSEEN: Product Brief
 
-> **Provenance:** Claude Code wrote this brief as the product lead. It is the *input* to Kiro: Kiro turns it into steering docs, specs, tasks and code. Claude Code does not write application code in this repo. Every instruction sent to Kiro is logged in `docs/brief/KIRO_SESSION_LOG.md`.
+> **Provenance:** Claude Code drafted this brief at our direction, as our planning assistant (the prompts call that role "the product lead"). It is the *input* to Kiro: Kiro turns it into steering docs, specs, tasks and code. Claude Code does not write application code in this repo, except the labelled exceptions in the log. Every instruction sent to Kiro is logged in `docs/brief/KIRO_SESSION_LOG.md`.
 
 ---
 
@@ -144,7 +144,7 @@ Use Kiro the way judges want to see it, **for real**, not bolted on:
   - Pre-commit-style test hook.
 - **MCP:** Playwright MCP during development; **unseen-mcp** shipped as a product and as a Power.
 - **Custom agent:** a read-only `medium` auditor agent for CI.
-- **Kiro CLI headless:** used by the product lead (Claude Code) to direct Kiro. This is documented honestly in the write-up as an experiment in agent-to-agent development.
+- **Kiro CLI headless:** Claude Code drafted each instruction and ran it through Kiro CLI at our direction. Every run is logged in `KIRO_SESSION_LOG.md`.
 - **Kiro Crew (stretch):** Night Shift, a separate repo, for the Best Kiro Crew App bonus.
 
 ## 11. Milestones (deadline Fri 4 Dec 2026, 2:00 PM PT)

@@ -1,4 +1,4 @@
-# Product-lead final consistency check: spirit-sight-ui spec (before the build)
+# Claude Code final consistency check: spirit-sight-ui spec (before the build)
 
 Date: 2026-11-24. Method: 3 finders (design.md first half, design.md second half, tasks.md executability) and a skeptical verifier. **63 confirmed items.** The main cause: amendments were **appended** next to stale sections instead of replacing them, so design.md (about 135 KB) contains both versions.
 

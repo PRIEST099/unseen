@@ -1,4 +1,4 @@
-# Product-lead review: audit-engine tasks 5–16 (Claude-written code, before Kiro adoption)
+# Claude Code review: audit-engine tasks 5–16 (Claude-written code, before Kiro adoption)
 
 Date: 2026-11-24. Method: Claude Code review workflow with 4 area reviewers (tab-walker, collectors, audit lifecycle, test quality). Each finding was re-checked by an independent skeptic. **47 confirmed findings**; 0 rejected as not real or not spec-required. Most were reproduced with probe pages in real Chromium.
 

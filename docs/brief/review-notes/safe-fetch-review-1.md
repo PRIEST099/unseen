@@ -1,4 +1,4 @@
-# Product-lead review: `packages/core/src/runner/safe-fetch.ts` (audit-engine task 3)
+# Claude Code review: `packages/core/src/runner/safe-fetch.ts` (audit-engine task 3)
 
 Claude Code probed Kiro's first SSRF guard on 2026-11-19. Use these findings as input for the `safe-fetch` spec.
 

@@ -1,4 +1,4 @@
-# Product-lead review: haunting-classifier spec (before implementation)
+# Claude Code review: haunting-classifier spec (before implementation)
 
 Date: 2026-11-24. Method: a Claude Code review workflow with 3 reviewers (steering fidelity, RawAudit feasibility, golden file and tasks), each followed by a skeptical verifier. **49 confirmed findings**; 3 rejected.
 
