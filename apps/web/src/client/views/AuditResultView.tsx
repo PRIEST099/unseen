@@ -3,6 +3,7 @@ import type { ReactElement } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { DaylightReport } from '../components/DaylightReport'
 import { LensBanner } from '../components/LensBanner'
+import { AllowGhosts } from '../contexts/GhostsContext'
 import { SessionEnded } from '../components/SessionEnded'
 import { SpiritSightView } from '../components/SpiritSightView'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -69,11 +70,14 @@ type StateMessageProps = {
   message: string
   /** Replaces the plain "Back to home" link, e.g. with the "Audit again" actions of an expired job. */
   actions?: ReactElement
+  /** A "not found" state: the margin ghosts may show here. */
+  notFound?: boolean
 }
 
-function StateMessage({ heading, message, actions }: StateMessageProps): ReactElement {
+function StateMessage({ heading, message, actions, notFound = false }: StateMessageProps): ReactElement {
   return (
     <main id="main" tabIndex={-1} className="view">
+      {notFound ? <AllowGhosts /> : null}
       <h1>{heading}</h1>
       <p>{message}</p>
       {actions ?? <Link to="/">Back to home</Link>}
@@ -124,6 +128,7 @@ export function AuditResultView({ source: kind }: AuditResultViewProps): ReactEl
       <StateMessage
         heading={notFoundHeading}
         message={message}
+        notFound
         actions={kind === 'job' ? <SessionEnded jobId={id} /> : undefined}
       />
     )

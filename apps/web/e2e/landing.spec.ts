@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test.describe('Landing view', () => {
   test('shows the title and tagline, tabs in order, and opens a sample', async ({ page }) => {
@@ -26,6 +26,8 @@ test.describe('Landing view', () => {
 
     await page.keyboard.press('Tab')
     await expect(page.getByRole('button', { name: 'Toggle sound' })).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('button', { name: 'Hide ghosts' })).toBeFocused()
     await page.keyboard.press('Tab')
     await expect(page.getByRole('button', { name: 'Keyboard help' })).toBeFocused()
     await page.keyboard.press('Tab')

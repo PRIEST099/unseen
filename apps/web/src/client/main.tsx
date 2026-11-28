@@ -13,12 +13,14 @@ import './styles/daylight.css'
 import './styles/whisper-walk.css'
 import './styles/keyboard-walk.css'
 import './styles/manor.css'
+import './styles/ghosts.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { App } from './App'
 import { ReducedMotionProvider } from './contexts/ReducedMotionContext'
+import { GhostsProvider } from './contexts/GhostsContext'
 import { SoundProvider } from './contexts/SoundContext'
 import { replayConfig } from './utils/replay-config'
 
@@ -30,7 +32,9 @@ if (container !== null) {
       <BrowserRouter basename={replayConfig.basePath === '/' ? undefined : replayConfig.basePath.replace(/\/$/, '')}>
         <ReducedMotionProvider>
           <SoundProvider>
-            <App />
+            <GhostsProvider>
+              <App />
+            </GhostsProvider>
           </SoundProvider>
         </ReducedMotionProvider>
       </BrowserRouter>

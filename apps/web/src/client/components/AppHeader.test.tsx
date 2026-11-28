@@ -3,7 +3,8 @@ import type { ReactElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { Root } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { GhostsProvider, HIDE_GHOSTS_KEY } from '../contexts/GhostsContext'
 import { SoundProvider, useSound } from '../contexts/SoundContext'
 import { AppHeader } from './AppHeader'
 
@@ -83,5 +84,74 @@ describe('AppHeader sound toggle', () => {
     expect(probe()?.dataset.ambient).toBe('false')
     // Never persisted (requirement 20.7).
     expect(window.localStorage.length).toBe(before)
+  })
+})
+
+describe('AppHeader "Hide ghosts" toggle', () => {
+  function renderWithGhosts(): void {
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={['/']}>
+          <SoundProvider>
+            <GhostsProvider>
+              <AppHeader />
+            </GhostsProvider>
+          </SoundProvider>
+        </MemoryRouter>,
+      )
+    })
+  }
+  const ghostToggle = (): HTMLButtonElement | null => container.querySelector('button[aria-label="Hide ghosts"]')
+
+  beforeEach(() => window.localStorage.clear())
+  afterEach(() => vi.restoreAllMocks())
+
+  it('sits next to the sound toggle, styled like it, named "Hide ghosts" and not pressed by default', () => {
+    renderWithGhosts()
+    const toggle = ghostToggle()
+    expect(toggle?.getAttribute('aria-pressed')).toBe('false')
+    expect(toggle?.className).toBe(soundToggle()?.className)
+    expect(soundToggle()?.nextElementSibling).toBe(toggle)
+    // The icon is decoration: the name comes from aria-label alone.
+    expect(toggle?.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true')
+    expect(toggle?.textContent).toBe('')
+  })
+
+  it('flips its state and remembers it in localStorage', () => {
+    renderWithGhosts()
+    act(() => ghostToggle()?.click())
+    expect(ghostToggle()?.getAttribute('aria-pressed')).toBe('true')
+    expect(window.localStorage.getItem(HIDE_GHOSTS_KEY)).toBe('1')
+    act(() => ghostToggle()?.click())
+    expect(ghostToggle()?.getAttribute('aria-pressed')).toBe('false')
+    expect(window.localStorage.getItem(HIDE_GHOSTS_KEY)).toBe('0')
+  })
+
+  it('starts pressed when the choice was stored, also after a fresh mount', () => {
+    renderWithGhosts()
+    act(() => ghostToggle()?.click())
+    act(() => root.unmount())
+    root = createRoot(container)
+    renderWithGhosts()
+    expect(ghostToggle()?.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('does not touch the sound toggle', () => {
+    renderWithGhosts()
+    act(() => ghostToggle()?.click())
+    expect(soundToggle()?.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('works when localStorage is blocked: the choice lasts for the page only', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    renderWithGhosts()
+    expect(ghostToggle()?.getAttribute('aria-pressed')).toBe('false')
+    act(() => ghostToggle()?.click())
+    expect(ghostToggle()?.getAttribute('aria-pressed')).toBe('true')
   })
 })

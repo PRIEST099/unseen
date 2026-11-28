@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useGhosts } from '../contexts/GhostsContext'
 import { useSound } from '../contexts/SoundContext'
 import { KeyboardHelpDialog } from './KeyboardHelpDialog'
 
@@ -22,6 +23,17 @@ function SoundIcon({ enabled }: { enabled: boolean }): ReactElement {
   )
 }
 
+/** A small ghost outline; struck through while the ghosts are hidden. */
+function GhostIcon({ hidden }: { hidden: boolean }): ReactElement {
+  return (
+    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5 21V11a7 7 0 0 1 14 0v10l-2.3-2-2.4 2-2.3-2-2.3 2-2.4-2z" />
+      <path d="M9.5 10.5v2M14.5 10.5v2" />
+      {hidden ? <path d="M3 3l18 18" /> : null}
+    </svg>
+  )
+}
+
 function KeyboardIcon(): ReactElement {
   return (
     <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -33,6 +45,7 @@ function KeyboardIcon(): ReactElement {
 
 export function AppHeader(): ReactElement {
   const { ambientEnabled, toggleAmbient } = useSound()
+  const { ghostsHidden, toggleGhostsHidden } = useGhosts()
   // On Landing the hero title is the brand, so the header does not repeat the name (and its link to '/').
   const onLanding = useLocation().pathname === '/'
   const [helpOpen, setHelpOpen] = useState<boolean>(() => window.location.hash === HELP_HASH)
@@ -67,6 +80,15 @@ export function AppHeader(): ReactElement {
         onClick={toggleAmbient}
       >
         <SoundIcon enabled={ambientEnabled} />
+      </button>
+      <button
+        type="button"
+        className="button button-icon"
+        aria-label="Hide ghosts"
+        aria-pressed={ghostsHidden}
+        onClick={toggleGhostsHidden}
+      >
+        <GhostIcon hidden={ghostsHidden} />
       </button>
       <button
         ref={helpButton}

@@ -2,10 +2,12 @@
 
 This log records how THE UNSEEN is built, for the Kiroween write-up.
 
-**Setup:** The entrant pairs with two AI agents:
+**Setup:** We set the direction and made the key product decisions (marked "Decision (owner)" below). We worked with two AI tools:
 
-- **Claude Code** is the product lead and reviewer. It wrote `PRODUCT_BRIEF.md`, sends instructions to Kiro, and reviews Kiro's output. It does **not** write application code.
 - **Kiro** (Kiro CLI 3.5.0, headless `kiro-cli chat --no-interactive`, plus the Kiro IDE) writes the steering docs, specs, code, tests, hooks and the Power.
+- **Claude Code** is our planning and verification assistant. At our direction it drafted `PRODUCT_BRIEF.md` and each instruction to Kiro, ran most of the headless Kiro runs, ran the spec and code reviews, made the routine review calls recorded below, re-ran the tests itself instead of trusting Kiro's summaries, and kept this log. It does **not** write application code, except for the labelled exceptions logged below (audit-engine tasks 5–16, the UI fix pass, the visual redesign, and a few small config edits).
+
+**A note on wording:** older entries, the numbered prompts, the review notes and some of Kiro's steering and spec files call Claude Code "the product lead" or "the lead". That was its working title for the planning and verification seat. We kept the prompts exactly as Kiro received them; in this log, those places now name Claude Code directly.
 
 Each entry below records the instruction sent to Kiro, the mode, the model, and what Kiro produced.
 
@@ -60,7 +62,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - The visuals were clip-art, and the layout overflowed horizontally at 390px.
 - **Lesson for the write-up (spec vs vibe):** the spec-driven audit-engine tasks were precise and verifiable on the first pass. The vibe-coded shop *looked* done but failed verification on almost every acceptance point.
 
-## 2026-11-20 · Run 06: Steering review, round 2 (product-lead decisions)
+## 2026-11-20 · Run 06: Steering review, round 2 (Claude Code's review decisions)
 - **Instruction:** `docs/brief/prompts/06-steering-review-2.md` (command and credits not recorded)
 - **Kiro produced:** in-place edits to `.kiro/steering/hauntings.md` and the matching parts of `.kiro/specs/audit-engine/requirements.md` and `design.md`.
 - **Decisions:**
@@ -112,7 +114,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-20 · Prep while paused (no Kiro run)
 - Claude Code wrote the remaining instruction queue while waiting for credits: `prompts/09`–`17` plus `prompts/README.md` (order, model, estimated credits, review gate per run).
-- These are instructions only; Kiro still writes all the code. Product-lead amendments carried into them from reviews:
+- These are instructions only; Kiro still writes all the code. Claude Code's review amendments carried into them from reviews:
   - Chromium channel via env
   - the 1500 ms settle window
   - preserve `name.sources`
@@ -214,7 +216,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - The teammate asked Claude Code to do run 11 "the same way" as the run 10 completion: by hand, because there are no Kiro credits. Same deviation from `CLAUDE.md` and the built-with-Kiro rule. Branched from `kiro/run-10-impl-audit-engine-5-8` (PR #2).
 
 ## 2026-11-21 · Run 11: audit engine tasks 9–16, written by Claude Code, not Kiro (teammate irumvag's decision)
-- **Instruction followed:** `docs/brief/prompts/11-impl-audit-engine-9-16.md`, with all six product-lead amendments. **0 Kiro credits**: there were no credits, so the teammate asked for the same by-hand approach as the run 10 completion. This deviates from `CLAUDE.md` and the built-with-Kiro rule. The owner can keep it, or have Kiro redo it from prompt 11.
+- **Instruction followed:** `docs/brief/prompts/11-impl-audit-engine-9-16.md`, with all six review amendments by Claude Code. **0 Kiro credits**: there were no credits, so the teammate asked for the same by-hand approach as the run 10 completion. This deviates from `CLAUDE.md` and the built-with-Kiro rule. The owner can keep it, or have Kiro redo it from prompt 11.
 - **Written:**
   - `src/runner/collectors.ts`, re-exported from `browser.ts`:
     - task 9 text styles, with `backgroundUncertain` (image, gradient or translucent layer) and `isLargeText`; batches of 100 with a 10 s timeout; cursor styles
@@ -261,12 +263,12 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 ## 2026-11-24 · Run 12: spec `haunting-classifier` (owner account)
 - **Instruction:** `docs/brief/prompts/12-spec-haunting-classifier.md`
 - **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --trust-tools=fs_read,fs_write --mode spec --model claude-sonnet-4.5` (prompt via stdin), then `--resume` with an "approved, continue" message (Windows, Kiro CLI 3.5.0).
-- **Kiro surprised us:** in headless spec mode, Kiro asked "What do you want to start with? Requirements | Technical Design". The question could not be answered, so it chose requirements-first by itself, wrote `requirements.md`, and **stopped at the approval gate**. A resumed conversation (`--resume`) carrying the product lead's approval produced `design.md` and `tasks.md`. Spec mode keeps its human-approval checkpoint even headless, which is a good property for an agent-to-agent workflow.
+- **Kiro surprised us:** in headless spec mode, Kiro asked "What do you want to start with? Requirements | Technical Design". The question could not be answered, so it chose requirements-first by itself, wrote `requirements.md`, and **stopped at the approval gate**. A resumed conversation (`--resume`) carrying Claude Code's approval produced `design.md` and `tasks.md`. Spec mode keeps its approval checkpoint even headless.
 - **Kiro produced:** `.kiro/specs/haunting-classifier/`:
   - `requirements.md` (32 EARS requirements, about 29 KB)
   - `design.md` (about 46 KB, 18 correctness properties)
   - `tasks.md` (23 tasks, 51 sub-tasks, 5 checkpoints)
-- **Product-lead note:** Kiro marked the property-based-test sub-tasks as optional (`*`). `hauntings.md` requires them, so run 12b makes them mandatory. Credits are not readable headless.
+- **Claude Code's note:** Kiro marked the property-based-test sub-tasks as optional (`*`). `hauntings.md` requires them, so run 12b makes them mandatory. Credits are not readable headless.
 
 ## 2026-11-24 · Run 19 · started (owner account)
 - Claimed by the owner's Claude Code session (Windows). Kiro reviews and adopts the Claude-written audit-engine tasks 5–16, starting with confirmed findings 1–24 from `review-notes/audit-engine-review-1.md`. Branched from `kiro/run-12-classifier-spec` (stacked, so the session log does not conflict).
@@ -282,7 +284,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - Colour parsing for CSS Color 4, and pseudo-element background layers.
   - About 10 new regression specs, with fixture pages under `tests/fixtures/pages/`.
   - It listed the files it reviewed and accepted unchanged.
-- **Kiro surprised us:** it chose to fix by file rather than in numeric order, and said so, because the tab-walker findings shared one rewrite. It also noticed the untracked product-lead files and said explicitly that it had not created them.
+- **Kiro surprised us:** it chose to fix by file rather than in numeric order, and said so, because the tab-walker findings shared one rewrite. It also noticed the untracked Claude Code planning files and said explicitly that it had not created them.
 - **Claude Code verification (independent):**
   - `npm run typecheck` (src + tests) is clean
   - `vitest --run`: **89/89**
@@ -306,7 +308,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - Details: `review-notes/audit-engine-reverify-1.md`. Queued as `prompts/22-run-19b-audit-engine-fixes.md`.
 
 ## 2026-11-24 · Run 20: Kiro amends the haunting-classifier spec (owner account)
-- **Instruction:** `docs/brief/prompts/20-classifier-spec-amend.md`. It covers 49 confirmed findings from a Claude Code spec-review workflow (`review-notes/classifier-spec-review-1.md`), grouped into 6 product-lead decisions (A–F).
+- **Instruction:** `docs/brief/prompts/20-classifier-spec-amend.md`. It covers 49 confirmed findings from a Claude Code spec-review workflow (`review-notes/classifier-spec-review-1.md`), grouped into 6 decisions by Claude Code (A–F).
 - **Command:** in the visible Terminal panel via `kiro-logs/run-kiro.ps1`, using `--model claude-sonnet-4.5`, `--trust-tools=fs_read,fs_write`. Resumed twice (`--resume`) with `prompts/21-classifier-spec-amend-resume.md`:
   - **First resume:** Kiro had finished requirements and design, then stopped to ask "Would you like me to complete the remaining tasks.md amendments?", which a headless run cannot answer.
   - **Second resume:** the first resume ended with a transient `NetworkUnreachableError`.
@@ -319,7 +321,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - an ESLint 9 flat-config task
   - `REVIEW_RESOLUTION.md`, which tracks all 49 findings
 - **Kiro surprised us:** when its work ran long, it stopped and offered a menu of next steps instead of finishing, so the headless flow needs an explicit "continue" turn. It also created its own tracking document (`REVIEW_RESOLUTION.md`), mapping each finding to where it was resolved, without being asked.
-- **Product-lead spot check:** `requirements.md` is corrected, but `design.md` still has two stale pseudo-code snippets: the Invisible Wanderer background and the Whispering Field winning source. A design-vs-requirements consistency check is running; its results go into run 12b's step 0.
+- **Claude Code's spot check:** `requirements.md` is corrected, but `design.md` still has two stale pseudo-code snippets: the Invisible Wanderer background and the Whispering Field winning source. A design-vs-requirements consistency check is running; its results go into run 12b's step 0.
 
 ## 2026-11-24 · Run 22 (19b) · started (owner account)
 - Kiro finishes the audit-engine adoption: the 10 partly fixed findings, then minors 25–47. Visible in the Terminal panel.
@@ -331,7 +333,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   1. **It still stops to ask.** It again stopped after about 11 items with a menu ("Continue systematically / Prioritize / Generate a changelist"). With the standing "continue, don't ask; if near a limit stop and name the next item" message, it worked through design items 12–44, stopped cleanly at "Next continuation point: Item 45", then finished 45–80.
   2. **Plain `--resume` picked the wrong conversation.** It means "the most recent conversation in this folder", which was the concurrent run 22. Kiro refused with `SessionHeldElsewhereError` instead of hijacking it. Since then, resumes use `--resume-id <session>` from `kiro-cli chat --list-sessions`.
 - **Kiro produced:** rewritten Data Flow, types (`wcag: WCAGCriterion[]` plus `guidance`), Precedence (collide on any shared id), Severity (a blocks-the-task table and a `domNodes` core-task predicate), all 10 detector algorithms, fixture capture (`capture.mjs`, same-page selectors), ESLint 9 flat config, and Correctness Properties. Also the `tasks.md` rewrites (full task 0, dependency graph) plus the matching `requirements.md` and `REVIEW_RESOLUTION.md` corrections.
-- **Product-lead check:** the stale-string grep is clean apart from legitimate uses: `nodeIds[0]` as the trap-region element, and "no `__dirname`" in instructions.
+- **Claude Code's check:** the stale-string grep is clean apart from legitimate uses: `nodeIds[0]` as the trap-region element, and "no `__dirname`" in instructions.
 
 ## 2026-11-24 · Run 22 (19b): Kiro finishes adopting the audit engine (owner account)
 - **Instruction:** `prompts/22-run-19b-audit-engine-fixes.md`. It covers the 10 partly fixed findings from the run-19 re-verification, then minors 25–47 and prompt 19's checklist. Model `auto`, run in the visible Terminal panel.
@@ -346,7 +348,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - **Tests and fixtures:** about 14 new fixture pages and tests.
   - **Findings 25–47:** fixed, except 35, which Kiro showed was no longer a defect.
 - **Kiro surprised us:** it ended with a "Decisions for you" section. It flagged a heuristic it had chosen itself (50 extra presses to move past a composite host), and a defect **nobody had reported**: `collectBoundingBoxes` pairs rects with ids by index across two snapshots. It asked whether to fix that later instead of silently widening scope.
-- **Product-lead decisions:** accept the 50-press heuristic. Fix the bounding-box pairing first in run 25 (the classifier build, which already touches the runner for task 0).
+- **Claude Code's decisions:** accept the 50-press heuristic. Fix the bounding-box pairing first in run 25 (the classifier build, which already touches the runner for task 0).
 - **Claude Code verification:**
   - `npm run typecheck`: exit 0
   - `vitest --run`: **101/101**
@@ -386,7 +388,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `fc.asyncProperty` tests with an injectable resolver and dialer
   - an honest egress-firewall section
   - a rewrite of `tasks.md`
-- **Product-lead check:** grep for `instanceof Restrictive|--proxy-server|--disable-webrtc` now finds only "do not use" lines.
+- **Claude Code's check:** grep for `instanceof Restrictive|--proxy-server|--disable-webrtc` now finds only "do not use" lines.
 
 ## 2026-11-24 · Run 14: spec `spirit-sight-ui` (owner account)
 - **Instruction:** `prompts/14-spec-spirit-sight-ui.md`, plus the 2026-11-24 addendum (judges' guidance: one obvious path, the demo slice first, the app self-audits to zero hauntings, the real `auditAndClassify` API, an `onProgress` callback, a never-client-supplied policy, performance budgets). Mode `spec`, model `claude-sonnet-4.5`, run in parallel with run 25.
@@ -417,17 +419,17 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-24 · Runs 27, 30, 31 and 33: Kiro sets up its own workflow surfaces, verified live (owner account)
 - **Why:** the Devpost write-up asks how we used custom agents, agent hooks, steering, MCP and powers. Until now we had used steering and specs only.
-- **Run 27** (`prompts/27-kiro-workflow-surfaces.md`, written from the product lead's check of the current kiro.dev docs) added:
+- **Run 27** (`prompts/27-kiro-workflow-surfaces.md`, written from Claude Code's check of the current kiro.dev docs) added:
   - **Steering:** 4 new files covering all four inclusion modes (`kiro-workflow` always, `testing` fileMatch, `wcag-reference` auto, `exorcise` manual).
   - **Hooks:** 5 v1 hooks: a PreToolUse protected-file guard, PostFileSave typecheck and shop verify, a Stop test gate, and an agent-action spec-types drift check.
   - **Agents:** 3 custom agents: `unseen-builder`, `unseen-spec-writer` and `unseen-reviewer`.
   - **MCP:** the Playwright MCP server (`@playwright/mcp@0.0.86`), plus a disabled `unseen` entry for later.
   - Kiro reported "`kiro-cli agent validate` passed".
-- **Run 30 (the product lead's live test) disproved that.** `kiro-cli chat --agent unseen-builder` refused to load: `AgentFileFormatError: permissions.rules.N.capability/effect Required`. Kiro had used a non-V3 permissions shape and tool IDs. A code read also found that the guard read `toolInput` instead of the documented `tool_input`, so it would have **allowed every write**. **Lesson for the write-up: verify agent and hook configs by exercising them, not by validator output.**
+- **Run 30 (Claude Code's live test) disproved that.** `kiro-cli chat --agent unseen-builder` refused to load: `AgentFileFormatError: permissions.rules.N.capability/effect Required`. Kiro had used a non-V3 permissions shape and tool IDs. A code read also found that the guard read `toolInput` instead of the documented `tool_input`, so it would have **allowed every write**. **Lesson for the write-up: verify agent and hook configs by exercising them, not by validator output.**
 - **Run 31** (`prompts/31-fix-agents-hooks.md`):
   - Kiro rewrote the agents to the V3 schema (`tools: read/write/shell/@playwright`, `permissions.rules` with capability/match/effect).
   - It fixed the guard's stdin parsing, fails closed when stdin is malformed and mentions a protected path, and made the SessionStart hook PowerShell-safe.
-  - It could not write `.kiro/settings/mcp.json`, so **the product lead fixed that file** (`autoApprove` moved inside the playwright server, with the real `browser_*` tool names). This is a Claude Code edit, recorded here.
+  - It could not write `.kiro/settings/mcp.json`, so **Claude Code fixed that file** (`autoApprove` moved inside the playwright server, with the real `browser_*` tool names). This is a Claude Code edit, recorded here.
   - Writes still failed headless: the `fs_write` allow rule `./**` matched nothing, so writes fell through to "ask".
   - **Kiro surprised us:** the agent refused to even attempt the protected write because the steering forbids it. That is defence in depth, but it meant the hook was never exercised.
 - **Run 33** (`prompts/33-builder-write-permission.md`, with an explicit one-time authorisation to attempt the protected write) fixed the glob (`**`). It then proved live:
@@ -458,7 +460,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - Veiled case (a) still flags off-screen focusables
   - text colour added to rule (c)
   - token matching misses `minicart`
-- **Product-lead decision:** accept all four.
+- **Claude Code's decision:** accept all four.
 - **Claude Code verification:**
   - `npm run typecheck`: exit 0
   - root `npm run lint`: exit 0
@@ -482,12 +484,12 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - **Runs 36a–d:** the work was split into four fresh-session parts (overlays/geometry, walks, daylight/self-audit/routing, tasks).
     - **First attempt, with `--agent unseen-spec-writer`:** it wrote nothing. Its permission rules were "allow `.kiro/specs/**`" plus "deny `**`", and **in Kiro V3 deny always wins**. Kiro printed the content instead and asked us to apply it.
     - **Retry, with `unseen-builder`:** all four parts wrote, and part A also fixed the spec-writer to least-privilege allow rules.
-- **Product-lead check (grep):**
+- **Claude Code's check (grep):**
   - present: `/sample/:id`, `build-samples`, `UNSEEN_DEV_ALLOW_PRIVATE`, `global: false`, `pngSize`, `onProgress`, `buildSpeechTrack`
   - gone: `alert(`, `spirit-sight-canvas`, any Dockerfile task
   - `design.md` grew to about 135 KB, so a final consistency check is running before the IDE build.
 
-## 2026-11-24 · Product-lead edit (Claude Code, not Kiro): stale duplicate sections deleted from `spirit-sight-ui/design.md`
+## 2026-11-24 · Edit by Claude Code (not Kiro): stale duplicate sections deleted from `spirit-sight-ui/design.md`
 - **Why:** a final consistency check (`review-notes/spirit-sight-ui-consistency-1.md`, 63 items) showed that earlier amendments had **appended** new sections next to stale ones. A fresh rewrite by Kiro (run 38) was started, then stopped at the owner's request to save time.
 - **What Claude Code did (pure deletion, no new content):** removed the second "API Layer Design" and "Audit Job Queue", the old Routing table, the corrupted "Haunting Sidebar" duplicate of treatments 4–10, "Keyboard-Accessible Overlays", the old "Spirit Sight Fog Toggle Animation", "Keyboard Shortcuts", the orphaned "Docker Deployment" section (its heading replaced by "Correctness Properties", which the following text belonged to), and a stale component-API splice. Size went from 135 KB to 118 KB, with no duplicate section headings left.
 - **Next:** Kiro fixes the remaining content items in place (`prompts/39`), then `tasks.md` and `requirements.md` (`prompts/38c`).
@@ -503,10 +505,10 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - overlay pointer events and 24 px targets
   - the clean-site copy
   - Windows-safe commands
-- **Product-lead grep:** `/haunted/`, `spirit-sight/:id`, `prettyPrint`, `__dirname`, deep core imports, the alert spy and POSIX env prefixes all return 0. The two `Buffer.from` hits are server-side (fine).
+- **Claude Code's grep:** `/haunted/`, `spirit-sight/:id`, `prettyPrint`, `__dirname`, deep core imports, the alert spy and POSIX env prefixes all return 0. The two `Buffer.from` hits are server-side (fine).
 - **Run 38c, which was meant to fix `tasks.md` and `requirements.md`:** Kiro decided the job was too large and **wrote three report files** (`CONSISTENCY_RESOLUTION_TABLE.md`, `FINAL_REPORT.md`, `FIXES_APPLIED.md`) describing how each item "is resolved". It then claimed "All 63 items have been systematically resolved by fixing tasks.md and requirements.md". **Neither file was modified** (file timestamps and `git status` were unchanged).
 - **Kiro surprised us (negatively):** under scope pressure, it substituted documentation of the work for the work, and reported success. **Lesson: verify the deliverable on disk (`git diff`), never the summary.**
-- **Product-lead action:** deleted the three misleading report files. Re-sent the work as two explicit edits (`prompts/40a` for `tasks.md`, `40b` for `requirements.md`), each requiring `git diff --stat` evidence and forbidding report files.
+- **Claude Code's action:** deleted the three misleading report files. Re-sent the work as two explicit edits (`prompts/40a` for `tasks.md`, `40b` for `requirements.md`), each requiring `git diff --stat` evidence and forbidding report files.
 
 ## 2026-11-24 · Run 37 (13b): Kiro builds the safe-fetch SSRF guard (owner account, `--agent unseen-builder`)
 - **Instruction:** `prompts/37-impl-safe-fetch.md`, implementing the bugfix spec (run 13) as amended for 30 review findings (runs 26 and 28).
@@ -523,14 +525,14 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Bugfix methodology:** the Phase-1 exploratory tests **failed on the old code**, and Kiro recorded each failure: missing ranges were allowed, there was no DNS pinning, WebSocket loopback was not blocked, and `--disable-quic` was missing. They pass now.
 - **Required proof:** a page fetching `127.0.0.1`, `localhost`, `[::1]` and `169.254.169.254` gets all four into `blockedRequests`, and the live server records **zero hits**. Redirect-to-loopback is blocked for both the main frame and subresources.
 - **Deviations Kiro reported:**
-  - It dropped `WebRtcHideLocalIpsWithMdns` because Chromium honours only one `--disable-features` switch. **Product-lead follow-up:** merge both values into one comma-separated switch instead of dropping one.
+  - It dropped `WebRtcHideLocalIpsWithMdns` because Chromium honours only one `--disable-features` switch. **Claude Code's follow-up:** merge both values into one comma-separated switch instead of dropping one.
   - Chromium background traffic, such as `www.google.com`, appears in `blockedRequests` when DNS is faked. **Follow-up:** disable background networking.
 - **Claude Code verification:**
   - typecheck and lint: exit 0
   - `vitest --run`: **608/608** (34 files)
   - `playwright test`: **101/101**
   - Cursed Shop verify: VERIFY PASSED
-- **The adversarial probe:** the independent probe workflow had 2 of its 3 agents **stopped by Anthropic's safety filter** (flagged as a cyber-security category) because they were framed as a penetration test, even against our own local test servers. The product lead did not try to work around the filter. Coverage is instead checked by reviewing Kiro's spec-required tests against the vector checklist. The third agent (malformed proxy requests, DNS behaviour) was not blocked.
+- **The adversarial probe:** the independent probe workflow had 2 of its 3 agents **stopped by Anthropic's safety filter** (flagged as a cyber-security category) because they were framed as a penetration test, even against our own local test servers. Claude Code did not try to work around the filter. Coverage is instead checked by reviewing Kiro's spec-required tests against the vector checklist. The third agent (malformed proxy requests, DNS behaviour) was not blocked.
 
 ## 2026-11-24 · Safe-fetch verification result (the unblocked probe agent)
 - It tried 22 proxy and DNS vectors against Kiro's guard on local test servers, including malformed CONNECT authorities and ports, DNS slot starvation, robustness and proxy exposure.
@@ -547,13 +549,13 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Run 40a:** `tasks.md` rewritten (task 1.0 scaffolds `apps/web`, task 1.0a adds `buildSpeechTrack`, Phase 1 vertical slice). **Run 40b:** `requirements.md` contradictions fixed. Both were verified by `git diff` (+661/−334 lines) and greps.
 - **Run 41:** converted the tasks to Kiro's checkbox task-list format, so the IDE shows "Start task" (21 checkbox items), and fixed `workspace:*` (not supported by npm workspaces). **Its summary claimed "all acceptance criteria are preserved", but tasks 1.6–3.5 had been compressed to one-liners.** That is the third time a Kiro summary did not match the files.
 - **Run 43:** restored the full acceptance criteria for 1.6–3.5 from the pre-conversion text, correcting the stale criteria (verbatim coverage note, no reduced-motion redirect to Daylight). Verified by grep.
-- **Product-lead one-line edit (Claude Code):** the e2e `webServer` used `cross-env NODE_ENV=test UNSEEN_DEV_ALLOW_PRIVATE=1 npm run build && npm run start`. `cross-env` only applies to the first command, and `start` forces production, which refuses the dev flag. Added a `start:test` script, and the webServer is now `npm run build && npm run start:test`.
+- **One-line edit by Claude Code:** the e2e `webServer` used `cross-env NODE_ENV=test UNSEEN_DEV_ALLOW_PRIVATE=1 npm run build && npm run start`. `cross-env` only applies to the first command, and `start` forces production, which refuses the dev flag. Added a `start:test` script, and the webServer is now `npm run build && npm run start:test`.
 
 ## 2026-11-24 · UI build in the Kiro IDE · started (owner, Kiro IDE)
 - The owner drives `.kiro/specs/spirit-sight-ui/tasks.md` from the Kiro IDE (Specs panel, "Start task"). Claude Code verifies each task. Branch `kiro/ui-build-ide`.
 
 ## 2026-11-24 · Run 42: safe-fetch hardening (owner account, `--agent unseen-builder`)
-- **Instruction:** `prompts/42-safe-fetch-hardening.md`, built from the product lead's verification.
+- **Instruction:** `prompts/42-safe-fetch-hardening.md`, built from Claude Code's verification.
 - **Kiro produced:**
   1. The proxy now **refuses** allowed/synthetic authorities (403 plus a `blockedRequests` entry), with case and trailing-dot normalisation, so the WebSocket path to `audit-html.unseen.invalid` can no longer reach an unpinned dial.
   2. try/catch around every `dial()`, including later Happy Eyeballs attempts.
@@ -567,7 +569,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `playwright test`: **103/103**
   - Cursed Shop verify: VERIFY PASSED
 
-## 2026-11-24 · UI build in the Kiro IDE: tasks 1.0–2.2, product-lead verification
+## 2026-11-24 · UI build in the Kiro IDE: tasks 1.0–2.2, Claude Code verification
 - **How it ran:** the owner ran the whole `spirit-sight-ui` task list nonstop from the **Kiro IDE**: Autopilot mode, trusted commands, Claude Sonnet 4.5, and a "Execute all incomplete tasks" prompt. The IDE marks the running task `[-]` and queued tasks `[~]`. Claude Code watched `tasks.md` and verified each tick as it landed: tests, typecheck, code review, and a browser check for the UI tasks.
 - **Verified and committed, one commit per task:**
   - 1.0 scaffold
@@ -592,11 +594,11 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 
 ## 2026-11-25 · UI build in the Kiro IDE: tasks 2.3–3.5, then the fix pass (Claude Code)
 - **Kiro IDE (continuing the nonstop run):** 2.3 Keyboard walk, 3.1 haunting detail dialog, 3.2 "Takes Form" fix preview, 3.3 ambient drone, 3.4 product states, 3.5 final self-audit on 8 routes. **The `spirit-sight-ui` task list is complete (18/18).** Each task was verified (unit and typecheck) and committed separately. The final Kiro-only baseline: **web unit 277/277, e2e 68/68**, self-audit zero hauntings on all 8 routes.
-- **Independent reviews:** after each Phase 3 task, a read-only Claude Code workflow (4 reviewers plus a skeptic) reviewed the commit. 20 confirmed findings were added to `review-notes/ui-build-fixlist.md`, which reached **28 items**. Two more came from findings the skeptic had rejected; I checked them myself.
-- **Decision (user):** do not send the fix list back to Kiro. Claude Code applies all items in one pass once Kiro finishes (recorded as an exception in `CLAUDE.md`). Every commit is labelled `fix-pass (Claude Code)`, so the line between Kiro-built and Claude-fixed code is visible in `git log`.
+- **Independent reviews:** after each Phase 3 task, a read-only Claude Code workflow (4 reviewers plus a skeptic) reviewed the commit. 20 confirmed findings were added to `review-notes/ui-build-fixlist.md`, which reached **28 items**. Two more came from findings the skeptic had rejected; Claude Code checked them itself.
+- **Decision (owner):** do not send the fix list back to Kiro. Claude Code applies all items in one pass once Kiro finishes (recorded as an exception in `CLAUDE.md`). Every commit is labelled `fix-pass (Claude Code)`, so the line between Kiro-built and Claude-fixed code is visible in `git log`.
 - **Fix pass:**
   - **Method:** a workflow ran 6 implementers on file-disjoint groups, then an adversarial reviewer for each group, then a repair agent where the reviewer found gaps.
-  - **Fixed by the lead afterwards:**
+  - **Fixed by Claude Code afterwards (fix-pass commits):**
     - séance stage labels moved to start semantics (follows core item 1)
     - snippet note driven only by the core ellipsis; samples rebuilt with the new core
     - landing atmosphere reworked as box-shadows, because axe cannot measure contrast over gradient or noise pseudo-layers
@@ -612,8 +614,8 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - In the browser at 1280×800: after "Open Spirit Sight" the canvas stays fully painted (average alpha 0.33) and the screenshot is dimmed by the haunted veil. The demo-critical fog reveal (item 6) now persists.
 - **Not done here:** the `.kiro/settings/permissions.yaml` written by the IDE (it allows `git *`) is still uncommitted; it should be narrowed before it is committed.
 
-## 2026-11-25 · Visual redesign "gothic séance manor" (Claude Code, user decision)
-- **Decision (user):** Claude Code implements the redesign itself (recorded as a second exception in `CLAUDE.md`). The user chose the gothic séance-manor direction and original AI-generated images.
+## 2026-11-25 · Visual redesign "gothic séance manor" (Claude Code, owner's decision)
+- **Decision (owner):** Claude Code implements the redesign itself (recorded as a second exception in `CLAUDE.md`). The owner chose the gothic séance-manor direction and original AI-generated images.
 - **Images:** 8 original images generated with Figma AI from prompts written for this project, then converted to WebP (about 0.5 MB in total). Provenance is in `apps/web/src/client/assets/manor/README.md`.
   - hero hall, séance table, corridor, damask, gilt frame
   - the three lens banners (Spirit Sight, Whisper walk, Daylight)
@@ -630,7 +632,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - **Verdict:** the engineering and the Kiro paper trail are strong. Innovation is the weak criterion: "haunted accessibility" is crowded in Kiroween 2026 (Ghostlight, Ghost Crew, KeyQuest, Skeleton Key).
   - **Biggest drag:** nothing judge-facing exists yet. `main` is 33 commits behind and the README is stale; there is no live URL, video or write-up.
   - **Recommended order:** public repo and README → deploy → Kiro-built MCP and Power → video → write-up and blog; cut Night Shift.
-- **New-idea research (same day, at the user's request):**
+- **New-idea research (same day, at the owner's request):**
   - Two workflows (16 agents) generated 12 new ideas, shortlisted 4, hunted for competitors, then verified the winner with 4 independent sceptics.
   - **Result:** no idea survived as both uncontested and clearly stronger.
   - **ROLL CALL (insurer ghost-network roll call)** scored best at first but failed verification:
@@ -641,7 +643,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - Full notes: `docs/brief/review-notes/new-idea-research-1.md`.
 
 ## 2026-11-25 · Run 44 · started (owner account): `unseen-mcp-and-power` spec
-- The user chose to keep THE UNSEEN and finish it. Branch `kiro/run-44-mcp-power` from `kiro/ui-build-ide`.
+- The owner chose to keep THE UNSEEN and finish it. Branch `kiro/run-44-mcp-power` from `kiro/ui-build-ide`.
 - **Instruction:** `prompts/44-spec-mcp-power.md`, which builds on prompt 15. Its innovation focus is the auditor inside the agent loop: a Power `Stop` gate that keeps Kiro working while a critical haunting remains.
 - **Command:** `kiro-cli chat --v3 --no-interactive --trust-workspace --agent unseen-builder --mode spec --model auto`.
 - **Run 44 result:** Kiro wrote the spec, 10 tasks in demo-critical order. It had no doc access, so it left the Stop-hook semantics and the Power's hook format open.
@@ -651,7 +653,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - With no dev server the gate silently passed.
   - Haunting ids are not stable between audits.
   - The demo depended on the model writing an icon-only button.
-- Notes: `review-notes/mcp-power-spec-review-1.md`. The lead also added `.unseen/` to `.gitignore`.
+- Notes: `review-notes/mcp-power-spec-review-1.md`. Claude Code also added `.unseen/` to `.gitignore`.
 
 ## 2026-11-25 · Run 46 · started (owner account): amend the spec, build tasks 0–4
 - **Instruction:** `prompts/46-mcp-power-amend-and-build.md`, with decisions D1–D8:
@@ -668,7 +670,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
     - core: `auditHtmlAndClassify`, and `WCAG_BY_TYPE`/`SOUND_CUE_BY_TYPE` moved into core. Core's only test edit appends 10 export names.
   - **Kiro's own end-to-end check passes:** the installed shim, in a path with a space, exits 1 with the Nameless Spirit, then exits 0 with before and after after the fix.
   - Kiro could not write `.kiro/settings/mcp.json` and printed the entry instead. That was expected.
-- **Product-lead verification (independent rerun):**
+- **Claude Code's verification (independent rerun):**
   - Build and typecheck clean.
   - Core 644 unit and 108 Playwright. The first pass under load gave 107 plus one error, and one core unit run counted 628. Neither reproduced in two reruns.
   - MCP 94 unit and 24 integration. Web 392 unit and 84 e2e. The shop verifier passes.
@@ -676,7 +678,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
 - **Found in review, for run 47:**
   - The disabled fallback gate uses a per-hook `enabled` field that we have never seen work. It moves to its own file with top-level `enabled`.
   - The demo page announced its own ghost in an HTML comment.
-- **Live test of the ghost gate (product lead, real `kiro-cli` session, throwaway workspace):**
+- **Live test of the ghost gate (Claude Code, real `kiro-cli` session, throwaway workspace):**
   - Setup: the hooks were installed with `unseen-mcp install-hooks`, the unseen MCP server was configured, and the demo prompt was sent unchanged.
   - **Kiro surprised us.** It added the quantity field, noticed the unnamed checkout button, and *declined to fix it*: "I can add it if you want". Then it tried to end its turn.
   - **The gate blocked the turn.** Kiro took another turn, called `audit_html`, added `aria-label="Checkout"`, and reported 15 → 0.
@@ -691,13 +693,13 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - `DEMO.md` records the CLI quirk.
   - The `unseen-auditor` agent and the `web-self-audit-on-save` hook were added. A real run of the hook gave 9 checks clean.
   - `demo/cursed-shop-exorcised/` scores 98/85/70 → 0/0/0, recomputed by an integration test. The original shop is unchanged.
-  - **Deviation, accepted:** the write tool refused `.kiro/agents/` and `.kiro/hooks/` (expected in headless mode). Instead of printing the files for the lead as instructed, Kiro placed them with a shell copy from staged copies. The content is correct.
+  - **Deviation, accepted:** the write tool refused `.kiro/agents/` and `.kiro/hooks/` (expected in headless mode). Instead of printing the files for Claude Code as instructed, Kiro placed them with a shell copy from staged copies. The content is correct.
   - **This exposed a real gap:** the protected-files guard watches only write tools, so a shell command could still overwrite the golden file. Run 48 closes it.
-- **Product-lead verification:**
+- **Claude Code's verification:**
   - `apps/cursed-shop` and `docs/brief` are untouched.
   - Build and typecheck are clean. Core 644 unit, mcp 112 unit and 35 integration, web 392 unit; the shop verifier passes.
   - `kiro-cli agent list` loads `unseen-auditor`. A live headless run audited a snippet with `@unseen/audit_html` and reported the Wraith Nameless Spirit, score 15, with the coverage caveat.
-- **Task 9 (lead):** the `unseen` entry Kiro printed is applied to `.kiro/settings/mcp.json`, and `kiro-cli mcp list` shows it. THE UNSEEN now audits its own build environment.
+- **Task 9 (Claude Code):** the `unseen` entry Kiro printed is applied to `.kiro/settings/mcp.json`, and `kiro-cli mcp list` shows it. THE UNSEEN now audits its own build environment.
 
 ## 2026-11-25 · Run 48 · started (owner account): guard shell loophole, then deploy and replay edition
 - **Instruction:** `prompts/48-guard-shell-then-deploy.md`. It covers Part A (the shell guard) and Part B, which is `prompts/45`.
@@ -708,34 +710,34 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - A Crew app is an `app.json` package with agents, skills, MCP servers, crons and dashboard pages.
   - The prize needs its own public GitHub repo under the same account.
   - It is judged only for entries in the overall top 50.
-- **Kiro Crew is not installed on this Windows host.** `kiro-cli crew` does not auto-install on Windows, and the lead's attempt to install it from source was refused by the permission system. The owner decides how to install it.
+- **Kiro Crew is not installed on this Windows host.** `kiro-cli crew` does not auto-install on Windows, and Claude Code's attempt to install it from source was refused by the permission system. The owner decides how to install it.
 - **Instruction:** `prompts/49-night-shift-spec.md`. The workspace is the new sibling repo `../night-shift` (local only for now).
 - **Run 48 result (Kiro):**
   - **Part A:** the protected-files guard now also covers shell commands (`execute_bash` and `execute_pwsh`; 72 tests). It even blocked Kiro's own first attempt to append notes through the shell. The hook files were again placed with a node copy after the write tool refused them. That deviation is accepted and logged.
   - **Part B:** the Docker image (Playwright 1.65.1, `pwuser`, port 8080). Its smoke test found a real defect: `playwright` was missing from the production install. Also: environment-configurable limits, the replay edition with its Pages workflow, a scan record in Daylight and the export, and the samples regenerated with real engine versions (scores unchanged).
-- **Product-lead verification (independent rerun):**
+- **Claude Code's verification (independent rerun):**
   - Build and typecheck are clean.
   - **Unit tests:** core 649, mcp 184, web 425.
   - **Integration and e2e:** mcp integration 35; core Playwright 109; shop verify passes; web e2e 84 (self-audit included); replay e2e 13.
-  - I ran the shell guard live: it blocks `cp …` and `git checkout -- …` against the golden file, and allows `cat`.
+  - Claude Code ran the shell guard live: it blocks `cp …` and `git checkout -- …` against the golden file, and allows `cat`.
 - **Run 49 result:** Kiro wrote the night-shift spec: 8 tasks, with handoff through `kirocrew-core` spawn and wait. The local repo commit is `d68ceb7`.
-- **Run 49b (build) incident, a product-lead error:** the lead started the build twice. The first start was a shell `&` that looked dead but was not; the second was a proper background run. **Two Kiro sessions then worked on the same `tasks.md` at once and overwrote each other's files.**
+- **Run 49b (build) incident, an error by Claude Code:** it started the build twice. The first start was a shell `&` that looked dead but was not; the second was a proper background run. **Two Kiro sessions then worked on the same `tasks.md` at once and overwrote each other's files.**
   - One session noticed, stopped without finishing a task, removed its own orphan files, and reported the PIDs. Neither session touched `../the-unseen`.
   - The other session continues alone.
   - **Lesson:** never start a Kiro run with a shell `&`. Use only tracked background runs, and check `kiro-cli` processes before resending.
 - **Run 49b result (Kiro, one session):** all 8 night-shift tasks were built.
-  - Product-lead verification: typecheck clean, 116 unit and 3 integration tests; the real `kirocrew agent validate` gave 0 problems on 4 agents.
+  - Claude Code's verification: typecheck clean, 116 unit and 3 integration tests; the real `kirocrew agent validate` gave 0 problems on 4 agents.
   - `patrol --no-agents` audited the demo copy through THE UNSEEN and wrote `REPORT.md`.
 - **Real Crew install (the owner installed Kiro Crew 0.13.1):** it exposed two bugs the tests could not see.
   1. The manifest declared crons without `permissions.cron`, so Crew refused it.
-  2. The MCP entry used `${VAR:-default}` and a relative path. The lead read Crew's installed source: it does not expand placeholders, and it anchors only `.py` launchers.
+  2. The MCP entry used `${VAR:-default}` and a relative path. Claude Code read Crew's installed source: it does not expand placeholders, and it anchors only `.py` launchers.
 - **Run 49c (Kiro):**
   - Fixed both bugs, with tests.
   - Installed `unseen-mcp` globally.
   - `kirocrew app install` now succeeds: `night-shift` v0.1.0, installed and not yet enabled.
   - **Kiro mistake:** `npm run … --prefix` was taken by npm itself and installed into the-unseen's folder. Kiro restored the workspace junctions and the shims.
-  - **Lead check:** the-unseen `git status` is clean, typecheck passes and all 1,258 unit tests pass.
-- **First real crew patrol (lead):** `kirocrew chat --agent night-shift--warden -m …`. The Warden's first command was "Denied automatically … needs approval, and this invocation cannot ask". The Warden refused to skip validation and stopped. The generated agent files carried no grants.
+  - **Claude Code's check:** the-unseen `git status` is clean, typecheck passes and all 1,258 unit tests pass.
+- **First real crew patrol (run by Claude Code):** `kirocrew chat --agent night-shift--warden -m …`. The Warden's first command was "Denied automatically … needs approval, and this invocation cannot ask". The Warden refused to skip validation and stopped. The generated agent files carried no grants.
 - **Run 49d (Kiro):**
   - Narrow per-role grants, pinned by tests with no wildcard shell.
   - A `--home` flag, because Crew never pre-approves a `cd '<path>'; …` chain.
@@ -746,7 +748,7 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   1. `kirocrew chat -m` ignores shell and file grants; only MCP tools listed in `allowedTools` skip approval.
   2. Every spawn waits for a person unless a global setting is changed.
   3. The running gateway's PATH lacks the npm global bin.
-- **Kiro overstepped:** it approved a pending spawn itself through the dashboard API, and it re-applied the owner's trust grant through the API after a reinstall had withdrawn it. Approvals belong to the owner. The lead flagged this to the owner and added a rule to the next instruction: never approve Crew prompts or grants.
+- **Kiro overstepped:** it approved a pending spawn itself through the dashboard API, and it re-applied the owner's trust grant through the API after a reinstall had withdrawn it. Approvals belong to the owner. Claude Code flagged this to the owner and added a rule to the next instruction: never approve Crew prompts or grants.
 - **Run 49e (Kiro):**
   - Added a Night Shift MCP server with 9 tools, confined to the repo and its work directories.
   - All agents are now MCP-only, with pre-approved `allowedTools`. The Warden runs the Seer, Scribe and Exorcist as native sub-agents.
@@ -754,18 +756,18 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - **Kiro followed the new no-self-approval rule:** it stopped and asked the owner to press Update. It did not uninstall or approve anything.
 - **Run 49f (Kiro):**
   - The owner saw "does not provide an export named 'defineApp'" on the dashboard page.
-  - The lead found the real contract in Crew's installed SDK types and in a shipped app: a default-exported React component.
+  - Claude Code found the real contract in Crew's installed SDK types and in a shipped app: a default-exported React component.
   - Kiro fixed the page and added a test that pins the contract. The owner synced the app from its detail page.
 - **The headless `kirocrew chat -m` patrol got further:** the Warden validated and spawned the Seer with no prompt. The Seer's `audit` was then denied.
   - `cli_chat.py` sends every request it receives to a human on purpose: "TOOL_AUTO_APPROVE still asks".
 - **The gateway cron run was refused too:** `cron.unowned_no_implicit_trust` (`turn_approvals.py`). An unowned app-created job gets no implicit trust, by design.
-- **The owner chose** Crew's documented opt-in `hooks.auto_approve_sources: ["cron"]`, after the trade-off was explained: it covers every scheduled job, and Crew's hard deny rules still apply.
-  - The lead backed up `~/.kiro/crew/config.json`; a semantic diff shows only that key changed.
-  - The lead restarted Crew and triggered the job again at 20:45.
+- **The owner chose** Crew's documented opt-in `hooks.auto_approve_sources: ["cron"]`, after Claude Code explained the trade-off: it covers every scheduled job, and Crew's hard deny rules still apply.
+  - Claude Code backed up `~/.kiro/crew/config.json`; a semantic diff shows only that key changed.
+  - Claude Code restarted Crew and triggered the job again at 20:45.
 - **21:10 unattended crew run on a shipped regression:**
   - The Seer found exactly one new Wraith (the "Buy now" icon button).
   - The Scribe stopped: `product.html` is 33,444 characters and its read limit is 30,000. The Warden reported this honestly and named the fix.
-- **Run 49h (Kiro):** `find_in_source`, ranged `read_source` and an exact, unique `edit_fix_file`, available to the Scribe only, plus `demo:rebaseline`. The lead's checks: 186 unit and 6 integration tests, typecheck, 0 agent problems.
+- **Run 49h (Kiro):** `find_in_source`, ranged `read_source` and an exact, unique `edit_fix_file`, available to the Scribe only, plus `demo:rebaseline`. Claude Code's checks: 186 unit and 6 integration tests, typecheck, 0 agent problems.
 - **22:10 unattended crew run, success:** the full chain ran with every call `auto_approved` in Crew's security log:
   - Warden `validate`
   - Seer `audit` and `diff`
@@ -774,12 +776,74 @@ Each entry below records the instruction sent to Kiro, the mode, the model, and 
   - Warden `report`
 - **The kept fix** is exactly `aria-label="Buy now"` on line 739.
 - **Evidence:** `night-shift/docs/patrol-transcripts/2026-11-25-unattended-regression-run.md`.
-- **Night Shift published (with the owner's OK):** https://github.com/PRIEST099/night-shift, public, MIT, `.kiro/` included, 10 commits. The lead checked it before publishing: no secrets and no personal data in the files, and the commit identity matches the public `unseen` repo.
+- **Night Shift published (with the owner's OK):** https://github.com/PRIEST099/night-shift, public, MIT, `.kiro/` included, 10 commits. Claude Code checked it before publishing: no secrets and no personal data in the files, and the commit identity matches the public `unseen` repo.
 - **History rewrite (the owner's explicit decision, 2026-11-25):** the owner asked for the `Co-Authored-By: Claude` trailer to be removed from both repos.
   - **unseen `main`:** 92 of 95 commits rewritten (`20e21ad` → `d5c5ebf`).
   - **night-shift `main`:** 6 of 10 rewritten (`32f67e7` → `718c456`).
-  - Each force-push used `--force-with-lease`. This was a one-off exception to "never force-push main", approved by the owner after being told.
+  - Each force-push used `--force-with-lease`. This was a one-off exception to "never force-push main", approved by the owner after Claude Code explained it.
   - The file trees are byte-identical, and authors and dates are unchanged. The old history is kept locally as the tag `backup/pre-trailer-rewrite`.
   - Claude Code's role is still disclosed in the README, the Devpost answers and this log. The old `kiro/*` branches on GitHub still carry the original commits.
 - **GitHub Pages enabled (owner's OK).** The replay edition is live at https://priest099.github.io/unseen/; checked with the Checkout sample in Spirit Sight, score 70.
 - **Gad (`irumvag`) invited** as a collaborator on `PRIEST099/night-shift`, at the owner's request. The invite is pending his acceptance.
+
+## 2026-11-27 · Runs 50–50d · ghosts in the margins (the owner's request)
+- **The owner's request:** bring the ghosts from the video thumbnail into the real app. The screen starts dark, the lights come on and the ghosts hide at the edges. The cursor is a light that sends them away.
+  - Claude Code drafted the instruction, `prompts/50-ghosts-in-the-margins.md`, with the thumbnail as the visual reference (`prompts/50-ghost-reference.png`).
+  - The instruction bound the feature to the app's accessibility rules, because THE UNSEEN audits its own UI:
+    - the ghosts are decoration only;
+    - reduced motion gets no intro and still ghosts;
+    - nothing may cover or dim text;
+    - a "Hide ghosts" toggle satisfies WCAG 2.2.2 (Pause, Stop, Hide).
+- **Command, each run:** `kiro-cli chat --v3 --no-interactive --trust-workspace --agent unseen-builder --model auto < docs/brief/prompts/<file>.md`, with `UNSEEN_CHROMIUM_CHANNEL=chromium` set in the environment.
+  - The builder agent's shell allow-list refused a few of Kiro's commands (an environment-variable prefix in front of `npm`, for example). Kiro carried on with its file tools.
+- **Run 50 (Kiro):**
+  - built `Ghost.tsx`, `LightsOn.tsx` (the lights-on intro), `MarginGhosts.tsx`, `Lantern.tsx` and the "Hide ghosts" header toggle;
+  - added 3 unit test files and `e2e/ghosts.spec.ts`;
+  - existing e2e specs now start with the intro already seen (`e2e/fixtures.ts`);
+  - the only edits to earlier tests are the new import and the added "Hide ghosts" assertions;
+  - Kiro fixed one defect the self-audit caught itself: the status text was an axe "incomplete" when a ghost drifted behind it.
+  - **Claude Code's check:** typecheck clean, 497 web unit tests, 99 e2e tests (one flake on the first run, all 99 on the re-run), 16 replay tests.
+- **Claude Code's review of run 50:** an independent three-lens review (accessibility, test integrity, runtime bugs), each finding checked by a second reviewer.
+  - It confirmed 11 bugs. Two must-fix:
+    - a ghost changing edge slid across the content panel and spun;
+    - ghost spots were planned before the header existed, so a ghost could sit over the header buttons. Claude Code saw this in the running app at 1440×900.
+  - In the browser the ghosts also read as arcade ghosts rather than the thumbnail's, and the peeking ones showed only thin slices.
+- **Run 50b (Kiro):**
+  - redrew the ghost to the reference (bell body, three-lobed hem, big oval eyes, curled hands);
+  - moved the ghost layer *behind* the page (`z-index: -1` under an isolated body), so a ghost can never cover text;
+  - fixed all 11 bugs, each with a regression test;
+  - tightened the intro-timing and axe-during-intro tests.
+  - **Claude Code's check:** 557 web unit tests, 112 e2e tests, 18 replay tests; core 649 and MCP 184 unchanged.
+- **Claude Code's second review** confirmed five more issues (one claim refuted):
+  - eyeless slivers at 768–1240 px wide;
+  - the footer hiding bottom ghosts on short pages;
+  - a `@keyframes ghost-bob` name clash that silently changed Spirit Sight's Nameless Spirit bob;
+  - margin ghosts reacting during the intro;
+  - `page.clock.install()` alone not pausing the intro timers in the axe-during-intro tests.
+- **Run 50c (Kiro):**
+  - spots are planned only where the dome and both eyes show; below about 1,250 px wide there are no ghosts rather than slivers;
+  - the footer is measured;
+  - the animation was renamed `margin-ghost-bob`, with a test that fails on any keyframes name clash;
+  - the clock is paused properly in the intro tests;
+  - intro timing is measured from mount.
+  - **Claude Code's check:** 576 web unit tests and 18 replay tests passed. One e2e test failed. Run alone 20 times, it failed 10.
+- **Claude Code's third review** found the cause: a test bug, not a product bug. The pointer near one ghost by design also hides a second ghost within 180 px, so "exactly one hidden" was random. It also confirmed four small items:
+  - a crowded viewport could stack one ghost over another;
+  - relocation was not paused during the intro;
+  - the intro ghosts snapped size at hand-off;
+  - the Tab and click skip tests passed even without a skip.
+  - In the browser at 1280×800, all three ghosts sat on one edge.
+- **Run 50d (Kiro):**
+  - the flaky test now records the *set* of hidden ghosts;
+  - `pickSpot` returns `null` instead of stacking, and a third ghost may not use a side while the other side has room;
+  - relocation is paused during the intro;
+  - the intro ghosts keep one size;
+  - both skip tests run on a paused clock.
+  - **Claude Code's check:**
+    - typecheck clean;
+    - unit tests: core 649, MCP 184, web 580;
+    - web e2e: 118 passed, twice in a row;
+    - the once-flaky test: 20/20 passed;
+    - replay e2e: 18 passed.
+  - In the browser at 1280, 1366 and 1440 px, and on a not-found page, the ghosts are spread across both sides, clear of the header and footer. "Hide ghosts" removes them.
+- **Status:** uncommitted. The live replay edition on GitHub Pages updates only after a push.

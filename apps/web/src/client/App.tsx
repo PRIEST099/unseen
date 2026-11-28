@@ -2,6 +2,8 @@ import type { ReactElement } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { AppHeader } from './components/AppHeader'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { LightsOn } from './components/LightsOn'
+import { MarginGhosts } from './components/MarginGhosts'
 import { AnnouncerProvider } from './contexts/AnnouncerContext'
 import { useAmbientDrone } from './hooks/useAmbientDrone'
 import { replayConfig } from './utils/replay-config'
@@ -35,6 +37,8 @@ export function App(): ReactElement {
           <p>© THE UNSEEN</p>
         </footer>
       </div>
+      <MarginGhosts />
+      <LightsOn />
     </AnnouncerProvider>
   )
 }

@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 import type { TestInfo } from '@playwright/test'
 import { auditAndClassify } from '@the-unseen/core'
 import type { ClassifiedAudit } from '@the-unseen/core'
@@ -31,7 +31,7 @@ type Route = {
 }
 
 const ROUTES: Route[] = [
-  { title: 'Landing', path: '/', marker: { heading: 'THE UNSEEN', buttons: ['Begin audit', 'Toggle sound'] } },
+  { title: 'Landing', path: '/', marker: { heading: 'THE UNSEEN', buttons: ['Begin audit', 'Toggle sound', 'Hide ghosts'] } },
   {
     title: 'Spirit Sight',
     path: SAMPLE,

@@ -16,6 +16,11 @@
   /* Pure black: the inside of a picture frame and the shadows panels cast. */
   --color-void: #000000;
 
+  /* The ghosts in the margins: decoration only, never behind text. */
+  --color-ghost-top: #E4FBF2;
+  --color-ghost-bottom: #A8EBD3;
+  --color-ghost-glow: #6FD3B0;
+
   /* Type scale */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
